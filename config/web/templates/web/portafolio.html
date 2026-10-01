@@ -1,0 +1,84 @@
+{% extends "web/base.html" %}
+
+{% block title %}Portafolio | MtFlow{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <p class="eyebrow">ARTE QUE TE ACOMPAÑA</p>
+        <h1>Portafolio</h1>
+        <div class="heading-line"></div>
+        <p class="subtitle">
+            Explora nuestros estilos. Cada tatuaje comienza con una idea.
+        </p>
+    </div>
+
+    <div class="studio-badge">
+        <span class="avatar">MT</span>
+        <div>
+            <strong>MtFlow</strong>
+            <span>Estudio de tatuajes</span>
+        </div>
+    </div>
+</header>
+
+<section aria-label="Galería de estilos">
+    <div class="filters" role="group" aria-label="Filtrar por estilo">
+        <button class="filter active" data-filter="Todos" aria-pressed="true">
+            Todos
+        </button>
+
+        {% for trabajo in trabajos %}
+        <button class="filter"
+                data-filter="{{ trabajo.estilo }}"
+                aria-pressed="false">
+            {{ trabajo.estilo }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <p class="demo-note">
+        Vista preliminar · Las fotografías del estudio se agregarán próximamente.
+    </p>
+
+    <div class="portfolio-grid">
+        {% for trabajo in trabajos %}
+        <article class="portfolio-card" data-style="{{ trabajo.estilo }}">
+            <div class="image-placeholder">
+                <span class="placeholder-mark" aria-hidden="true">✧</span>
+                <span>Fotografía pendiente</span>
+            </div>
+
+            <div class="card-caption">
+                <h2>{{ trabajo.estilo }}</h2>
+                <p>{{ trabajo.descripcion }}</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const filters = document.querySelectorAll("[data-filter]");
+    const cards = document.querySelectorAll("[data-style]");
+
+    filters.forEach((button) => {
+        button.addEventListener("click", () => {
+            const selected = button.dataset.filter;
+
+            filters.forEach((filter) => {
+                const active = filter === button;
+                filter.classList.toggle("active", active);
+                filter.setAttribute("aria-pressed", String(active));
+            });
+
+            cards.forEach((card) => {
+                card.hidden = selected !== "Todos"
+                    && card.dataset.style !== selected;
+            });
+        });
+    });
+</script>
+{% endblock %}
