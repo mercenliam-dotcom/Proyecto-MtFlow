@@ -7,4 +7,5 @@ app_name = "web"
 urlpatterns = [
     path("", views.portafolio, name="portafolio"),
     path("horarios/", views.horarios, name="horarios"),
+    path("cotizacion/", views.cotizacion, name="cotizacion"),
 ]

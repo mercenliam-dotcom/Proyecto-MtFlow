@@ -1,0 +1,300 @@
+{% extends "web/base.html" %}
+
+{% block title %}Solicitar cotización | MtFlow{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <p class="eyebrow">CUÉNTANOS TU IDEA</p>
+        <h1>Solicitar cotización</h1>
+        <div class="heading-line"></div>
+        <p class="subtitle">
+            Comparte tu referencia para que una tatuadora pueda revisarla.
+        </p>
+    </div>
+</header>
+
+<div class="notice">
+    Demostración: los datos y la imagen permanecen en esta página.
+    No se envían ni se guardan al recargar.
+</div>
+
+<div class="quote-layout">
+    <section class="surface">
+        <h2>Información de tu solicitud</h2>
+
+        <form id="quote-form">
+            <label class="field-label" for="client-name">
+                Nombre o alias *
+            </label>
+            <input class="form-control" id="client-name"
+                   autocomplete="name" maxlength="80" required>
+
+            <label class="field-label" for="client-email">
+                Correo electrónico *
+            </label>
+            <input class="form-control" id="client-email" type="email"
+                   autocomplete="email" maxlength="150" required>
+
+            <label class="field-label" for="client-phone">
+                Teléfono de contacto
+            </label>
+            <input class="form-control" id="client-phone" type="tel"
+                   autocomplete="tel" placeholder="+56 9 1234 5678"
+                   maxlength="25">
+
+            <label class="field-label" for="quote-artist">
+                Preferencia de tatuadora *
+            </label>
+            <select class="form-control" id="quote-artist" required>
+                <option value="">Selecciona una opción</option>
+                <option>Cualquiera de las dos</option>
+                <option>Tatuadora 1</option>
+                <option>Tatuadora 2</option>
+            </select>
+
+            <div class="form-row">
+                <div>
+                    <label class="field-label" for="body-zone">
+                        Zona a tatuar *
+                    </label>
+                    <select class="form-control" id="body-zone" required>
+                        <option value="">Selecciona una zona</option>
+                        <option>Brazo</option>
+                        <option>Antebrazo</option>
+                        <option>Pierna</option>
+                        <option>Espalda</option>
+                        <option>Pecho</option>
+                        <option>Otra zona</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="tattoo-size">
+                        Tamaño aproximado *
+                    </label>
+                    <select class="form-control" id="tattoo-size" required>
+                        <option value="">Selecciona un tamaño</option>
+                        <option>Hasta 5 cm</option>
+                        <option>Más de 5 y hasta 15 cm</option>
+                        <option>Más de 15 y hasta 25 cm</option>
+                        <option>Más de 25 cm</option>
+                    </select>
+                </div>
+            </div>
+
+            <label class="field-label" for="idea">
+                Describe tu idea *
+            </label>
+            <textarea class="form-control" id="idea" rows="4"
+                      maxlength="1500" required
+                      placeholder="Cuéntanos qué te gustaría tatuarte, los detalles y los colores."></textarea>
+
+            <label class="field-label" for="reference">
+                Imagen de referencia *
+            </label>
+
+            <div class="upload-box">
+                <span class="upload-symbol" aria-hidden="true">↑</span>
+                <strong>Selecciona tu referencia</strong>
+                <p id="file-help">JPG, PNG o WEBP. Máximo 10 MB.</p>
+                <input id="reference" type="file"
+                       accept="image/jpeg,image/png,image/webp"
+                       aria-describedby="file-help file-error" required>
+            </div>
+
+            <p id="file-error" class="error-message" role="alert"></p>
+
+            <button class="primary-button" type="submit">
+                Revisar mi solicitud
+            </button>
+        </form>
+    </section>
+
+    <div class="quote-side">
+        <section class="surface">
+            <div class="section-heading">
+                <h2>Imagen de referencia</h2>
+                <span class="preview-badge">Vista previa</span>
+            </div>
+
+            <div class="reference-preview">
+                <p id="preview-placeholder">
+                    Tu imagen aparecerá aquí cuando la selecciones.
+                </p>
+                <img id="reference-preview" alt="Referencia de tatuaje seleccionada"
+                     hidden>
+            </div>
+
+            <div class="file-details" id="file-details" hidden>
+                <span id="file-name"></span>
+                <button type="button" class="text-button" id="remove-image">
+                    Quitar imagen
+                </button>
+            </div>
+
+            <div class="info-box">
+                <strong>Análisis de estilo pendiente de integración</strong>
+                <p>
+                    Aquí mostraremos la sugerencia del modelo cuando esté
+                    conectado. La decisión final corresponderá a la tatuadora.
+                </p>
+            </div>
+        </section>
+
+        <section class="surface" id="quote-summary" hidden
+                 aria-labelledby="summary-heading">
+            <h2 id="summary-heading" tabindex="-1">Resumen de tu solicitud</h2>
+
+            <dl class="selection-details">
+                <dt>Nombre</dt>
+                <dd id="review-name"></dd>
+
+                <dt>Correo</dt>
+                <dd id="review-email"></dd>
+
+                <dt>Teléfono</dt>
+                <dd id="review-phone"></dd>
+
+                <dt>Tatuadora</dt>
+                <dd id="review-artist"></dd>
+
+                <dt>Zona y tamaño</dt>
+                <dd id="review-placement"></dd>
+
+                <dt>Tu idea</dt>
+                <dd id="review-idea"></dd>
+            </dl>
+
+            <p class="selection-message">
+                Resumen de demostración. Tu solicitud aún no ha sido enviada.
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById("quote-form");
+    const fileInput = document.getElementById("reference");
+    const preview = document.getElementById("reference-preview");
+    const placeholder = document.getElementById("preview-placeholder");
+    const fileDetails = document.getElementById("file-details");
+    const fileError = document.getElementById("file-error");
+    const summary = document.getElementById("quote-summary");
+
+    let objectUrl = null;
+    let imageReady = false;
+    let selectionVersion = 0;
+
+    function clearPreview() {
+        selectionVersion += 1;
+        imageReady = false;
+        preview.onload = null;
+        preview.onerror = null;
+        preview.hidden = true;
+        preview.removeAttribute("src");
+
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+
+        placeholder.hidden = false;
+        fileDetails.hidden = true;
+        document.getElementById("file-name").textContent = "";
+    }
+
+    function rejectFile(message) {
+        clearPreview();
+        fileInput.value = "";
+        fileError.textContent = message;
+    }
+
+    fileInput.addEventListener("change", () => {
+        summary.hidden = true;
+        fileError.textContent = "";
+        clearPreview();
+
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+        if (!allowedTypes.includes(file.type)) {
+            rejectFile("Selecciona una imagen JPG, PNG o WEBP.");
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            rejectFile("La imagen supera el límite de 10 MB.");
+            return;
+        }
+
+        const currentVersion = selectionVersion;
+        objectUrl = URL.createObjectURL(file);
+
+        preview.onload = () => {
+            if (currentVersion !== selectionVersion) return;
+
+            imageReady = true;
+            preview.hidden = false;
+            placeholder.hidden = true;
+            fileDetails.hidden = false;
+            document.getElementById("file-name").textContent = file.name;
+        };
+
+        preview.onerror = () => {
+            if (currentVersion !== selectionVersion) return;
+            rejectFile("No pudimos abrir esa imagen. Prueba con otro archivo.");
+        };
+
+        preview.src = objectUrl;
+    });
+
+    document.getElementById("remove-image").addEventListener("click", () => {
+        clearPreview();
+        fileInput.value = "";
+        fileError.textContent = "";
+        summary.hidden = true;
+    });
+
+    // Oculta el resumen cuando se editan datos para evitar mostrar datos antiguos.
+    form.addEventListener("input", () => {
+        summary.hidden = true;
+    });
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        if (!imageReady) {
+            fileError.textContent = "Espera a que la imagen cargue correctamente.";
+            fileInput.focus();
+            return;
+        }
+
+        const value = (id) => document.getElementById(id).value.trim();
+
+        if (!value("client-name") || !value("idea")) {
+            fileError.textContent = "Completa el nombre y la descripción de tu idea.";
+            return;
+        }
+
+        fileError.textContent = "";
+
+        // textContent evita interpretar los datos ingresados como código HTML.
+        document.getElementById("review-name").textContent = value("client-name");
+        document.getElementById("review-email").textContent = value("client-email");
+        document.getElementById("review-phone").textContent =
+            value("client-phone") || "No indicado";
+        document.getElementById("review-artist").textContent = value("quote-artist");
+        document.getElementById("review-placement").textContent =
+            `${value("body-zone")} · ${value("tattoo-size")}`;
+        document.getElementById("review-idea").textContent = value("idea");
+
+        summary.hidden = false;
+        document.getElementById("summary-heading").focus();
+    });
+</script>
+{% endblock %}

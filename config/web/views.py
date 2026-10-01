@@ -15,3 +15,6 @@ def portafolio(request):
 
 def horarios(request):
     return render(request, "web/horarios.html")
+
+def cotizacion(request):
+    return render(request, "web/cotizacion.html")

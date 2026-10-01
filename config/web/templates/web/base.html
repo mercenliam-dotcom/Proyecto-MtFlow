@@ -29,11 +29,11 @@
         Horarios
         </a>
 
-        <button class="nav-item" disabled>
-        <span aria-hidden="true">▤</span>
-        Cotizaciones
-        <small>Próximamente</small>
-        </button>
+        <a class="nav-item {% if request.resolver_match.url_name == 'cotizacion' %}active{% endif %}"
+        href="{% url 'web:cotizacion' %}"
+        {% if request.resolver_match.url_name == 'cotizacion' %}aria-current="page"{% endif %}>
+        <span aria-hidden="true">▤</span> Cotizaciones
+        </a>
         </nav>
 
         <div class="sidebar-footer">
