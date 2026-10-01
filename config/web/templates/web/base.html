@@ -14,22 +14,26 @@
             <span>TATTOO STUDIO</span>
         </a>
 
-        <nav class="navigation" aria-label="Navegación principal">
-            <a class="nav-item active"
-               href="{% url 'web:portafolio' %}"
-               aria-current="page">
-                <span aria-hidden="true">▧</span> Portafolio
-            </a>
+       <nav class="navigation" aria-label="Navegación principal">
+        <a class="nav-item {% if request.resolver_match.url_name == 'portafolio' %}active{% endif %}"
+        href="{% url 'web:portafolio' %}"
+        {% if request.resolver_match.url_name == 'portafolio' %}aria-current="page"{% endif %}>
+        <span aria-hidden="true">▧</span>
+        Portafolio
+        </a>
 
-            <button class="nav-item" disabled>
-                <span aria-hidden="true">◷</span> Horarios
-                <small>Próximamente</small>
-            </button>
+        <a class="nav-item {% if request.resolver_match.url_name == 'horarios' %}active{% endif %}"
+       href="{% url 'web:horarios' %}"
+       {% if request.resolver_match.url_name == 'horarios' %}aria-current="page"{% endif %}>
+        <span aria-hidden="true">◷</span>
+        Horarios
+        </a>
 
-            <button class="nav-item" disabled>
-                <span aria-hidden="true">▤</span> Cotizaciones
-                <small>Próximamente</small>
-            </button>
+        <button class="nav-item" disabled>
+        <span aria-hidden="true">▤</span>
+        Cotizaciones
+        <small>Próximamente</small>
+        </button>
         </nav>
 
         <div class="sidebar-footer">

@@ -12,3 +12,6 @@ def portafolio(request):
     ]
 
     return render(request, "web/portafolio.html", {"trabajos": trabajos})
+
+def horarios(request):
+    return render(request, "web/horarios.html")
