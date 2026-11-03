@@ -9,7 +9,8 @@ from apps.clasificacion.cliente_ml import ServicioMLNoDisponible, _validar_respu
 from apps.cuentas.models import Rol, Usuario
 from apps.nucleo.tests import utilidades as u
 
-CONF_OK = {"E-01": 0.93, "E-02": 0.02, "E-03": 0.01, "E-04": 0.01, "E-05": 0.01, "E-06": 0.01, "E-99": 0.01}
+CONF_OK = {"E-01": 0.93, "E-02": 0.02, "E-03": 0.01, "E-04": 0.01, "E-05": 0.01, "E-06": 0.01, "E-07": 0.01}
+# Formato del modelo de Roboflow: 7 estilos, sin E-99
 
 
 class Recomendacion(SimpleTestCase):
@@ -34,8 +35,8 @@ class ValidacionRespuesta(SimpleTestCase):
     def test_respuestas_invalidas(self):
         malos = [
             None, [], {"confianzas": "x"},
-            {"confianzas": {**CONF_OK, "E-07": 0.0}},                 # clase desconocida
-            {"confianzas": {k: v for k, v in CONF_OK.items() if k != "E-99"}},
+            {"confianzas": {**CONF_OK, "E-08": 0.0}},                 # clase desconocida
+            {"confianzas": {k: v for k, v in CONF_OK.items() if k != "E-07"}},   # falta un estilo
             {"confianzas": {**CONF_OK, "E-01": 1.5}},
             {"confianzas": {**CONF_OK, "E-01": "0.9"}},
             {"confianzas": {**CONF_OK, "E-01": float("nan")}},
@@ -44,6 +45,15 @@ class ValidacionRespuesta(SimpleTestCase):
         for m in malos:
             with self.assertRaises(ServicioMLNoDisponible, msg=str(m)):
                 _validar_respuesta(m)
+
+    def test_e99_es_opcional(self):
+        con_e99 = {**CONF_OK, "E-01": 0.92, "E-99": 0.01}
+        self.assertEqual(_validar_respuesta({"confianzas": con_e99}).estilo_sugerido, "E-01")
+
+    def test_nombres_del_catalogo(self):
+        from apps.clasificacion.catalogo import ESTILOS
+        self.assertEqual(ESTILOS["E-05"], "Línea fina")
+        self.assertEqual(len([c for c in ESTILOS if c != "E-99"]), 7)
 
     def test_sin_conexion(self):
         with mock.patch("requests.post", side_effect=requests.ConnectionError):

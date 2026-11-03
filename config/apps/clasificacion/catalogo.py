@@ -1,24 +1,31 @@
 """
 Catálogo de estilos del estudio y lógica de recomendación.
 
-PROVISORIO: los nombres reales de los seis estilos aún deben confirmarlos
-las socias. Al confirmarlos, cambiar SOLO este diccionario (los códigos
-E-01…E-06 y E-99 se mantienen, porque son los que usa el modelo).
+Los nombres son las 7 clases del modelo entrenado en Roboflow (proyecto
+"Tattoo styles"). El servicio de inferencia traduce cada clase a su código
+(ml_service/app/config.py, CLASES_ROBOFLOW). Si se agrega o renombra una
+clase, hay que cambiar ambos lugares.
+
+E-99 (fuera de catálogo) queda reservado: el modelo actual NO tiene esa
+clase, así que hoy nunca aparece en una respuesta.
 """
 from dataclasses import dataclass
 
 from django.conf import settings
 
 ESTILOS = {
-    "E-01": "Estilo 1 (por definir)",
-    "E-02": "Estilo 2 (por definir)",
-    "E-03": "Estilo 3 (por definir)",
-    "E-04": "Estilo 4 (por definir)",
-    "E-05": "Estilo 5 (por definir)",
-    "E-06": "Estilo 6 (por definir)",
+    "E-01": "Alto contraste",
+    "E-02": "Anime",
+    "E-03": "Cibersigilismo",
+    "E-04": "Lettering",
+    "E-05": "Línea fina",
+    "E-06": "Ornamentos",
+    "E-07": "Tribal / Neotribal",
     "E-99": "Fuera de catálogo",
 }
 CODIGO_FUERA_DE_CATALOGO = "E-99"
+# Estilos que el modelo SIEMPRE debe informar (E-99 es opcional)
+ESTILOS_OBLIGATORIOS = frozenset(c for c in ESTILOS if c != CODIGO_FUERA_DE_CATALOGO)
 
 
 @dataclass(frozen=True)

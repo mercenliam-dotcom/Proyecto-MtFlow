@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import requests
 from django.conf import settings
 
-from .catalogo import ESTILOS
+from .catalogo import ESTILOS, ESTILOS_OBLIGATORIOS
 
 log = logging.getLogger("mtflow.seguridad")
 
@@ -39,7 +39,8 @@ def _validar_respuesta(datos) -> ResultadoClasificacion:
     if not isinstance(datos, dict) or not isinstance(datos.get("confianzas"), dict):
         raise ServicioMLNoDisponible("Respuesta sin confianzas")
     confianzas = datos["confianzas"]
-    if set(confianzas) != set(ESTILOS):
+    claves = set(confianzas)
+    if not claves <= set(ESTILOS) or not ESTILOS_OBLIGATORIOS <= claves:
         raise ServicioMLNoDisponible("Los estilos de la respuesta no calzan con el catálogo")
     limpias = {}
     for codigo, valor in confianzas.items():
