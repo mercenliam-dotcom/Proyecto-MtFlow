@@ -6,7 +6,8 @@ def _cargar_env(ruta: Path) -> None:
     """Carga ml_service/.env (CLAVE=valor) sin pisar variables ya definidas."""
     if not ruta.exists():
         return
-    for linea in ruta.read_text(encoding="utf-8").splitlines():
+    # utf-8-sig tolera el BOM que agrega el Bloc de notas de Windows
+    for linea in ruta.read_text(encoding="utf-8-sig").splitlines():
         linea = linea.strip()
         if linea and not linea.startswith("#") and "=" in linea:
             clave, valor = linea.split("=", 1)
@@ -23,10 +24,11 @@ MAX_PIXELES = 40_000_000
 # ---------------------------------------------------------------------------
 # Qué predictor usar
 # ---------------------------------------------------------------------------
-#   roboflow -> modelo entrenado en Roboflow (ResNet18), consultado por su API
+#   roboflow_workflow -> Roboflow Workflow "tattoo-styles-vtattoo-styles-2-resnet18-t1-logic"
+#   roboflow_modelo   -> endpoint directo del modelo en Roboflow (alias: roboflow)
 #   local    -> pesos propios en MODELO_RUTA (EfficientNet-B0)
 #   simulado -> resultados falsos y deterministas, para desarrollar sin modelo
-#   auto     -> roboflow si hay ROBOFLOW_API_KEY; si no, local si existen los
+#   auto     -> roboflow_workflow si hay ROBOFLOW_API_KEY; si no, local si existen los
 #               pesos; si no, simulado
 MODO_PREDICTOR = os.environ.get("ML_PREDICTOR", "auto").lower()
 FORZAR_STUB = os.environ.get("ML_FORZAR_STUB", "0") == "1"  # compatibilidad
@@ -40,7 +42,12 @@ ROBOFLOW_API_URL = os.environ.get("ROBOFLOW_API_URL", "https://serverless.robofl
 ROBOFLOW_MODEL_ID = os.environ.get(
     "ROBOFLOW_MODEL_ID", "martin-stgmar-gmail-com/tattoo-styles-2-resnet18-t1"
 )
+ROBOFLOW_WORKSPACE = os.environ.get("ROBOFLOW_WORKSPACE", "martin-stgmar-gmail-com")
+ROBOFLOW_WORKFLOW_ID = os.environ.get(
+    "ROBOFLOW_WORKFLOW_ID", "tattoo-styles-vtattoo-styles-2-resnet18-t1-logic"
+)
 ROBOFLOW_TIMEOUT = float(os.environ.get("ROBOFLOW_TIMEOUT", "15"))
+ROBOFLOW_REINTENTOS = int(os.environ.get("ROBOFLOW_REINTENTOS", "2"))
 # La imagen se reduce antes de enviarla: el modelo trabaja a 224x224, así que
 # mandar más píxeles solo agrega demora y comparte más datos de los necesarios.
 ROBOFLOW_LADO_MAX = int(os.environ.get("ROBOFLOW_LADO_MAX", "640"))

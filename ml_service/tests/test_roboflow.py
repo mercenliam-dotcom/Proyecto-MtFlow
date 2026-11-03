@@ -106,7 +106,10 @@ def test_peticion_bien_formada():
         _pred().predecir(_img(1200))
     args, kwargs = post.call_args
     assert args[0] == "https://serverless.roboflow.com/martin-stgmar-gmail-com/tattoo-styles-2-resnet18-t1"
-    assert kwargs["params"] == {"api_key": "clave-secreta"}
+    # La API key va en la cabecera, nunca en la URL
+    assert "params" not in kwargs
+    assert kwargs["headers"]["Authorization"] == "Bearer clave-secreta"
+    assert "clave-secreta" not in args[0]
     assert kwargs["allow_redirects"] is False
     assert kwargs["timeout"] == 5
     # La imagen viaja reducida (máx. 640 px) y como JPEG

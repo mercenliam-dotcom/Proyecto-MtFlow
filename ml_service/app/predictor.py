@@ -1,9 +1,14 @@
 """
 Predictores intercambiables. Todos reciben una imagen PIL ya validada y
-devuelven {codigo_estilo: probabilidad}, con probabilidades que suman 1.
+devuelven {codigo_estilo: probabilidad}. Las probabilidades suman 1, salvo
+cuando Roboflow omite las clases bajo su umbral: entonces suman menos y no se
+re-escalan (re-escalar inflaría la confianza).
 
-- PredictorRoboflow: consulta el modelo entrenado en Roboflow (ResNet18,
-  proyecto "Tattoo styles") a través de su API. Es el modelo del prototipo.
+- PredictorRoboflowWorkflow: ejecuta el Roboflow Workflow
+  "tattoo-styles-vtattoo-styles-2-resnet18-t1-logic" (ver roboflow_workflow.py).
+  Es el camino recomendado.
+- PredictorRoboflow: consulta directamente el endpoint del modelo
+  (ResNet18, proyecto "Tattoo styles").
 - PredictorEfficientNet: pesos propios entrenados localmente (opcional).
 - PredictorSimulado: resultados falsos pero deterministas, para desarrollar
   la web sin conexión ni modelo.
@@ -22,6 +27,7 @@ import requests
 from PIL import Image
 
 from . import config
+from . import roboflow_workflow as rfw
 
 log = logging.getLogger("mtflow.ml")
 
@@ -37,6 +43,47 @@ def _clave_nombre(nombre: str) -> str:
     """'Línea  Fina' -> 'lineafina'. Tolera tildes, mayúsculas, espacios y guiones."""
     sin_tildes = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode()
     return "".join(c for c in sin_tildes.lower() if c.isalnum())
+
+
+def _a_codigos(por_nombre: dict[str, float], mapa: dict[str, str], codigos: list[str]) -> dict[str, float]:
+    """Traduce {nombre de clase: confianza} a {código: confianza}. Nunca adivina."""
+    confianzas = {c: 0.0 for c in codigos}
+    for nombre, valor in por_nombre.items():
+        codigo = mapa.get(_clave_nombre(nombre))
+        if codigo is None:
+            raise PredictorNoDisponible(f"Clase desconocida en el modelo: {nombre[:40]!r}")
+        confianzas[codigo] += float(valor)
+    total = sum(confianzas.values())
+    if total <= 0:
+        raise PredictorNoDisponible("Todas las confianzas son cero")
+    if 0.98 <= total <= 1.02:
+        # Solo se corrige el redondeo. Si suma bastante menos que 1 es porque
+        # Roboflow omitió clases bajo su umbral: se dejan tal cual.
+        return {c: round(v / total, 6) for c, v in confianzas.items()}
+    if total > 1.02:
+        # Multietiqueta: cada clase es independiente; se escala para comparar.
+        return {c: round(v / total, 6) for c, v in confianzas.items()}
+    return {c: round(v, 6) for c, v in confianzas.items()}
+
+
+class PredictorRoboflowWorkflow:
+    """Ejecuta el Roboflow Workflow y traduce sus clases a los códigos internos."""
+
+    def __init__(self, cfg: rfw.ConfigWorkflow, clases: dict[str, str]):
+        if not cfg.api_key:
+            raise ValueError("Falta ROBOFLOW_API_KEY")
+        self.cfg = cfg
+        self.mapa = {_clave_nombre(n): c for n, c in clases.items()}
+        self.codigos = sorted(set(clases.values()))
+        self.version = f"roboflow-workflow:{cfg.workspace}/{cfg.workflow_id}"
+
+    def predecir(self, img: Image.Image) -> dict[str, float]:
+        try:
+            resultado = rfw.clasificar_tatuaje(img, self.cfg)
+        except rfw.RoboflowError as e:
+            log.error("Roboflow Workflow: %s", e)
+            raise PredictorNoDisponible(str(e)) from e
+        return _a_codigos(resultado.confianzas, self.mapa, self.codigos)
 
 
 class PredictorRoboflow:
@@ -76,32 +123,24 @@ class PredictorRoboflow:
         if not pares:
             raise PredictorNoDisponible("Respuesta de Roboflow sin predicciones")
 
-        confianzas = {c: 0.0 for c in self.codigos}
+        por_nombre: dict[str, float] = {}
         for nombre, valor in pares:
             if not isinstance(nombre, str) or isinstance(valor, bool) or not isinstance(valor, (int, float)):
                 raise PredictorNoDisponible("Predicción con formato inesperado")
-            codigo = self.mapa.get(_clave_nombre(nombre))
-            if codigo is None:
-                # Clase nueva en Roboflow que el catálogo no conoce: no se adivina.
-                raise PredictorNoDisponible(f"Clase desconocida en el modelo: {nombre[:40]!r}")
             if math.isnan(valor) or not 0.0 <= valor <= 1.0:
                 raise PredictorNoDisponible("Confianza fuera de rango")
-            confianzas[codigo] += float(valor)
-
-        total = sum(confianzas.values())
-        if total <= 0:
-            raise PredictorNoDisponible("Todas las confianzas son cero")
-        # Se normaliza para que sumen 1 (Roboflow redondea, y en multietiqueta
-        # cada clase es independiente).
-        return {c: round(v / total, 6) for c, v in confianzas.items()}
+            por_nombre[nombre] = por_nombre.get(nombre, 0.0) + float(valor)
+        return _a_codigos(por_nombre, self.mapa, self.codigos)
 
     def predecir(self, img: Image.Image) -> dict[str, float]:
         try:
             r = requests.post(
                 self.url,
-                params={"api_key": self.api_key},
                 data=self._imagen_base64(img),
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": f"Bearer {self.api_key}",
+                },
                 timeout=self.timeout,
                 allow_redirects=False,
             )
@@ -179,12 +218,23 @@ def cargar_predictor():
     modo = "simulado" if config.FORZAR_STUB else config.MODO_PREDICTOR
     if modo == "auto":
         if config.ROBOFLOW_API_KEY:
-            modo = "roboflow"
+            modo = "roboflow_workflow"
         elif Path(config.MODELO_RUTA).is_file():
             modo = "local"
         else:
             modo = "simulado"
-    if modo == "roboflow":
+    if modo in ("roboflow_workflow", "workflow"):
+        cfg = rfw.ConfigWorkflow(
+            api_key=config.ROBOFLOW_API_KEY,
+            api_url=config.ROBOFLOW_API_URL,
+            workspace=config.ROBOFLOW_WORKSPACE,
+            workflow_id=config.ROBOFLOW_WORKFLOW_ID,
+            timeout=config.ROBOFLOW_TIMEOUT,
+            reintentos=config.ROBOFLOW_REINTENTOS,
+            lado_max=config.ROBOFLOW_LADO_MAX,
+        )
+        return PredictorRoboflowWorkflow(cfg, config.CLASES_ROBOFLOW)
+    if modo in ("roboflow", "roboflow_modelo"):
         return PredictorRoboflow(
             config.ROBOFLOW_API_KEY, config.ROBOFLOW_API_URL, config.ROBOFLOW_MODEL_ID,
             config.ROBOFLOW_TIMEOUT, config.ROBOFLOW_LADO_MAX, config.CLASES_ROBOFLOW,
@@ -193,4 +243,7 @@ def cargar_predictor():
         return PredictorEfficientNet(Path(config.MODELO_RUTA))
     if modo == "simulado":
         return PredictorSimulado()
-    raise ValueError(f"ML_PREDICTOR desconocido: {modo!r} (usa roboflow, local, simulado o auto)")
+    raise ValueError(
+        f"ML_PREDICTOR desconocido: {modo!r} "
+        "(usa roboflow_workflow, roboflow_modelo, local, simulado o auto)"
+    )
