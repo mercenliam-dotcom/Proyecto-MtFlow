@@ -67,7 +67,7 @@ class RoboflowRespuestaInvalidaError(RoboflowError):
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ClasificacionWorkflow:
-    confianzas: dict[str, float]   # nombre de clase en Roboflow -> confianza [0,1]
+    confianzas: dict[str, float]   # nombre de clase -> confianza [0,1]; vacío si ninguna supera el umbral
     top: str | None                # clase ganadora según Roboflow (si la informa)
     inference_id: str | None
 
@@ -155,13 +155,16 @@ def _extraer_clasificacion(datos) -> ClasificacionWorkflow:
         raise RoboflowRespuestaInvalidaError("'predictions' no es un objeto")
 
     interno = bloque.get("predictions")
+    if interno is None:
+        raise RoboflowRespuestaInvalidaError("La predicción no trae la lista de clases")
     pares: list[tuple] = []
     if isinstance(interno, list):
         pares = [(p.get("class"), p.get("confidence")) for p in interno if isinstance(p, dict)]
     elif isinstance(interno, dict):
         pares = [(k, v.get("confidence") if isinstance(v, dict) else v) for k, v in interno.items()]
-    if not pares:
-        raise RoboflowRespuestaInvalidaError("La predicción no trae clases")
+    # Lista vacía = ninguna clase superó el umbral del bloque (0,4). Es una
+    # respuesta válida (verificado con la API real el 2026-11-03): la imagen no
+    # se parece lo suficiente a ningún estilo del catálogo.
 
     confianzas: dict[str, float] = {}
     for nombre, valor in pares:

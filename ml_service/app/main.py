@@ -11,6 +11,7 @@ llama el backend Django, con una clave compartida. Igualmente vuelve a
 validar la imagen (defensa en profundidad).
 """
 import io
+import logging
 import secrets
 import warnings
 
@@ -19,6 +20,15 @@ from PIL import Image, UnidentifiedImageError
 
 from . import config
 from .predictor import PredictorNoDisponible, cargar_predictor
+
+# Mensajes del servicio visibles en la terminal de uvicorn (motivo de cada 503)
+log = logging.getLogger("mtflow.ml")
+if not log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(levelname)s:     [mtflow.ml] %(message)s"))
+    log.addHandler(_h)
+    log.setLevel(logging.INFO)
+    log.propagate = False
 
 app = FastAPI(title="MTFlow · servicio de inferencia", docs_url=None, redoc_url=None, openapi_url=None)
 predictor = cargar_predictor()
@@ -56,7 +66,8 @@ async def clasificar(imagen: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail="Imagen no válida")
     try:
         confianzas = predictor.predecir(img)
-    except PredictorNoDisponible:
+    except PredictorNoDisponible as e:
         # Django muestra "servicio no disponible" y la imagen no se pierde.
+        log.warning("clasificar -> 503: %s", e)
         raise HTTPException(status_code=503, detail="Modelo no disponible")
     return {"version_modelo": predictor.version, "confianzas": confianzas}

@@ -94,7 +94,7 @@ def test_extrae_confianzas_por_nombre():
     None, [], {}, {"outputs": []}, {"outputs": [{}]},
     {"outputs": [{"otra_salida": 1}]},
     {"outputs": [{"predictions": "x"}]},
-    {"outputs": [{"predictions": {"predictions": []}}]},
+    {"outputs": [{"predictions": {"top": "Anime"}}]},          # sin lista de clases
     {"outputs": [{"predictions": {"predictions": [{"class": "Anime", "confidence": 2}]}}]},
     {"outputs": [{"predictions": {"predictions": [{"class": 3, "confidence": 0.5}]}}]},
 ])
@@ -176,6 +176,24 @@ def test_clases_bajo_umbral_omitidas_no_se_inflan():
         conf = _predictor().predecir(_img())
     assert conf["E-02"] == pytest.approx(0.62)
     assert sum(conf.values()) == pytest.approx(0.62)
+
+
+def test_respuesta_real_con_una_sola_clase():
+    # Forma exacta observada en el smoke test real (2026-11-03)
+    real = {"outputs": [{"predictions": {"predictions": [{"class": "Linea Fina", "confidence": 0.4182}],
+                                         "top": "Linea Fina"}}], "profiler_trace": []}
+    with mock.patch("requests.post", return_value=_resp(real)):
+        conf = _predictor().predecir(_img())
+    assert conf["E-05"] == pytest.approx(0.4182)
+
+
+def test_ninguna_clase_sobre_el_umbral_es_fuera_de_catalogo():
+    vacia = {"outputs": [{"predictions": {"predictions": [], "top": None}}], "profiler_trace": []}
+    with mock.patch("requests.post", return_value=_resp(vacia)):
+        assert rfw.clasificar_tatuaje(_img(), _cfg()).confianzas == {}
+        conf = _predictor().predecir(_img())
+    assert conf["E-99"] == 1.0
+    assert sum(v for c, v in conf.items() if c != "E-99") == 0
 
 
 def test_clase_desconocida():

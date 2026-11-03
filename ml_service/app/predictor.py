@@ -83,6 +83,10 @@ class PredictorRoboflowWorkflow:
         except rfw.RoboflowError as e:
             log.error("Roboflow Workflow: %s", e)
             raise PredictorNoDisponible(str(e)) from e
+        if not resultado.confianzas:
+            # Ningún estilo superó el umbral del workflow: fuera de catálogo.
+            log.info("Roboflow Workflow: ningún estilo superó el umbral -> E-99")
+            return {**{c: 0.0 for c in self.codigos}, "E-99": 1.0}
         return _a_codigos(resultado.confianzas, self.mapa, self.codigos)
 
 
