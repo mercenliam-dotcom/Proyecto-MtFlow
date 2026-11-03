@@ -17,28 +17,36 @@ Sistema web para Maldita Ternura Estudio. Identifica el estilo de una imagen de 
 ## Cómo se conectan las piezas
 
 ```
-Navegador ──► Django (puerto 8000) ──► FastAPI (puerto 8001)
-              valida y limpia la         calcula el % de los 7 estilos
-              imagen, decide Apto /      (hoy: predictor simulado;
-              En evaluación / No         luego: EfficientNet-B0)
+Navegador ──► Django (puerto 8000) ──► FastAPI (puerto 8001) ──► API de Roboflow
+              valida y limpia la         traduce las 7 clases        modelo ResNet18
+              imagen, decide Apto /      del modelo a E-01…E-07      "Tattoo styles"
+              En evaluación / No
               recomendado y lo muestra
 ```
 
-No se usa ningún servicio externo ni pagado. La `ML_SERVICE_API_KEY` es una contraseña que inventan ustedes y que se escribe igual en los dos programas, para que FastAPI solo le responda a Django.
+Hay **dos claves distintas**:
 
-## Puesta en marcha (Windows, PowerShell)
+| Clave | Qué es | Dónde va |
+|---|---|---|
+| `ML_SERVICE_API_KEY` | Contraseña que inventan ustedes, para que FastAPI solo le responda a Django | Igual en `config/.env` y en `ml_service/.env` |
+| `ROBOFLOW_API_KEY` | Clave privada de la cuenta de Roboflow (Settings → API Keys) | Solo en `ml_service/.env` |
 
-```powershell
-# Desde la carpeta del repositorio
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+Sin `ROBOFLOW_API_KEY` el servicio usa resultados simulados, así la web se puede probar sin conexión. Detalles y riesgos en `docs/decisiones/ADR-0009-modelo-roboflow.md`.
+
+## Puesta en marcha (Windows, Git Bash)
+
+Terminal 1, la web:
+
+```bash
+cd ~/OneDrive/Escritorio/"Proyecto mtFlow"
+source .venv/Scripts/activate        # aparece (.venv) al inicio de la línea
 pip install -r requirements.txt
 
 cd config
-copy .env.example .env
-# Abrir config\.env y completar:
+cp .env.example .env
+# Abrir config/.env y completar:
 #   DJANGO_SECRET_KEY  -> generar con: python -c "import secrets; print(secrets.token_urlsafe(64))"
-#   ML_SERVICE_API_KEY -> cualquier texto largo (el mismo del paso del servicio)
+#   ML_SERVICE_API_KEY -> cualquier texto largo (el mismo que en ml_service/.env)
 # Sin DATABASE_URL se usa SQLite local. Para PostgreSQL: docker compose up -d
 # y descomentar DATABASE_URL.
 
@@ -48,14 +56,20 @@ python manage.py test               # deben pasar todas
 python manage.py runserver          # http://127.0.0.1:8000
 ```
 
-Servicio de inferencia, en **otra** terminal:
+Terminal 2, el servicio de inferencia:
 
-```powershell
+```bash
+cd ~/OneDrive/Escritorio/"Proyecto mtFlow"
+source .venv/Scripts/activate
 cd ml_service
 pip install -r requirements.txt
-$env:ML_SERVICE_API_KEY="la-misma-clave-del-.env"
+cp .env.example .env    # completar ML_SERVICE_API_KEY y ROBOFLOW_API_KEY
 uvicorn app.main:app --port 8001
 ```
+
+Para ver qué modelo quedó activo, abre http://127.0.0.1:8001/salud. Debe decir `roboflow:martin-stgmar-gmail-com/...`, o `simulado-0.2` si no hay clave.
+
+En PowerShell: `.\.venv\Scripts\Activate.ps1` en vez de `source ...` y `copy` en vez de `cp`.
 
 ## Rutas
 
@@ -67,9 +81,11 @@ uvicorn app.main:app --port 8001
 | `/clasificacion/probar/` | Equipo: subir imagen y ver el estilo sugerido |
 | `/cuentas/` | **Solo administradores**: crear, editar, desactivar cuentas |
 
-## Conectar el modelo real
+## Cambiar de modelo
 
-Dejar los pesos entrenados en `ml_service/modelos/efficientnet_b0_mtflow.pt` (un `state_dict` de `torchvision.models.efficientnet_b0` con 7 salidas en orden E-01…E-06, E-99) e instalar `ml_service/requirements-modelo.txt`. El servicio los detecta al arrancar; Django no cambia. Los nombres de los estilos se cambian en `config/apps/clasificacion/catalogo.py`.
+`ML_PREDICTOR` en `ml_service/.env`: `roboflow`, `local`, `simulado` o `auto`. Si cambian las clases en Roboflow, actualizar `CLASES_ROBOFLOW` en `ml_service/app/config.py` y `ESTILOS` en `config/apps/clasificacion/catalogo.py`.
+
+Para usar pesos propios en vez de Roboflow: dejar los pesos entrenados en `ml_service/modelos/efficientnet_b0_mtflow.pt` (un `state_dict` de `torchvision.models.efficientnet_b0` con 8 salidas en orden E-01…E-07, E-99) e instalar `ml_service/requirements-modelo.txt`. El servicio los detecta al arrancar; Django no cambia. Los nombres de los estilos se cambian en `config/apps/clasificacion/catalogo.py`.
 
 ## Producción
 
