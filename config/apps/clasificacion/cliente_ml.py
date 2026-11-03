@@ -26,7 +26,7 @@ class ServicioMLNoDisponible(Exception):
 
 @dataclass
 class ResultadoClasificacion:
-    confianzas: dict[str, float]   # código -> probabilidad, suma ≈ 1
+    confianzas: dict[str, float]   # código -> probabilidad, suma ≤ 1
     estilo_sugerido: str
     confianza_maxima: float
     version_modelo: str
@@ -49,8 +49,10 @@ def _validar_respuesta(datos) -> ResultadoClasificacion:
         if not 0.0 <= valor <= 1.0:
             raise ServicioMLNoDisponible("Confianza fuera de [0,1]")
         limpias[codigo] = float(valor)
-    if abs(sum(limpias.values()) - 1.0) > 0.01:
-        raise ServicioMLNoDisponible("Las confianzas no suman 1")
+    total = sum(limpias.values())
+    # Suman 1, o menos si Roboflow omitió las clases bajo su umbral (0,4).
+    if total <= 0 or total > 1.01:
+        raise ServicioMLNoDisponible("Las confianzas no suman entre 0 y 1")
     estilo = max(limpias, key=limpias.get)
     version = str(datos.get("version_modelo", "desconocida"))[:40]
     return ResultadoClasificacion(limpias, estilo, limpias[estilo], version)

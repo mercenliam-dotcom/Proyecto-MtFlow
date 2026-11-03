@@ -40,11 +40,20 @@ class ValidacionRespuesta(SimpleTestCase):
             {"confianzas": {**CONF_OK, "E-01": 1.5}},
             {"confianzas": {**CONF_OK, "E-01": "0.9"}},
             {"confianzas": {**CONF_OK, "E-01": float("nan")}},
-            {"confianzas": {k: 0.5 for k in CONF_OK}},                # no suma 1
+            {"confianzas": {k: 0.5 for k in CONF_OK}},                # suma más de 1
+            {"confianzas": {k: 0.0 for k in CONF_OK}},                # todo cero
         ]
         for m in malos:
             with self.assertRaises(ServicioMLNoDisponible, msg=str(m)):
                 _validar_respuesta(m)
+
+    def test_acepta_clases_omitidas_bajo_umbral(self):
+        # Roboflow puede informar solo la clase sobre su umbral (0,4)
+        parcial = {k: 0.0 for k in CONF_OK}
+        parcial["E-02"] = 0.62
+        r = _validar_respuesta({"confianzas": parcial})
+        self.assertEqual(r.estilo_sugerido, "E-02")
+        self.assertAlmostEqual(r.confianza_maxima, 0.62)
 
     def test_e99_es_opcional(self):
         con_e99 = {**CONF_OK, "E-01": 0.92, "E-99": 0.01}
