@@ -45,6 +45,6 @@ SSL es el nombre antiguo; el protocolo vigente es TLS 1.2/1.3. En el informe con
 | Respuesta ML manipulada | Validación estricta del JSON (clases, rango, suma = 1); sin seguir redirecciones | `cliente_ml.py` | `ValidacionRespuesta` |
 | Fuga de detalles en errores | Páginas 400/403/404/500 propias; `DEBUG=0` en producción | `nucleo/errores.py` | `test_error_404_no_filtra_detalles` |
 | Admin de Django predecible | Ruta configurable (`DJANGO_ADMIN_URL`) | `config/urls.py` | — |
-| Fuga de la clave de Roboflow | Solo en `ml_service/.env` (ignorado por Git); nunca llega al navegador; no se registra la URL ni el cuerpo de respuestas con error | `ml_service/app/predictor.py` | `test_servicio_responde_503_si_roboflow_falla` |
+| Fuga de la clave de Roboflow | Solo en `ml_service/.env` (ignorado por Git); viaja en `Authorization: Bearer`, nunca en la URL ni en el cuerpo; nunca llega al navegador; no se registran URLs ni cuerpos de error | `ml_service/app/roboflow_workflow.py`, `predictor.py` | `test_peticion_respeta_la_definicion_del_workflow`, `test_servicio_responde_503_si_roboflow_falla` |
 | Datos enviados a un tercero (Roboflow) | Se envía solo la imagen re-codificada (sin EXIF/GPS) y reducida a 640 px; sin nombre, correo ni teléfono | `predictor.py` | `test_peticion_bien_formada` |
 | Respuesta del modelo manipulada o inesperada | Clases desconocidas, valores fuera de [0,1] o NaN se rechazan; nunca se adivina una clase | `predictor.py`, `cliente_ml.py` | `test_clase_desconocida_se_rechaza`, `test_respuestas_invalidas` |

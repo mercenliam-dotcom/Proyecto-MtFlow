@@ -16,12 +16,19 @@ El equipo entrenó un clasificador en Roboflow: proyecto **"Tattoo styles"** (wo
 
 ## Decisión
 
-1. El servicio de inferencia (`ml_service`, ADR-0002) consulta ese modelo por la **API serverless de Roboflow**. Django no cambia: sigue llamando a `ml_service` igual que antes.
+1. El servicio de inferencia (`ml_service`, ADR-0002) ejecuta el **Roboflow Workflow `tattoo-styles-vtattoo-styles-2-resnet18-t1-logic`** por la API serverless (actualización del 2026-11-03). Django no cambia: sigue llamando a `ml_service` igual que antes. El endpoint directo del modelo queda como alternativa (`ML_PREDICTOR=roboflow_modelo`).
+
+   Definición real del workflow, leída desde Roboflow:
+   - Entrada: `image` (InferenceImage). Sin parámetros declarados.
+   - Paso: sub-workflow `tattoo-styles`, que usa el bloque `roboflow_classification_model@v3` con el modelo `tattoo-styles-2-resnet18-t1` y umbral de confianza **0,4** (por defecto, no expuesto).
+   - Salida: `predictions` (JsonField) con la predicción de clasificación.
+
+   Cliente REST con `requests` en vez de `inference-sdk`. El SDK agrega ~35 paquetes, entre ellos OpenCV, SciPy, matplotlib y FFmpeg, para hacer una sola petición HTTP.
 2. Las 7 clases se traducen a los códigos internos E-01…E-07 en `ml_service/app/config.py`. Una clase que el catálogo no conozca hace que la respuesta se rechace.
-3. La **API key de Roboflow vive solo en `ml_service/.env`**: nunca en el navegador ni en Git.
+3. La **API key de Roboflow vive solo en `ml_service/.env`** y viaja en la cabecera `Authorization: Bearer`. Nunca va en la URL, en el navegador ni en Git.
 4. Antes de enviarla, la imagen ya fue validada y re-codificada por Django (sin EXIF/GPS) y se reduce a un máximo de 640 px.
 5. Si Roboflow no responde, el servicio devuelve 503 y la web muestra "servicio no disponible". La imagen no se pierde.
-6. El predictor se elige con `ML_PREDICTOR` (`roboflow`, `local`, `simulado` o `auto`). El camino de pesos locales (EfficientNet-B0) se conserva.
+6. El predictor se elige con `ML_PREDICTOR` (`roboflow_workflow`, `roboflow_modelo`, `local`, `simulado` o `auto`). El camino de pesos locales (EfficientNet-B0) se conserva.
 
 ## Consecuencias que hay que resolver o declarar
 
@@ -32,3 +39,4 @@ El equipo entrenó un clasificador en Roboflow: proyecto **"Tattoo styles"** (wo
 - **Dependencia del plan de Roboflow:** límites de uso y costos del plan contratado. Verificarlos antes de la demostración.
 - **Métricas del modelo:** no son públicas en la página del proyecto. Exportar desde Roboflow la exactitud y la matriz de confusión del conjunto de prueba para el informe.
 - Aumentar el dataset o aplicar aumento de datos: 79 imágenes de prueba para 7 clases son ~11 por clase, una muestra pequeña para afirmar métricas.
+- **Umbral 0,4 del workflow:** si Roboflow omite las clases bajo el umbral, las confianzas no suman 1. No se re-escalan, para no inflar el porcentaje, y Django acepta sumas menores que 1.
