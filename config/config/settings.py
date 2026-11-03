@@ -154,7 +154,9 @@ elif DEBUG:
     # pantallas en tu equipo.
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        # Nombre distinto al db.sqlite3 anterior: ese se creó con el usuario por
+        # defecto de Django y no es compatible con cuentas.Usuario.
+        "NAME": BASE_DIR / "mtflow_local.sqlite3",
         "ATOMIC_REQUESTS": True,
     }}
 else:
