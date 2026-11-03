@@ -1,0 +1,11 @@
+{% load static %}<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+{% block robots %}{% endblock %}<title>{% block page_title %}MTFlow{% endblock %} · Maldita Ternura</title>
+<link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml"><link rel="stylesheet" href="{% static 'css/design.css' %}">{% block styles %}{% endblock %}</head>
+<body><a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
+<aside class="sidebar"><a class="brand" href="{% url 'web:portafolio' %}"><span class="brand-symbol" aria-hidden="true">mt.</span><span>Maldita Ternura<small>ESTUDIO DE TATUAJES</small></span></a>
+<p class="nav-label">{% block nav_label %}EL ESTUDIO{% endblock %}</p><nav class="navigation" aria-label="Navegación principal">{% block navigation %}{% endblock %}</nav>
+<div class="sidebar-footer"><span class="studio-location"><span class="studio-dot" aria-hidden="true"></span> La Serena, Chile</span><p>Tu idea. Tu historia.<br>Nuestra tinta.</p>{% block access %}{% endblock %}</div></aside>
+<div class="app-body"><header class="topbar"><span>MTFlow <span class="topbar-separator">/</span> {% block area %}Estudio{% endblock %}</span><a href="{% url 'web:cotizacion' %}">Explorar mi idea ↗</a></header>
+<main id="contenido-principal" class="main-panel" tabindex="-1">{% if messages %}<ul class="avisos" aria-live="polite">{% for m in messages %}<li class="aviso aviso-{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}{% block page_content %}{% endblock %}</main>
+<footer class="site-footer"><span>Maldita Ternura Estudio</span><span>Hecho para historias únicas · MTFlow</span></footer></div>{% block page_scripts %}{% endblock %}</body></html>

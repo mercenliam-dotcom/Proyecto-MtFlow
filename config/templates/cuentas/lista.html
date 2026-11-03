@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}Cuentas{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <h1>Cuentas</h1>
+  <a class="boton" href="{% url 'cuentas:crear' %}">+ Crear cuenta</a>
+</div>
+<div class="tabla-envoltura">
+<table class="tabla">
+  <thead><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for c in cuentas %}
+    <tr{% if not c.is_active %} class="inactiva"{% endif %}>
+      <td><code>{{ c.nombre_usuario }}</code>{% if c.pk == user.pk %} <span class="chip">tú</span>{% endif %}</td>
+      <td>{{ c.get_full_name }}</td>
+      <td>{{ c.email }}</td>
+      <td><span class="chip chip-{{ c.rol|lower }}">{{ c.get_rol_display }}</span></td>
+      <td>{% if c.is_active %}Activa{% else %}Desactivada{% endif %}{% if c.debe_cambiar_contrasena %}<br><small class="ayuda">clave temporal</small>{% endif %}</td>
+      <td class="derecha"><a href="{% url 'cuentas:editar' c.uuid %}">Editar</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

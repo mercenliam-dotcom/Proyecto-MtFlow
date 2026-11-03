@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}Cambiar contraseña{% endblock %}
+{% block contenido %}
+<section class="tarjeta angosta">
+  <h1>Cambiar contraseña</h1>
+  {% if user.debe_cambiar_contrasena %}
+  <div class="alerta alerta-info">Estás usando una contraseña temporal. Debes cambiarla para continuar.</div>
+  {% endif %}
+  {% include "_errores_form.html" %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}{% include "_campo.html" %}{% endfor %}
+    <p class="ayuda">Mínimo 10 caracteres, con al menos una letra y un número. Puedes usar símbolos.</p>
+    <button type="submit" class="boton">Guardar</button>
+  </form>
+  {% if user.debe_cambiar_contrasena %}
+  <form method="post" action="{% url 'cuentas:logout' %}">{% csrf_token %}<button class="enlace" type="submit">Salir</button></form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "web/base.html" %}{% load static %}
+{% block title %}Tu cotización{% endblock %}
+{% block content %}
+<header class="page-header"><div><p class="eyebrow">DE LA IDEA A LA TINTA</p><h1>Imagina tu próximo<br><em>tatuaje.</em></h1><p class="subtitle">Explora un valor de referencia y, si quieres, descubre el estilo de tu imagen.</p></div><span class="edition">02 / COTIZACIÓN</span></header>
+<div class="notice"><strong>Estimación de prueba en CLP.</strong> Usamos valores ficticios, pendientes de validar por el estudio. No es una cotización confirmada ni una reserva.</div>
+{% if limite %}<div class="alerta alerta-error" role="alert">Has realizado varias consultas. Espera unos minutos antes de volver a intentarlo.</div>{% endif %}
+{% if form.errors %}<div class="alerta alerta-error" role="alert" tabindex="-1" id="form-errors">Revisa los campos indicados. Por seguridad, vuelve a seleccionar tu imagen antes de enviar.</div>{% endif %}
+<div class="quote-layout"><section class="surface">
+<form id="quote-form" method="post" enctype="multipart/form-data" action="{% url 'web:cotizacion' %}">{% csrf_token %}
+<fieldset><legend><span class="step">01</span> Dale forma a tu idea</legend>
+<div class="form-row">{% include "_campo.html" with campo=form.tatuadora %}{% include "_campo.html" with campo=form.zona %}</div>
+<div class="form-row">{% include "_campo.html" with campo=form.tamano %}{% include "_campo.html" with campo=form.color %}</div>
+{% include "_campo.html" with campo=form.detalle %}{% include "_campo.html" with campo=form.idea %}
+<div class="check-field">{{ form.cobertura }}<label for="{{ form.cobertura.id_for_label }}">{{ form.cobertura.label }}</label></div></fieldset>
+<fieldset><legend><span class="step">02</span> Una imagen para inspirarnos</legend>
+<div class="upload-box">{% include "_campo.html" with campo=form.imagen %}</div><p id="file-error" class="error-message" role="alert"></p>
+<div class="check-field">{{ form.analizar }}<label for="{{ form.analizar.id_for_label }}">{{ form.analizar.label }}</label></div><p class="field-help" id="{{ form.analizar.auto_id }}_helptext">{{ form.analizar.help_text }}</p></fieldset>
+<fieldset><legend><span class="step">03</span> Tu resumen</legend>
+{% include "_campo.html" with campo=form.nombre %}<div class="form-row">{% include "_campo.html" with campo=form.email %}{% include "_campo.html" with campo=form.telefono %}</div>
+<p class="field-help">Los datos se procesan para mostrarte el resumen. Esta versión no guarda ni envía una solicitud al equipo; tampoco guarda tu imagen.</p></fieldset>
+<button class="primary-button" type="submit" id="estimate-button">Calcular mi estimación ↗</button><p id="submit-status" role="status" class="field-help"></p>
+<noscript><p class="field-help">Puedes calcular sin JavaScript. La vista previa aparecerá después de enviar.</p></noscript></form></section>
+<div class="quote-side"><section class="surface reference-card"><p class="eyebrow">TU PUNTO DE PARTIDA</p><h2>La referencia</h2>
+<div class="reference-preview"><p id="preview-placeholder" {% if miniatura %}hidden{% endif %}>Cada historia comienza<br>con una idea.<br><small>Tu imagen aparecerá aquí.</small></p><img id="reference-preview" alt="Tu referencia de tatuaje" {% if miniatura %}src="{{ miniatura }}"{% else %}hidden{% endif %}></div>
+<div class="file-details" id="file-details" hidden><span id="file-name"></span><button type="button" class="text-button" id="remove-image">Quitar imagen</button></div></section>
+<section class="surface estimate-card" id="quote-summary" {% if not estimacion %}hidden{% endif %} aria-labelledby="summary-heading"><p class="eyebrow">UN PRIMER ACERCAMIENTO</p><h2 id="summary-heading" tabindex="-1">Tu estimación referencial</h2>
+{% if estimacion.manual %}<p class="price manual">Revisión personalizada</p><p>{{ estimacion.motivo }}</p>
+{% elif estimacion %}<p class="price">${{ estimacion.minimo_texto }} <span>—</span><br>${{ estimacion.maximo_texto }} <small>CLP</small></p><ul class="price-reasons">{% for motivo in estimacion.motivos %}<li>{{ motivo }}</li>{% endfor %}</ul>{% endif %}
+<p class="field-help">Valores ficticios de demostración. La profesional define el precio final. Ambas tatuadoras comparten esta tarifa provisional.</p>
+<div class="info-box"><strong>Análisis de estilo</strong>{% if error_ml %}<p>El análisis no está disponible. Tu referencia de precio sigue disponible y no depende del modelo.</p>{% elif estilo %}<p>{{ estilo }}{% if simulado %} · Resultado simulado, no es un análisis real{% elif revision_ml %} · Necesita revisión profesional{% else %} · Estilo sugerido{% endif %}</p>{% else %}<p>No solicitado. Puedes activar el análisis al completar el formulario.</p>{% endif %}<p>El estilo sugerido no cambia el precio: la complejidad se confirma con la tatuadora.</p></div>
+<details><summary>Ver los datos de mi resumen</summary><dl class="selection-details"><dt>Nombre</dt><dd>{{ resumen.nombre }}</dd><dt>Correo</dt><dd>{{ resumen.email }}</dd><dt>Teléfono</dt><dd>{{ resumen.telefono|default:"No indicado" }}</dd><dt>Tatuadora</dt><dd>{{ resumen.tatuadora }}</dd><dt>Idea</dt><dd>{{ resumen.idea }}</dd></dl></details><p class="field-help">No se ha enviado una solicitud ni reservado una hora.</p></section>
+<section class="quote-note"><span class="step">↗</span><div><h3>La última palabra es humana.</h3><p>El tamaño, la piel y el diseño definitivo hacen único cada trabajo. La estimación es solo el comienzo.</p></div></section></div></div>
+{% endblock %}{% block scripts %}<script src="{% static 'web/js/cotizacion.js' %}" defer></script>{% endblock %}

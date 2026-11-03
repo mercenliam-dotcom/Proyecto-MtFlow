@@ -10,3 +10,21 @@ staticfiles/
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Agregado con el prototipo de cuentas y clasificación
+venv/
+media_privado/
+*.sqlite3
+# Modelo y dataset (no se versionan)
+*.pt
+*.pth
+*.onnx
+ml_service/modelos/
+ml_training/data/
+# Temporales de Office
+~$*
+.~lock.*
+.vscode/
+.idea/
+.pytest_cache/
+mtflow-ml-workflow-2.bundle

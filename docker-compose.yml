@@ -1,0 +1,14 @@
+# PostgreSQL 16 local con un comando:  docker compose up -d
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: mtflow
+      POSTGRES_USER: mtflow
+      POSTGRES_PASSWORD: mtflow_dev
+    ports:
+      - "127.0.0.1:5432:5432"   # solo accesible desde tu propio equipo
+    volumes:
+      - mtflow_pg:/var/lib/postgresql/data
+volumes:
+  mtflow_pg:

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresar{% endblock %}
+{% block contenido %}
+<section class="tarjeta angosta centrada">
+  <h1>Ingresar</h1>
+  <p class="bajada">Acceso exclusivo para el equipo del estudio.</p>
+  {% include "_errores_form.html" %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    {% for campo in form %}{% include "_campo.html" %}{% endfor %}
+    <button type="submit" class="boton ancho">Ingresar</button>
+  </form>
+  <p class="nota">¿No tienes cuenta? Las cuentas las crea la administración del estudio.</p>
+</section>
+{% endblock %}

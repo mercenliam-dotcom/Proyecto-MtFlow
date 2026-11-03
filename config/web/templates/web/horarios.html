@@ -1,0 +1,94 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Horarios | MtFlow{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <p class="eyebrow">PLANIFICA TU PRÓXIMO TATUAJE</p>
+        <h1>Horarios disponibles</h1>
+        <div class="heading-line"></div>
+        <p class="subtitle">
+            Selecciona una tatuadora y una fecha para explorar los horarios.
+        </p>
+    </div>
+</header>
+
+<div class="notice">
+    Demostración del frontend: estos horarios son ficticios.
+    Seleccionar una hora no genera una reserva.
+</div>
+
+<div class="schedule-layout">
+    <section class="surface" aria-labelledby="search-title">
+        <h2 id="search-title">Busca un horario</h2>
+
+        <label class="field-label" for="artist">Tatuadora</label>
+        <select class="form-control" id="artist">
+            <option value="1">Tatuadora 1</option>
+            <option value="2">Tatuadora 2</option>
+        </select>
+
+        <label class="field-label" for="date">Fecha</label>
+        <input class="form-control" type="date" id="date">
+
+        <p class="field-help">
+            Horas expresadas en la zona horaria de Santiago de Chile.
+        </p>
+
+        <div class="info-box">
+            <strong>Antes de confirmar una cita</strong>
+            <p>
+                La tatuadora debe revisar tu diseño y acordar contigo
+                el precio y la duración de la sesión.
+            </p>
+        </div>
+    </section>
+
+    <section class="surface" aria-labelledby="day-title">
+        <div class="section-heading">
+            <h2 id="day-title">Horarios del día</h2>
+            <span class="availability-badge" id="available-count"></span>
+        </div>
+
+        <p class="field-help">
+            Elige una hora de inicio como preferencia.
+        </p>
+
+        <div class="legend">
+            <span><i class="legend-dot available"></i>Disponible</span>
+            <span><i class="legend-dot unavailable"></i>No disponible</span>
+        </div>
+
+        <div id="time-slots"></div>
+    </section>
+
+    <section class="surface summary-panel" aria-labelledby="summary-title">
+        <h2 id="summary-title">Tu selección</h2>
+
+        <dl class="selection-details">
+            <dt>Tatuadora</dt>
+            <dd id="summary-artist"></dd>
+
+            <dt>Fecha</dt>
+            <dd id="summary-date"></dd>
+
+            <dt>Hora de inicio</dt>
+            <dd id="summary-time">Sin seleccionar</dd>
+        </dl>
+
+        <p id="selection-message" class="selection-message" role="status">
+            Selecciona uno de los horarios disponibles.
+        </p>
+
+        <button class="secondary-button" id="clear-selection" disabled>
+            Limpiar selección
+        </button>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'web/js/horarios.js' %}" defer></script>
+{% endblock %}

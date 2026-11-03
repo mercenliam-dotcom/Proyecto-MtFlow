@@ -1,0 +1,14 @@
+{% extends "layout.html" %}{% load static %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block page_title %}{% block titulo %}MTFlow{% endblock %}{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'css/app.css' %}">{% endblock %}
+{% block nav_label %}ESPACIO DEL EQUIPO{% endblock %}{% block area %}Equipo{% endblock %}
+{% block navigation %}
+{% if user.is_authenticated and not user.debe_cambiar_contrasena %}
+<a class="nav-item" href="{% url 'nucleo:inicio' %}" {% if request.resolver_match.namespace == 'nucleo' %}aria-current="page"{% endif %}><span aria-hidden="true">01</span> Mi espacio</a>
+<a class="nav-item" href="{% url 'clasificacion:probar' %}" {% if request.resolver_match.namespace == 'clasificacion' %}aria-current="page"{% endif %}><span aria-hidden="true">02</span> Identificar estilo</a>
+{% if user.es_admin %}<a class="nav-item" href="{% url 'cuentas:lista' %}" {% if request.resolver_match.namespace == 'cuentas' and request.resolver_match.url_name != 'mi_contrasena' %}aria-current="page"{% endif %}><span aria-hidden="true">03</span> Cuentas del equipo</a>{% endif %}
+<a class="nav-item" href="{% url 'cuentas:mi_contrasena' %}" {% if request.resolver_match.url_name == 'mi_contrasena' %}aria-current="page"{% endif %}><span aria-hidden="true">↗</span> Mi contraseña</a>
+{% else %}<a class="nav-item" href="{% url 'cuentas:login' %}">Acceso del equipo</a>{% endif %}{% endblock %}
+{% block access %}{% if user.is_authenticated %}<form method="post" action="{% url 'cuentas:logout' %}">{% csrf_token %}<button type="submit" class="team-access">Cerrar sesión ↗</button></form>{% else %}<a class="team-access" href="{% url 'web:portafolio' %}">Volver al estudio ↗</a>{% endif %}{% endblock %}
+{% block page_content %}{% block contenido %}{% endblock %}{% endblock %}

@@ -1,0 +1,4 @@
+# Solo cuando existan pesos entrenados. En Windows/Linux sin GPU:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch>=2.3
+torchvision>=0.18
