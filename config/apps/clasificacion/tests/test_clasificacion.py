@@ -106,6 +106,31 @@ class VistaProbar(TestCase):
         self.assertContains(r, 'value="93.0"')
         self.assertContains(r, "data:image/jpeg;base64,")
 
+    def test_fuera_de_catalogo_se_muestra_sin_porcentaje(self):
+        # Respuesta del servicio cuando ningún estilo supera el umbral de Roboflow
+        fuera = {**{k: 0.0 for k in CONF_OK}, "E-99": 1.0}
+        resp = mock.Mock(status_code=200, json=lambda: {"version_modelo": "rf", "confianzas": fuera})
+        with mock.patch("requests.post", return_value=resp):
+            r = self.client.post(self.url, {"imagen": u.jpg_valido()})
+        self.assertContains(r, "No recomendado")
+        self.assertContains(r, "Fuera de catálogo")
+        self.assertContains(r, "40 %")
+        self.assertNotContains(r, "100,0%")
+
+    def test_respuesta_real_con_una_sola_clase(self):
+        parcial = {k: 0.0 for k in CONF_OK}
+        parcial["E-05"] = 0.4182
+        resp = mock.Mock(status_code=200, json=lambda: {
+            "version_modelo": "roboflow-workflow:martin-stgmar-gmail-com/tattoo-styles-vtattoo-styles-2-resnet18-t1-logic",
+            "confianzas": parcial})
+        with mock.patch("requests.post", return_value=resp):
+            r = self.client.post(self.url, {"imagen": u.jpg_valido()})
+        self.assertContains(r, "Línea fina")
+        self.assertContains(r, "41,8%")
+        self.assertContains(r, "No recomendado")   # 0,42 < umbral 0,85 de la recomendación
+        self.assertContains(r, "&lt; 40 %", count=6)  # los otros 6 estilos no informados
+        self.assertContains(r, "roboflow-workflow:martin")
+
     def test_video_disfrazado_no_llega_al_servicio(self):
         with mock.patch("requests.post") as post:
             r = self.client.post(self.url, {"imagen": u.subido("clip.jpg", u.MP4_FALSO)})

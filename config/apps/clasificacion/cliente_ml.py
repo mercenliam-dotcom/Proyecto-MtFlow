@@ -54,7 +54,7 @@ def _validar_respuesta(datos) -> ResultadoClasificacion:
     if total <= 0 or total > 1.01:
         raise ServicioMLNoDisponible("Las confianzas no suman entre 0 y 1")
     estilo = max(limpias, key=limpias.get)
-    version = str(datos.get("version_modelo", "desconocida"))[:40]
+    version = str(datos.get("version_modelo", "desconocida"))[:120]
     return ResultadoClasificacion(limpias, estilo, limpias[estilo], version)
 
 

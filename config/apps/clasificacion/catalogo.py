@@ -45,7 +45,8 @@ def recomendar(estilo: str, confianza: float) -> Recomendacion:
     if estilo == CODIGO_FUERA_DE_CATALOGO:
         return Recomendacion(
             "NO_RECOMENDADO", "REVISION_ESPECIAL", "No recomendado",
-            "La imagen no se parece a ningún estilo del catálogo del estudio.",
+            "Ningún estilo del catálogo alcanzó la similitud mínima del modelo (40 %). "
+            "La solicitud igual llega a la tatuadora.",
         )
     if confianza >= settings.UMBRAL_PRE_APROBADA:
         return Recomendacion(

@@ -25,20 +25,20 @@
     {% elif resultado %}
       <div class="veredicto veredicto-{{ recomendacion.codigo|lower }}">
         <span class="etiqueta">{{ recomendacion.titulo }}</span>
-        <p class="estilo">{{ estilo_nombre }} <strong>{{ confianza_pct }}%</strong></p>
+        <p class="estilo">{{ estilo_nombre }}{% if resultado.estilo_sugerido != "E-99" %} <strong>{{ confianza_pct }}%</strong>{% endif %}</p>
         <p>{{ recomendacion.explicacion }}</p>
       </div>
       <h2>Confianza por estilo</h2>
       <ul class="confianzas">
-        {% for f in filas %}
+        {% for f in filas %}{% if f.codigo != "E-99" %}
         <li>
           <span class="nombre"><code>{{ f.codigo }}</code> {{ f.nombre }}</span>
           <meter min="0" max="100" value="{{ f.porcentaje|unlocalize }}">{{ f.porcentaje }}%</meter>
-          <span class="valor">{{ f.porcentaje }}%</span>
+          <span class="valor">{% if f.no_informado %}&lt; 40 %{% else %}{{ f.porcentaje }}%{% endif %}</span>
         </li>
-        {% endfor %}
+        {% endif %}{% endfor %}
       </ul>
-      <p class="nota">Modelo: {{ resultado.version_modelo }}. El número es la confianza de clasificación del modelo, no una medida exacta de similitud.</p>
+      <p class="nota">Modelo: {{ resultado.version_modelo }}. El modelo solo informa los estilos que superan el 40 % de confianza. El número es la confianza de clasificación del modelo, no una medida exacta de similitud.</p>
     {% else %}
       <p class="vacio">Aquí aparecerá el resultado del análisis.</p>
     {% endif %}
