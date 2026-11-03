@@ -741,3 +741,12 @@ textarea.form-control {
 }
 
 }
+/* Enlace discreto al área privada del equipo */
+.team-access {
+    display: block;
+    margin-top: .5rem;
+    font-size: .8rem;
+    color: inherit;
+    opacity: .7;
+}
+.team-access:hover { opacity: 1; }
