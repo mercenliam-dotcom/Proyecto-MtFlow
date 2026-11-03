@@ -104,7 +104,11 @@ El cliente está en `ml_service/app/roboflow_workflow.py`. La función `clasific
 - Ante cualquier falla lanza errores con tipo: `RoboflowAutenticacionError` (401/403), `RoboflowNoEncontradoError` (404), `RoboflowLimiteError` (429), `RoboflowNoDisponibleError` y `RoboflowRespuestaInvalidaError`.
 - Lee solo la salida `predictions` (clase y confianza). No hay salidas de imagen.
 
-El bloque del modelo usa un umbral de confianza de 0,4. Si Roboflow omite las clases bajo ese umbral, las confianzas suman menos de 1 y **no se re-escalan**, para no inflar el porcentaje.
+El bloque del modelo usa un umbral de confianza de 0,4, y Roboflow **solo informa las clases que lo superan**. Así se comprobó con la API real: una respuesta trajo únicamente `{"Linea Fina": 0.4182}`. Por eso:
+- las confianzas suman menos de 1 y **no se re-escalan**, para no inflar el porcentaje; la web muestra "< 40 %" en los estilos no informados;
+- si ninguna clase supera 0,4, la lista llega vacía y se interpreta como **fuera de catálogo (E-99)** → "No recomendado". No es un error.
+
+Para tener las 7 confianzas completas, el workflow tendría que exponer el parámetro `confidence` (o fijarlo en 0) en Roboflow.
 
 `ML_PREDICTOR` en `ml_service/.env` puede ser `roboflow_workflow` (por defecto con clave), `roboflow_modelo` (endpoint directo del modelo), `local`, `simulado` o `auto`. Si cambian las clases en Roboflow, hay que actualizar `CLASES_ROBOFLOW` en `ml_service/app/config.py` y `ESTILOS` en `config/apps/clasificacion/catalogo.py`.
 
