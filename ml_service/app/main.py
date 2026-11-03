@@ -18,7 +18,7 @@ from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
 
 from . import config
-from .predictor import cargar_predictor
+from .predictor import PredictorNoDisponible, cargar_predictor
 
 app = FastAPI(title="MTFlow · servicio de inferencia", docs_url=None, redoc_url=None, openapi_url=None)
 predictor = cargar_predictor()
@@ -54,4 +54,9 @@ async def clasificar(imagen: UploadFile = File(...)):
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError,
             Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise HTTPException(status_code=422, detail="Imagen no válida")
-    return {"version_modelo": predictor.version, "confianzas": predictor.predecir(img)}
+    try:
+        confianzas = predictor.predecir(img)
+    except PredictorNoDisponible:
+        # Django muestra "servicio no disponible" y la imagen no se pierde.
+        raise HTTPException(status_code=503, detail="Modelo no disponible")
+    return {"version_modelo": predictor.version, "confianzas": confianzas}
