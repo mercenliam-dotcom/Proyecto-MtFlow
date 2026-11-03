@@ -1,0 +1,33 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block titulo %}MTFlow{% endblock %} · Maldita Ternura</title>
+  <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="{% url 'nucleo:inicio' %}">MTFlow<span>Maldita Ternura Estudio</span></a>
+    {% if user.is_authenticated and not user.debe_cambiar_contrasena %}
+    <nav class="menu">
+      <a href="{% url 'clasificacion:probar' %}">Identificar estilo</a>
+      {% if user.es_admin %}<a href="{% url 'cuentas:lista' %}">Cuentas</a>{% endif %}
+      <a href="{% url 'cuentas:mi_contrasena' %}">Mi contraseña</a>
+      <form method="post" action="{% url 'cuentas:logout' %}" class="en-linea">
+        {% csrf_token %}<button type="submit" class="enlace">Salir</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  <main class="contenido">
+    {% if messages %}
+      <ul class="avisos">{% for m in messages %}<li class="aviso aviso-{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% block contenido %}{% endblock %}
+  </main>
+  <footer class="pie">MTFlow · prototipo académico · el sistema recomienda, la tatuadora decide</footer>
+</body>
+</html>

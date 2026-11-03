@@ -1,0 +1,117 @@
+/* MTFlow — hoja de estilos única. Sin estilos en línea (lo exige la CSP). */
+:root {
+  --tinta: #1c1917;
+  --tinta-suave: #57534e;
+  --papel: #faf7f2;
+  --tarjeta: #ffffff;
+  --borde: #e7e1d8;
+  --acento: #9f3a2c;
+  --acento-oscuro: #7c2d22;
+  --ok: #2f6b3f;
+  --ok-fondo: #e8f2ea;
+  --medio: #8a5a00;
+  --medio-fondo: #fbf1dc;
+  --mal: #9f3a2c;
+  --mal-fondo: #f8e6e3;
+  --radio: 10px;
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tinta: #f2eee8; --tinta-suave: #b5ada3; --papel: #161412; --tarjeta: #201d1a;
+    --borde: #36302a; --acento: #e0806f; --acento-oscuro: #f09a8a;
+    --ok: #8fd19e; --ok-fondo: #1d2c21; --medio: #f0c26b; --medio-fondo: #2e2615;
+    --mal: #f0a093; --mal-fondo: #33201c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--fuente); color: var(--tinta); background: var(--papel); line-height: 1.5; }
+a { color: var(--acento); }
+h1 { font-size: 1.75rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+h2 { font-size: 1.05rem; margin: 1.25rem 0 .5rem; }
+code { font-size: .85em; background: var(--papel); border: 1px solid var(--borde); padding: 0 .3em; border-radius: 4px; }
+
+.barra { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;
+  padding: .9rem 1.25rem; border-bottom: 1px solid var(--borde); background: var(--tarjeta); }
+.marca { font-weight: 800; font-size: 1.15rem; color: var(--tinta); text-decoration: none; display: flex; flex-direction: column; line-height: 1.1; }
+.marca span { font-weight: 400; font-size: .75rem; color: var(--tinta-suave); }
+.menu { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.menu a { color: var(--tinta); text-decoration: none; font-size: .95rem; }
+.menu a:hover { color: var(--acento); }
+.en-linea { display: inline; margin: 0; }
+.enlace { background: none; border: 0; padding: 0; color: var(--acento); font: inherit; cursor: pointer; text-decoration: underline; }
+
+.contenido { max-width: 1040px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
+.pie { text-align: center; font-size: .8rem; color: var(--tinta-suave); padding: 1.5rem 1rem; }
+.bajada { color: var(--tinta-suave); margin: 0 0 1.5rem; }
+.nota, .ayuda { color: var(--tinta-suave); font-size: .85rem; }
+.miga { margin: 0 0 1rem; }
+
+.tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); padding: 1.5rem; }
+.angosta { max-width: 460px; }
+.centrada { margin: 2rem auto; }
+.rejilla { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.rejilla.dos { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
+.accion { text-decoration: none; color: var(--tinta); transition: border-color .15s; }
+.accion:hover { border-color: var(--acento); }
+.accion h2 { margin-top: 0; color: var(--acento); }
+.encabezado { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+
+.campo { display: flex; flex-direction: column; gap: .3rem; margin-bottom: 1rem; }
+.campo label { font-weight: 600; font-size: .9rem; }
+.campo input:not([type=checkbox]), .campo select {
+  font: inherit; padding: .6rem .7rem; border: 1px solid var(--borde); border-radius: 8px;
+  background: var(--papel); color: var(--tinta); width: 100%; }
+.campo input:focus, .campo select:focus { outline: 2px solid var(--acento); outline-offset: 1px; }
+.campo input[type=checkbox] { width: 1.1rem; height: 1.1rem; }
+.con-error input, .con-error select { border-color: var(--mal); }
+.error { color: var(--mal); font-size: .85rem; }
+
+.boton { display: inline-block; font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: .65rem 1.1rem;
+  background: var(--acento); color: #fff; text-decoration: none; cursor: pointer; }
+.boton:hover { background: var(--acento-oscuro); }
+.boton.secundario { background: transparent; color: var(--tinta); border: 1px solid var(--borde); }
+.boton.ancho { width: 100%; }
+.acciones { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+.avisos { list-style: none; padding: 0; margin: 0 0 1rem; }
+.aviso, .alerta { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.alerta p { margin: 0; }
+.aviso-success { background: var(--ok-fondo); color: var(--ok); }
+.aviso-error, .alerta-error { background: var(--mal-fondo); color: var(--mal); }
+.alerta-info { background: var(--medio-fondo); color: var(--medio); }
+.codigo-error { font-size: 3rem; font-weight: 800; margin: 0; color: var(--acento); }
+
+.tabla-envoltura { overflow-x: auto; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio); }
+.tabla { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.tabla th, .tabla td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--borde); }
+.tabla th { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--tinta-suave); }
+.tabla tr:last-child td { border-bottom: 0; }
+.tabla .inactiva td { opacity: .55; }
+.derecha { text-align: right; }
+.chip { display: inline-block; font-size: .75rem; padding: .1rem .5rem; border-radius: 999px; background: var(--papel); border: 1px solid var(--borde); }
+.chip-admin { background: var(--mal-fondo); color: var(--mal); border-color: transparent; }
+
+.vista-previa { margin: 1.25rem 0 0; }
+.vista-previa img { max-width: 100%; border-radius: 8px; display: block; }
+.vista-previa figcaption { font-size: .8rem; color: var(--tinta-suave); margin-top: .4rem; }
+.vacio { color: var(--tinta-suave); text-align: center; padding: 3rem 0; }
+
+.veredicto { border-radius: 8px; padding: 1rem 1.1rem; }
+.veredicto p { margin: .2rem 0; }
+.veredicto .etiqueta { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.veredicto .estilo { font-size: 1.2rem; }
+.veredicto-apto { background: var(--ok-fondo); color: var(--ok); }
+.veredicto-en_evaluacion { background: var(--medio-fondo); color: var(--medio); }
+.veredicto-no_recomendado { background: var(--mal-fondo); color: var(--mal); }
+
+.confianzas { list-style: none; padding: 0; margin: 0; }
+.confianzas li { display: grid; grid-template-columns: minmax(0, 1fr) 120px 3.5rem; gap: .6rem; align-items: center; padding: .35rem 0; font-size: .9rem; }
+.confianzas .valor { text-align: right; font-variant-numeric: tabular-nums; }
+.confianzas meter { width: 100%; height: .6rem; }
+
+@media (max-width: 520px) {
+  .confianzas li { grid-template-columns: 1fr 3.5rem; }
+  .confianzas meter { grid-column: 1 / -1; grid-row: 2; }
+}
+.tarjeta form + form { margin-top: .75rem; }

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block titulo %}Identificar estilo{% endblock %}
+{% block contenido %}
+<h1>Identificar estilo</h1>
+<p class="bajada">Sube una imagen de referencia. El sistema sugiere un estilo; la decisión es de la tatuadora.</p>
+<div class="rejilla dos">
+  <section class="tarjeta">
+    {% include "_errores_form.html" %}
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% for campo in form %}{% include "_campo.html" %}{% endfor %}
+      <button type="submit" class="boton">Analizar imagen</button>
+    </form>
+    {% if miniatura %}
+      <figure class="vista-previa">
+        <img src="{{ miniatura }}" alt="Imagen analizada">
+        <figcaption>{{ imagen.ancho_px }} × {{ imagen.alto_px }} px · {{ imagen.formato }} · nitidez {{ imagen.nitidez }}</figcaption>
+      </figure>
+    {% endif %}
+  </section>
+  <section class="tarjeta">
+    {% if error_servicio %}
+      <div class="alerta alerta-error">El servicio de identificación no está disponible en este momento. La imagen es válida; intenta de nuevo en unos minutos.</div>
+    {% elif resultado %}
+      <div class="veredicto veredicto-{{ recomendacion.codigo|lower }}">
+        <span class="etiqueta">{{ recomendacion.titulo }}</span>
+        <p class="estilo">{{ estilo_nombre }} <strong>{{ confianza_pct }}%</strong></p>
+        <p>{{ recomendacion.explicacion }}</p>
+      </div>
+      <h2>Confianza por estilo</h2>
+      <ul class="confianzas">
+        {% for f in filas %}
+        <li>
+          <span class="nombre"><code>{{ f.codigo }}</code> {{ f.nombre }}</span>
+          <meter min="0" max="100" value="{{ f.porcentaje|unlocalize }}">{{ f.porcentaje }}%</meter>
+          <span class="valor">{{ f.porcentaje }}%</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="nota">Modelo: {{ resultado.version_modelo }}. El número es la confianza de clasificación del modelo, no una medida exacta de similitud.</p>
+    {% else %}
+      <p class="vacio">Aquí aparecerá el resultado del análisis.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
