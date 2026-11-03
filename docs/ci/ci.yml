@@ -1,0 +1,55 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mtflow
+          POSTGRES_USER: mtflow
+          POSTGRES_PASSWORD: mtflow_dev
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mtflow" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DJANGO_DEBUG: "1"
+      DJANGO_SECRET_KEY: clave-solo-para-ci-0123456789-0123456789-0123456789-abcdef
+      DJANGO_ALLOWED_HOSTS: localhost,testserver
+      DATABASE_URL: postgresql://mtflow:mtflow_dev@localhost:5432/mtflow
+      ML_SERVICE_API_KEY: clave-ci
+    defaults:
+      run:
+        working-directory: config
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+      - run: pip install -r ../requirements.txt
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test
+      - name: Revisión de seguridad para producción
+        run: python manage.py check --deploy --fail-level ERROR
+        env:
+          DJANGO_DEBUG: "0"
+          DJANGO_ALLOWED_HOSTS: mtflow.cl
+
+  ml_service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml_service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -r requirements.txt pytest httpx
+      - run: python -m pytest -q
