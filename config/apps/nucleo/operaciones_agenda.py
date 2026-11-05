@@ -7,7 +7,7 @@ from django.db.models import F
 from django.forms.utils import from_current_timezone
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from web.models import BloqueHorario, EventoSolicitud, Postulacion, Tatuadora
+from web.models import BloqueHorario, EventoSolicitud, Postulacion, Tatuadora, Sesion
 
 OCUPADOS = ("RESERVADA", "REALIZADA", "BLOQUEADO")
 
@@ -25,6 +25,13 @@ def bloquear_profesional(user):
 def gestionar(user, referencia, datos):
     artista = bloquear_profesional(user)
     p = get_object_or_404(Postulacion.objects.select_for_update(), referencia=referencia, tatuadora=artista)
+    from .forms_agenda import GestionForm
+    form = GestionForm(datos)
+    if not form.is_valid():
+        raise ValidationError(form.errors.as_text())
+    datos = form.cleaned_data
+    if datos.get("version") and datos["version"] != p.actualizada_en.isoformat():
+        raise ValidationError("La solicitud cambió en otra ventana. Recarga antes de modificarla.")
     accion = datos["accion"]
     if accion == "revisar":
         if p.estado != "RECIBIDA":
@@ -43,6 +50,8 @@ def gestionar(user, referencia, datos):
         monto = datos["monto_abono"]
         if not datos["verificado"] or monto > p.precio_final or monto < (p.monto_abono or 0):
             raise ValidationError("El abono debe estar verificado, no disminuir y no superar el precio acordado.")
+        if p.abono_verificado_en and monto == p.monto_abono:
+            return p
         p.monto_abono = monto
         p.abono_verificado_en = timezone.now()
         p.abono_verificado_por = user
@@ -52,6 +61,7 @@ def gestionar(user, referencia, datos):
         if p.abono_verificado_en:
             raise ValidationError("Esta solicitud tiene un abono: resuelve la cancelación con el cliente antes de cerrar el proceso.")
         p.estado, p.motivo_rechazo = "RECHAZADA", datos["motivo"]
+    p.full_clean()
     p.save()
     detalle = datos.get("motivo", "")
     if accion == "aceptar":
@@ -65,6 +75,11 @@ def gestionar(user, referencia, datos):
 @transaction.atomic
 def guardar_bloque(user, datos, referencia=None):
     artista = bloquear_profesional(user)
+    from .forms_agenda import BloqueForm
+    form = BloqueForm(datos, tatuadora=artista)
+    if not form.is_valid():
+        raise ValidationError(form.errors.as_text())
+    datos = form.cleaned_data
     b = get_object_or_404(BloqueHorario, referencia=referencia, tatuadora=artista) if referencia else BloqueHorario(tatuadora=artista)
     if b.pk:
         if b.estado in ("CANCELADA", "REALIZADA"):
@@ -92,16 +107,13 @@ def guardar_bloque(user, datos, referencia=None):
             raise ValidationError("La sesión debe quedar dentro de un bloque de disponibilidad de tu agenda.")
     for campo in ("tipo", "fecha", "hora_inicio", "hora_fin", "nota"):
         setattr(b, campo, datos[campo])
-    b.postulacion = p
     b.estado = {"CITA": "RESERVADA", "BLOQUEO": "BLOQUEADO", "DISPONIBILIDAD": "DISPONIBLE"}[b.tipo]
     b.full_clean()
     b.save()
     if p:
         p.estado = "RESERVADA"
-        # Conservar compatibilidad con el DER original; sesiones permite más de una.
-        if not p.bloque_id:
-            p.bloque = b
-        p.save(update_fields=["estado", "bloque", "actualizada_en"])
+        Sesion.objects.get_or_create(bloque=b, defaults={"postulacion": p})
+        p.save(update_fields=["estado", "actualizada_en"])
         detalle = f"{b.fecha} {b.hora_inicio:%H:%M}–{b.hora_fin:%H:%M}"
         if anteriores:
             detalle = f"Antes: {anteriores}. Ahora: {detalle}"
@@ -119,6 +131,10 @@ def asegurar_sesiones_cubiertas(bloque, reemplazo=None):
 @transaction.atomic
 def cerrar_bloque(user, referencia, accion, motivo, version):
     artista = bloquear_profesional(user)
+    from web.validadores import texto_sin_controles
+    texto_sin_controles(motivo)
+    if len(motivo) > 300:
+        raise ValidationError("El motivo admite hasta 300 caracteres.")
     b = get_object_or_404(BloqueHorario, referencia=referencia, tatuadora=artista)
     if b.actualizada_en.isoformat() != version:
         raise ValidationError("El bloque cambió. Recarga la página.")

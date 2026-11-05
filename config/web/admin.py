@@ -1,9 +1,28 @@
 from django.contrib import admin
-from .models import Cliente, Tatuadora, Postulacion, Imagen, Estilo, Prediccion
+from .models import (Cliente, Tatuadora, Postulacion, ContactoSolicitud, Imagen,
+                     Estilo, Prediccion, BloqueHorario, Sesion, EventoSolicitud, ConfianzaEstilo)
 
+
+class RegistroOperativoAdmin(admin.ModelAdmin):
+    """Los cambios pasan por el flujo que valida estados y permisos."""
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class TatuadoraAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        return ("usuario",) if obj else ()
+
+
+for modelo in (Postulacion, ContactoSolicitud, Imagen, Prediccion, BloqueHorario,
+               Sesion, EventoSolicitud, ConfianzaEstilo):
+    admin.site.register(modelo, RegistroOperativoAdmin)
 admin.site.register(Cliente)
-admin.site.register(Tatuadora)
-admin.site.register(Postulacion)
-admin.site.register(Imagen)
+admin.site.register(Tatuadora, TatuadoraAdmin)
 admin.site.register(Estilo)
-admin.site.register(Prediccion)

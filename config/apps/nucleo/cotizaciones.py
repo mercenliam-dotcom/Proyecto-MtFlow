@@ -1,7 +1,6 @@
 """Consulta privada de las propuestas dirigidas a la tatuadora autenticada."""
 from decimal import Decimal
 from pathlib import Path
-import re
 
 from django.conf import settings
 from django.core.paginator import Paginator
@@ -21,7 +20,7 @@ from web.models import Imagen, Postulacion, Prediccion
 def propias(user):
     # También los administradores ven solo sus propuestas en «Mis cotizaciones».
     # La gestión global se consulta en la bandeja del equipo, exclusiva de ADMIN.
-    return Postulacion.objects.filter(tatuadora__usuario=user).select_related("cliente", "tatuadora__usuario")
+    return Postulacion.objects.filter(tatuadora__usuario=user).select_related("contacto", "tatuadora__usuario")
 
 
 def nombre_estado(estado):
@@ -45,7 +44,7 @@ def lista(request):
 @never_cache
 @require_GET
 def equipo(request):
-    propuestas = Postulacion.objects.select_related("cliente", "tatuadora__usuario")
+    propuestas = Postulacion.objects.select_related("contacto", "tatuadora__usuario")
     return _lista(request, propuestas, es_equipo=True)
 
 
@@ -103,23 +102,18 @@ def detalle(request, referencia):
 @never_cache
 @require_GET
 def equipo_detalle(request, referencia):
-    return _detalle(request, referencia, Postulacion.objects.select_related("cliente", "tatuadora__usuario"), es_equipo=True)
+    return _detalle(request, referencia, Postulacion.objects.select_related("contacto", "tatuadora__usuario"), es_equipo=True)
 
 
-def _detalle(request, referencia, propuestas, es_equipo=False):
+def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None, status=200):
     propuesta = get_object_or_404(propuestas, referencia=referencia)
     propuesta.precio_legible = precio_legible(propuesta)
-    # Las propuestas de la rama SQL consolidan estos campos en descripción.
-    # Se presentan como información de la propuesta, sin exponer etiquetas internas.
-    datos = re.fullmatch(r"IDEA: (.*) \| COLOR: (negro|color) \| DETALLE: (normal|alto) \| COVER-UP: (True|False)", propuesta.descripcion, re.S)
-    propuesta.idea_legible = datos[1] if datos else propuesta.descripcion
-    opciones = None
-    if datos:
-        opciones = {
-            "color": "Negro y grises" if datos[2] == "negro" else "Con color",
-            "detalle": "Simple o intermedio" if datos[3] == "normal" else "Alto",
-            "cobertura": "Sí" if datos[4] == "True" else "No",
-        }
+    propuesta.idea_legible = propuesta.descripcion
+    opciones = {
+        "color": propuesta.get_color_display() if propuesta.color else "No registrado",
+        "detalle": propuesta.get_nivel_detalle_display() if propuesta.nivel_detalle else "No registrado",
+        "cobertura": "No registrado" if propuesta.cobertura is None else "Sí" if propuesta.cobertura else "No",
+    }
     predicciones = Prediccion.objects.select_related("estilo_sugerido").prefetch_related(
         "confianzaestilo_set__estilo",
     ).order_by("-generada_en", "-pk")
@@ -158,7 +152,7 @@ def _detalle(request, referencia, propuestas, es_equipo=False):
         "propuesta": propuesta, "referencias": referencias,
         "estado_legible": nombre_estado(propuesta.estado),
         "opciones": opciones, "es_equipo": es_equipo,
-        "gestion_form": GestionForm(solicitud=propuesta),
+        "gestion_form": gestion_form if gestion_form is not None else GestionForm(solicitud=propuesta),
         "puede_gestionar": propuesta.tatuadora.usuario_id == request.user.pk and request.user.es_tatuadora and propuesta.tatuadora.activa,
         "sesiones": propuesta.sesiones.all(), "eventos": propuesta.eventos.select_related("actor")[:50],
-    })
+    }, status=status)

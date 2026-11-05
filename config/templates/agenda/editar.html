@@ -4,7 +4,7 @@
 <p class="miga"><a href="{% url 'nucleo:agenda' %}">← Mi agenda</a></p>
 <h1>{% if bloque %}Detalle del horario{% else %}Agregar horario{% endif %}</h1>
 <p class="bajada">Fecha y hora de Santiago. El intervalo completo queda reservado; los horarios contiguos sí están permitidos.</p>
-{% if bloque %}<p class="chip">{{ bloque.estado }}</p>{% if bloque.postulacion_id %}<p><a href="{% url 'nucleo:cotizacion_detalle' bloque.postulacion.referencia %}">Ver solicitud de {{ bloque.postulacion.cliente }}</a></p>{% endif %}{% endif %}
+{% if bloque %}<p class="chip">{{ bloque.estado }}</p>{% if bloque.postulacion_id %}<p><a href="{% url 'nucleo:cotizacion_detalle' bloque.postulacion.referencia %}">Ver solicitud de {{ bloque.postulacion.contacto }}</a></p>{% endif %}{% endif %}
 {% if bloque.estado != 'CANCELADA' and bloque.estado != 'REALIZADA' %}
 <form method="post" class="tarjeta">{% csrf_token %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button type="submit" class="boton">Guardar horario</button></form>
 {% if bloque %}<form method="post" action="{% url 'nucleo:agenda_cerrar' bloque.referencia %}" class="tarjeta">{% csrf_token %}<input type="hidden" name="version" value="{{ form.initial.version }}"><div class="campo"><label for="motivo-cierre">Motivo de cancelación / observación</label><textarea id="motivo-cierre" name="motivo" maxlength="300"></textarea></div><button name="accion" value="cancelar" class="boton secundario">Cancelar horario</button>{% if bloque.tipo == 'CITA' %}<button name="accion" value="realizar" class="boton">Marcar sesión realizada</button>{% endif %}</form>{% endif %}

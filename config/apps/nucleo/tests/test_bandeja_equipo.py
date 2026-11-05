@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.cuentas.models import Usuario
-from web.models import Cliente, Postulacion
+from web.models import ContactoSolicitud, Cliente, Postulacion
 from web.test_recepcion import profesional
 
 
@@ -24,7 +24,8 @@ class BandejaEquipo(TestCase):
 
     def crear(self, tatuadora, nombre, estado="RECIBIDA", fecha=None):
         cliente = Cliente.objects.create(nombres=nombre, apellidos="", correo="cliente@example.com")
-        p = Postulacion.objects.create(tatuadora=tatuadora, cliente=cliente, zona_cuerpo="brazo", alto_cm=5, ancho_cm=5, categoria_tamano="pequeno", descripcion="Referencia del cliente", estado=estado)
+        p = Postulacion.objects.create(tatuadora=tatuadora, cliente=cliente, zona_cuerpo="brazo", alto_cm=5, ancho_cm=5, descripcion="Referencia del cliente", estado=estado)
+        ContactoSolicitud.objects.create(postulacion=p, nombres=cliente.nombres, correo=cliente.correo)
         if fecha:
             Postulacion.objects.filter(pk=p.pk).update(creada_en=timezone.make_aware(fecha))
         return p

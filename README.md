@@ -152,3 +152,7 @@ Detalles de reglas, seguridad, pruebas y pendientes: [revisión de noviembre](do
 ## Agenda y solicitudes
 
 Ver [integración, funcionamiento y pendientes](docs/integracion-agenda-2026-11-05.md).
+
+## Normalización y validaciones
+
+La revisión de 1FN–3FN, las migraciones, las claves y el DER actualizado están en [normalización y validaciones](docs/normalizacion-y-validaciones.md). Ejecutar `python manage.py migrate` antes de iniciar esta versión. La migración conserva datos y requiere respaldo; no cambiar a código anterior manteniendo una base ya migrada.

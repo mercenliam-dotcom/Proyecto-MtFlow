@@ -28,7 +28,7 @@ def profesional(request):
 @require_GET
 def inicio(request):
     artista = profesional(request)
-    bloques = BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=timezone.localdate()).exclude(estado="CANCELADA").select_related("postulacion__cliente")[:100]
+    bloques = BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=timezone.localdate()).exclude(estado="CANCELADA").select_related("sesion__postulacion__contacto")[:100]
     return render(request, "agenda/inicio.html", {"bloques": bloques, "hoy": timezone.localdate().isoformat()})
 
 
@@ -45,8 +45,8 @@ def eventos(request):
     except ValueError:
         return JsonResponse({"error": "Intervalo de fechas inválido (máximo 100 días)."}, status=400)
     datos = []
-    for b in BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=inicio, fecha__lt=fin).exclude(estado="CANCELADA").select_related("postulacion__cliente"):
-        datos.append({"id": str(b.referencia), "title": (str(b.postulacion.cliente) if b.postulacion_id else b.get_tipo_display()) + " · " + b.estado.lower(),
+    for b in BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=inicio, fecha__lt=fin).exclude(estado="CANCELADA").select_related("sesion__postulacion__contacto"):
+        datos.append({"id": str(b.referencia), "title": (str(b.postulacion.contacto) if b.postulacion_id else b.get_tipo_display()) + " · " + b.estado.lower(),
                       "start": f"{b.fecha}T{b.hora_inicio}", "end": f"{b.fecha}T{b.hora_fin}",
                       "url": reverse("nucleo:agenda_editar", args=[b.referencia]),
                       "classNames": ["agenda-" + b.tipo.lower()]})
@@ -98,7 +98,7 @@ def editar(request, referencia=None):
 def cerrar(request, referencia):
     profesional(request)
     try:
-        cerrar_bloque(request.user, referencia, request.POST.get("accion"), request.POST.get("motivo", "")[:300], request.POST.get("version"))
+        cerrar_bloque(request.user, referencia, request.POST.get("accion"), request.POST.get("motivo", ""), request.POST.get("version"))
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     except DatabaseError:
@@ -114,18 +114,20 @@ def cerrar(request, referencia):
 @require_POST
 def gestion(request, referencia):
     artista = profesional(request)
-    get_object_or_404(Postulacion, referencia=referencia, tatuadora=artista)
-    form = GestionForm(request.POST)
+    propuesta = get_object_or_404(Postulacion, referencia=referencia, tatuadora=artista)
+    form = GestionForm(request.POST, solicitud=propuesta)
+    status = 400
     if form.is_valid():
         try:
             gestionar(request.user, referencia, form.cleaned_data)
         except ValidationError as exc:
-            messages.error(request, " ".join(exc.messages))
+            form.add_error(None, " ".join(exc.messages))
+            status = 409
         except DatabaseError:
-            messages.error(request, "No se guardó el cambio. Recarga y vuelve a intentarlo.")
+            form.add_error(None, "No se guardó el cambio. Recarga y vuelve a intentarlo.")
+            status = 409
         else:
             messages.success(request, "Solicitud actualizada.")
-    else:
-        for errores in form.errors.values():
-            messages.error(request, " ".join(errores))
-    return redirect("nucleo:cotizacion_detalle", referencia=referencia)
+            return redirect("nucleo:cotizacion_detalle", referencia=referencia)
+    from .cotizaciones import _detalle, propias
+    return _detalle(request, referencia, propias(request.user), gestion_form=form, status=status)

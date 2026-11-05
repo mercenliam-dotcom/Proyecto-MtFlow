@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from apps.cuentas.models import Usuario
 from apps.nucleo.tests.utilidades import imagen_bytes
-from web.models import Cliente, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
+from web.models import ContactoSolicitud, Cliente, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
 from web.test_recepcion import profesional
 
 
@@ -31,11 +31,13 @@ class MisCotizaciones(TestCase):
         self.addCleanup(self.override.disable)
 
     def crear(self, artista, cliente, **extra):
-        return Postulacion.objects.create(
+        p = Postulacion.objects.create(
             tatuadora=artista, cliente=cliente, alto_cm=5, ancho_cm=4,
-            area_cm2=20, zona_cuerpo="antebrazo", categoria_tamano="pequeno",
-            descripcion="IDEA: Una flor | COLOR: negro | DETALLE: normal | COVER-UP: False", **{"estado": "RECIBIDA", "estado_ml": "NO_SOLICITADO", **extra},
+            zona_cuerpo="antebrazo", descripcion="Una flor", color="negro", nivel_detalle="normal", cobertura=False, **{"estado": "RECIBIDA", "estado_ml": "NO_SOLICITADO", **extra},
         )
+
+        ContactoSolicitud.objects.create(postulacion=p, nombres=cliente.nombres, correo=cliente.correo)
+        return p
 
     def imagen(self, url="postulaciones/prueba.jpg", existente=False):
         if existente:
@@ -76,7 +78,7 @@ class MisCotizaciones(TestCase):
         self.assertNotContains(r, "COVER-UP")
         self.assertContains(r, "$35.000 CLP")
         self.assertContains(r, "Su recepción no confirma una reserva")
-        self.assertIsNone(Postulacion.objects.get(pk=self.propia.pk).bloque_id)
+        self.assertFalse(Postulacion.objects.get(pk=self.propia.pk).sesiones.exists())
 
     def test_imagen_se_sirve_mediante_url_privada(self):
         self.imagen(existente=True)
@@ -167,6 +169,7 @@ class MisCotizaciones(TestCase):
 
     def test_sin_perfil_o_sin_propuestas_muestra_vacio(self):
         self.client.force_login(self.otra.usuario)
+        ContactoSolicitud.objects.filter(postulacion=self.externa).delete()
         Postulacion.objects.filter(pk=self.externa.pk).delete()
         Tatuadora.objects.filter(pk=self.otra.pk).delete()
         self.assertContains(self.client.get(self.url), "Aún no tienes cotizaciones")
@@ -179,7 +182,7 @@ class MisCotizaciones(TestCase):
 
     def test_descripcion_y_contacto_escapan_html(self):
         ataque = '<script>alert("x")</script>'
-        Cliente.objects.filter(pk=self.cliente.pk).update(nombres=ataque)
+        ContactoSolicitud.objects.filter(postulacion=self.propia).update(nombres=ataque)
         Postulacion.objects.filter(pk=self.propia.pk).update(descripcion=ataque)
         for url in (self.url, self.detalle):
             r = self.client.get(url)

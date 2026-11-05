@@ -13,7 +13,7 @@ from apps.cuentas.models import Usuario
 from apps.nucleo.firmas import url_archivo
 from apps.nucleo.tests.utilidades import jpg_valido, png_valido
 from .forms import token_envio
-from .models import Cliente, ConfianzaEstilo, Imagen, Postulacion, Prediccion, Tatuadora
+from .models import ContactoSolicitud, Cliente, ConfianzaEstilo, Imagen, Postulacion, Prediccion, Tatuadora
 
 
 def profesional(nombre="artista1"):
@@ -88,7 +88,7 @@ class RecepcionPersistente(TestCase):
         self.assertEqual(p.area_cm2, Decimal("16.2750"))
         self.assertEqual(p.estado, "RECIBIDA")
         self.assertEqual(p.estado_ml, "NO_SOLICITADO")
-        self.assertIsNone(p.bloque_id)
+        self.assertFalse(p.sesiones.exists())
         self.assertEqual((imagen.ancho_px, imagen.alto_px), (500, 350))
         self.assertGreater(imagen.nitidez, 0)
         self.assertTrue(archivo.is_file())
@@ -115,7 +115,7 @@ class RecepcionPersistente(TestCase):
         Tatuadora.objects.update(activa=False)
         r = self.client.post(self.url, propuesta(self.artista))
         self.assertContains(r, "No hay tatuadoras habilitadas", status_code=400)
-        self.assertFalse(Cliente.objects.exists())
+        self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertEqual(self.archivos(), [])
 
     def test_tatuadora_con_cuenta_desactivada_no_se_puede_elegir(self):
@@ -128,7 +128,7 @@ class RecepcionPersistente(TestCase):
             consulta.return_value.filter.return_value.first.return_value = None
             r = self.client.post(self.url, propuesta(self.artista))
         self.assertEqual(r.status_code, 400)
-        self.assertFalse(Cliente.objects.exists())
+        self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertEqual(self.archivos(), [])
 
     def test_reenvio_mismo_token_no_duplica_ni_repite_ml(self):
@@ -139,7 +139,7 @@ class RecepcionPersistente(TestCase):
             r = self.client.post(self.url, propuesta(self.artista, envio=token, analizar="on"))
         self.assertContains(r, "Esta propuesta ya fue recibida")
         self.assertEqual(Postulacion.objects.count(), 1)
-        self.assertEqual(Cliente.objects.count(), 1)
+        self.assertEqual(ContactoSolicitud.objects.count(), 1)
         self.assertEqual(len(self.archivos()), 1)
         ml.assert_called_once()
 
@@ -173,7 +173,7 @@ class RecepcionPersistente(TestCase):
         with patch("web.recepcion.Imagen.objects.create", side_effect=IntegrityError("prueba")):
             r = self.client.post(self.url, propuesta(self.artista))
         self.assertEqual(r.status_code, 503)
-        self.assertFalse(Cliente.objects.exists())
+        self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertFalse(Postulacion.objects.exists())
         self.assertEqual(self.archivos(), [])
         self.assertNotContains(r, "Propuesta recibida", status_code=503)
@@ -182,7 +182,7 @@ class RecepcionPersistente(TestCase):
         with patch("web.recepcion.FileSystemStorage.save", side_effect=OSError("disco lleno")):
             r = self.client.post(self.url, propuesta(self.artista))
         self.assertEqual(r.status_code, 503)
-        self.assertFalse(Cliente.objects.exists())
+        self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertFalse(Postulacion.objects.exists())
 
     def test_fallo_durante_escritura_limpia_archivo_parcial(self):
@@ -205,7 +205,7 @@ class RecepcionPersistente(TestCase):
     def test_contacto_nuevo_no_sobrescribe_solicitudes_anteriores(self):
         self.client.post(self.url, propuesta(self.artista, nombre="Primero"))
         self.client.post(self.url, propuesta(self.artista, nombre="Segundo"))
-        self.assertEqual(list(Postulacion.objects.order_by("pk").values_list("cliente__nombres", flat=True)), ["Primero", "Segundo"])
+        self.assertEqual(list(Postulacion.objects.order_by("pk").values_list("contacto__nombres", flat=True)), ["Primero", "Segundo"])
 
     def test_imagen_privada_solo_para_tatuadora_elegida_o_admin(self):
         self.client.post(self.url, propuesta(self.artista))
@@ -235,5 +235,5 @@ class CommitDeRecepcion(TransactionTestCase):
                 r = self.client.post(reverse("web:cotizacion"), propuesta(artista))
             self.assertEqual(r.status_code, 503)
             self.assertFalse(Postulacion.objects.exists())
-            self.assertFalse(Cliente.objects.exists())
+            self.assertFalse(ContactoSolicitud.objects.exists())
             self.assertEqual([p for p in Path(media).rglob("*") if p.is_file()], [])

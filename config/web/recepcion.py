@@ -11,7 +11,7 @@ from django.db import IntegrityError, transaction
 
 from apps.clasificacion.catalogo import ESTILOS, recomendar
 from apps.clasificacion.cliente_ml import ServicioMLNoDisponible
-from .models import Cliente, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
+from .models import ContactoSolicitud, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
 from .precios import estimar
 
 log = logging.getLogger("mtflow.seguridad")
@@ -79,20 +79,18 @@ def recibir(datos, validada, referencia, clasificador):
             ).first()
             if tatuadora is None:
                 raise TatuadoraNoDisponible
-            # El correo público no verifica identidad. Cada propuesta conserva
-            # su contacto sin modificar los datos de solicitudes anteriores.
-            cliente = Cliente.objects.create(
-                nombres=datos["nombre"], apellidos="", correo=datos["email"], telefono=datos["telefono"],
-            )
             postulacion = Postulacion.objects.create(
-                referencia=referencia, cliente=cliente, tatuadora=tatuadora,
+                referencia=referencia, tatuadora=tatuadora,
                 zona_cuerpo=datos["zona"], alto_cm=alto, ancho_cm=ancho,
-                area_cm2=area, categoria_tamano=tamano,
-                descripcion=f"IDEA: {datos['idea']} | COLOR: {datos['color']} | DETALLE: {datos['detalle']} | COVER-UP: {datos['cobertura']}",
+                descripcion=datos["idea"], color=datos["color"], nivel_detalle=datos["detalle"], cobertura=datos["cobertura"],
                 estado="RECIBIDA", estado_ml=estado_ml,
                 precio_sugerido=estimacion.get("minimo"),
                 alerta_ml=recomendar(resultado.estilo_sugerido, resultado.confianza_maxima).alerta_ml if resultado else None,
             )
+            contacto = ContactoSolicitud(postulacion=postulacion, nombres=datos["nombre"], correo=datos["email"], telefono=datos["telefono"])
+            contacto.full_clean()
+            contacto.save()
+            postulacion.full_clean()
             imagen = Imagen.objects.create(
                 postulacion=postulacion, url=ruta, orden=1, es_principal=True,
                 formato=validada.formato, ancho_px=validada.ancho_px, alto_px=validada.alto_px,

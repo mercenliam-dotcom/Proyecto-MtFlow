@@ -9,14 +9,16 @@ from django.urls import reverse
 from django.utils import timezone
 
 from web.test_recepcion import profesional
-from web.models import BloqueHorario, Cliente, Postulacion, EventoSolicitud, Imagen, Estilo, Prediccion
+from web.models import ContactoSolicitud, BloqueHorario, Cliente, Postulacion, EventoSolicitud, Imagen, Estilo, Prediccion
 from apps.nucleo.forms_agenda import BloqueForm, GestionForm
 from apps.nucleo.operaciones_agenda import gestionar, guardar_bloque, cerrar_bloque
 
 
 def solicitud(artista):
     cliente = Cliente.objects.create(nombres="Cliente privado", apellidos="Prueba", correo="solo@example.test")
-    return Postulacion.objects.create(cliente=cliente, tatuadora=artista, zona_cuerpo="brazo", alto_cm=10, ancho_cm=5, categoria_tamano="mediano", descripcion="Idea", estado="RECIBIDA")
+    p = Postulacion.objects.create(cliente=cliente, tatuadora=artista, zona_cuerpo="brazo", alto_cm=10, ancho_cm=5, descripcion="Idea", estado="RECIBIDA")
+    ContactoSolicitud.objects.create(postulacion=p, nombres=cliente.nombres, correo=cliente.correo)
+    return p
 
 
 class Agenda(TestCase):
@@ -63,7 +65,7 @@ class Agenda(TestCase):
         b = self.reservar()
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "RESERVADA")
-        self.assertEqual(self.p.bloque, b)
+        self.assertEqual(self.p.sesiones.get(), b)
         self.assertEqual(self.p.abono_verificado_por, self.a.usuario)
         self.assertEqual(self.p.eventos.count(), 3)
         self.assertContains(self.client.get(reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])), "Agendar una sesión")
@@ -189,7 +191,7 @@ class Agenda(TestCase):
     def test_confianza_visible_solo_en_buzon_con_orden_priorizado(self):
         estilo, _ = Estilo.objects.get_or_create(codigo="E-01", defaults={"nombre": "Alto contraste"})
         for p, valor in [(self.p, ".90"), (solicitud(self.a), ".70")]:
-            im = Imagen.objects.create(postulacion=p, url="prueba.jpg", orden=1, es_principal=True, formato="JPEG", ancho_px=300, alto_px=300, tamano_bytes=1000)
+            im = Imagen.objects.create(postulacion=p, url=f"prueba-{p.pk}.jpg", orden=1, es_principal=True, formato="JPEG", ancho_px=300, alto_px=300, tamano_bytes=1000)
             Prediccion.objects.create(imagen=im, version_modelo="local:test", estilo_sugerido=estilo, confianza_maxima=valor, tiempo_inferencia_ms=1)
         r = self.client.get(reverse("nucleo:cotizaciones"), {"orden": "confianza"})
         self.assertContains(r, "90.0 %")

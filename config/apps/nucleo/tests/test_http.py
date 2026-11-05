@@ -79,7 +79,7 @@ class UrlsFirmadas(TestCase):
         from web.models import Cliente, Tatuadora, Postulacion, Imagen
         self.owner = usuario()
         cliente = Cliente.objects.create(nombres="Cliente", apellidos="Prueba")
-        postulacion = Postulacion.objects.create(cliente=cliente, tatuadora=Tatuadora.objects.get(usuario=self.owner), zona_cuerpo="brazo", alto_cm=5, ancho_cm=5, categoria_tamano="pequeno", descripcion="Prueba", estado="RECIBIDA")
+        postulacion = Postulacion.objects.create(cliente=cliente, tatuadora=Tatuadora.objects.get(usuario=self.owner), zona_cuerpo="brazo", alto_cm=5, ancho_cm=5, descripcion="Prueba", estado="RECIBIDA")
         Imagen.objects.create(postulacion=postulacion, url="postulaciones/abc.jpg", orden=1, formato="JPEG", ancho_px=400, alto_px=300, tamano_bytes=100)
         self.tmp = tempfile.TemporaryDirectory()
         self.media = Path(self.tmp.name)

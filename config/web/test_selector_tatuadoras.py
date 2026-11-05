@@ -24,7 +24,7 @@ class SelectorTatuadoras(TestCase):
         self.url = reverse("web:cotizacion")
 
     def test_selector_muestra_nombre_de_la_cuenta_no_alias_antiguo(self):
-        Tatuadora.objects.filter(pk=self.artista.pk).update(nombre="Nueva Artista")
+        Tatuadora.objects.filter(pk=self.artista.pk).update(nombre_artistico="Nueva Artista")
         self.artista.usuario.nombre = "Amanda"
         self.artista.usuario.apellido = "Maldonado"
         self.artista.usuario.save(update_fields=["nombre", "apellido"])
@@ -51,7 +51,7 @@ class SelectorTatuadoras(TestCase):
 
     def test_propuesta_llega_a_la_cuenta_elegida_y_no_a_otra(self):
         elegida = profesional("elegida")
-        Tatuadora.objects.filter(pk=elegida.pk).update(nombre="Nombre antiguo")
+        Tatuadora.objects.filter(pk=elegida.pk).update(nombre_artistico="Nombre antiguo")
         r = self.client.post(self.url, propuesta(elegida))
         self.assertEqual(r.status_code, 200)
         postulacion = Postulacion.objects.get()

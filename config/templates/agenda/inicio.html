@@ -7,6 +7,6 @@
 <p class="nota">Para reservar una sesión, primero acepta la solicitud y registra el abono que verificaste fuera de la plataforma.</p>
 <section class="tarjeta"><div id="agenda-calendar" data-today="{{ hoy }}" data-events="{% url 'nucleo:agenda_eventos' %}" data-create="{% url 'nucleo:agenda_nuevo' %}"></div><p id="agenda-error" role="status"></p></section>
 <h2>Próximos horarios</h2><div class="cotizaciones-lista">
-{% for bloque in bloques %}<article class="tarjeta"><h3>{{ bloque.fecha|date:"l d/m/Y" }} · {{ bloque.hora_inicio|time:"H:i" }}–{{ bloque.hora_fin|time:"H:i" }}</h3><p>{{ bloque.get_tipo_display }} · {{ bloque.estado|lower }}{% if bloque.postulacion_id %} · {{ bloque.postulacion.cliente }}{% endif %}</p><a href="{% url 'nucleo:agenda_editar' bloque.referencia %}">Ver horario</a></article>{% empty %}<p>No hay horarios futuros. Comienza agregando tu disponibilidad.</p>{% endfor %}</div>
+{% for bloque in bloques %}<article class="tarjeta"><h3>{{ bloque.fecha|date:"l d/m/Y" }} · {{ bloque.hora_inicio|time:"H:i" }}–{{ bloque.hora_fin|time:"H:i" }}</h3><p>{{ bloque.get_tipo_display }} · {{ bloque.estado|lower }}{% if bloque.postulacion_id %} · {{ bloque.postulacion.contacto }}{% endif %}</p><a href="{% url 'nucleo:agenda_editar' bloque.referencia %}">Ver horario</a></article>{% empty %}<p>No hay horarios futuros. Comienza agregando tu disponibilidad.</p>{% endfor %}</div>
 <script src="{% static 'vendor/fullcalendar/index.global.min.js' %}" defer></script><script src="{% static 'js/agenda.js' %}" defer></script>
 {% endblock %}

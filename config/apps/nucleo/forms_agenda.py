@@ -3,6 +3,7 @@ from datetime import datetime
 from django import forms
 from django.forms.utils import from_current_timezone
 from django.utils import timezone
+from web.validadores import texto_sin_controles
 from web.models import BloqueHorario, Postulacion
 
 
@@ -12,7 +13,7 @@ class BloqueForm(forms.Form):
     hora_inicio = forms.TimeField(label="Inicio", widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
     hora_fin = forms.TimeField(label="Término", widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
     postulacion = forms.ModelChoiceField(label="Solicitud (solo para sesiones)", queryset=Postulacion.objects.none(), required=False)
-    nota = forms.CharField(label="Nota interna / motivo del cambio", max_length=300, required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    nota = forms.CharField(label="Nota interna / motivo del cambio", max_length=300, required=False, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"rows": 2}))
     version = forms.CharField(required=False, widget=forms.HiddenInput)
 
     def __init__(self, *args, tatuadora, **kwargs):
@@ -20,8 +21,8 @@ class BloqueForm(forms.Form):
         self.fields["postulacion"].queryset = Postulacion.objects.filter(
             tatuadora=tatuadora, estado__in=["ACEPTADA", "RESERVADA"],
             abono_verificado_en__isnull=False, monto_abono__gt=0,
-        ).select_related("cliente").order_by("-creada_en")
-        self.fields["postulacion"].label_from_instance = lambda p: f"{p.cliente.nombres} · {p.referencia.hex[:8]}"
+        ).select_related("contacto").order_by("-creada_en")
+        self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto.nombres} · {p.referencia.hex[:8]}"
 
     def clean(self):
         d = super().clean()
@@ -43,15 +44,18 @@ class BloqueForm(forms.Form):
 
 
 class GestionForm(forms.Form):
+    version = forms.CharField(required=False, widget=forms.HiddenInput)
     accion = forms.ChoiceField(label="Acción", choices=[("revisar", "Marcar en revisión"), ("aceptar", "Registrar acuerdo y aceptar"), ("abono", "Registrar abono verificado"), ("rechazar", "Rechazar solicitud")])
     precio_final = forms.IntegerField(label="Precio total acordado (CLP)", min_value=1, max_value=100000000, required=False)
     monto_abono = forms.IntegerField(label="Abono recibido acumulado (CLP)", min_value=1, max_value=100000000, required=False)
     verificado = forms.BooleanField(label="Verifiqué el pago recibido fuera de la plataforma", required=False)
-    motivo = forms.CharField(label="Observación / motivo de rechazo", max_length=500, required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    motivo = forms.CharField(label="Observación / motivo de rechazo", max_length=500, required=False, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"rows": 2}))
 
     def __init__(self, *args, solicitud=None, **kwargs):
         super().__init__(*args, **kwargs)
         if solicitud is not None:
+            self.fields["version"].required = True
+            self.initial["version"] = solicitud.actualizada_en.isoformat()
             permitidas = []
             if solicitud.estado == "RECIBIDA":
                 permitidas.append("revisar")

@@ -29,7 +29,7 @@
 {% for propuesta in pagina %}
   <article class="tarjeta">
     <div class="encabezado">
-      <h2>{{ propuesta.cliente.nombres }} {{ propuesta.cliente.apellidos }}</h2>
+      <h2>{{ propuesta.contacto.nombres }} {{ propuesta.contacto.apellidos }}</h2>
       <span class="chip">{{ propuesta.estado_legible }}</span>
     </div>
     <p class="nota">Recibida el {{ propuesta.creada_en|date:"d/m/Y" }} a las {{ propuesta.creada_en|date:"H:i" }}</p>
@@ -38,7 +38,7 @@
       <div><dt>Confianza del modelo</dt><dd>{{ propuesta.confianza_legible }}</dd></div><div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
       <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
     </dl>
-    <a class="boton" href="{% url detalle_nombre propuesta.referencia %}">Ver propuesta de {{ propuesta.cliente.nombres }}</a>
+    <a class="boton" href="{% url detalle_nombre propuesta.referencia %}">Ver propuesta de {{ propuesta.contacto.nombres }}</a>
     <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }}</p>
   </article>
 {% empty %}
