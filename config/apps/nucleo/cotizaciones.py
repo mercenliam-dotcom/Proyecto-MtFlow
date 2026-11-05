@@ -5,7 +5,7 @@ import re
 
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import Prefetch
+from django.db.models import Prefetch, OuterRef, Subquery, F
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET
 from apps.cuentas.models import Rol
 from apps.cuentas.permisos import rol_requerido, solo_admin
 from .forms_cotizaciones import FiltrosEquipo
+from .forms_agenda import GestionForm
 from apps.nucleo.firmas import url_archivo
 from web.models import Imagen, Postulacion, Prediccion
 
@@ -68,14 +69,25 @@ def _lista(request, propuestas, es_equipo=False):
         propuestas = propuestas.filter(estado=estado)
     filtros = request.GET.copy()
     filtros.pop("pagina", None)
-    pagina = Paginator(propuestas.order_by("-creada_en", "-pk"), 20).get_page(request.GET.get("pagina"))
+    ultima = Prediccion.objects.filter(imagen__postulacion=OuterRef("pk"), imagen__es_principal=True).order_by("-generada_en", "-pk")
+    propuestas = propuestas.annotate(confianza_resumen=Subquery(ultima.values("confianza_maxima")[:1]), modelo_resumen=Subquery(ultima.values("version_modelo")[:1]), estilo_resumen=Subquery(ultima.values("estilo_sugerido__codigo")[:1]))
+    orden = ["-creada_en", "-pk"]
+    if request.GET.get("orden") == "confianza":
+        # Los resultados simulados nunca deben ganar prioridad frente a clientes reales.
+        from django.db.models import Case, When, DecimalField
+        propuestas = propuestas.annotate(prioridad=Case(When(modelo_resumen__startswith="simulado", then=None), default=F("confianza_resumen"), output_field=DecimalField()))
+        orden = [F("prioridad").desc(nulls_last=True), "creada_en", "pk"]
+    pagina = Paginator(propuestas.order_by(*orden), 20).get_page(request.GET.get("pagina"))
     for propuesta in pagina:
         propuesta.estado_legible = nombre_estado(propuesta.estado)
         propuesta.precio_legible = precio_legible(propuesta)
+        propuesta.confianza_legible = "Sin análisis"
+        if propuesta.modelo_resumen:
+            propuesta.confianza_legible = "Simulado" if propuesta.modelo_resumen.startswith("simulado") else f"{propuesta.confianza_resumen * 100:.1f} %" + (" · revisar" if propuesta.estilo_resumen == "E-99" else "")
     return render(request, "cotizaciones/lista.html", {
         "pagina": pagina, "total": total, "estados": estados, "estado": estado,
         "es_equipo": es_equipo, "form_filtros": form, "filtros_query": filtros.urlencode(),
-        "titulo": "Cotizaciones del equipo" if es_equipo else "Mis cotizaciones",
+        "titulo": "Cotizaciones del equipo" if es_equipo else "Solicitudes",
         "detalle_nombre": "nucleo:equipo_cotizacion_detalle" if es_equipo else "nucleo:cotizacion_detalle",
     }, status=status)
 
@@ -146,4 +158,7 @@ def _detalle(request, referencia, propuestas, es_equipo=False):
         "propuesta": propuesta, "referencias": referencias,
         "estado_legible": nombre_estado(propuesta.estado),
         "opciones": opciones, "es_equipo": es_equipo,
+        "gestion_form": GestionForm(solicitud=propuesta),
+        "puede_gestionar": propuesta.tatuadora.usuario_id == request.user.pk and request.user.es_tatuadora and propuesta.tatuadora.activa,
+        "sesiones": propuesta.sesiones.all(), "eventos": propuesta.eventos.select_related("actor")[:50],
     })

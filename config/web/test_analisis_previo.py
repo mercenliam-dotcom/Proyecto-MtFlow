@@ -40,8 +40,8 @@ class AnalisisPrevio(TestCase):
             r = self.analizar()
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["nombre"], "Alto contraste")
-        self.assertEqual(r.json()["umbral_confianza"], .6)
-        self.assertEqual(len(r.json()["estilos"]), 7)
+        self.assertNotIn("umbral_confianza", r.json())
+        self.assertNotIn("estilos", r.json())
         self.assertFalse(r.json()["simulado"])
         self.assertIn("no-store", r["Cache-Control"])
         self.assertNotIn("nombre", ml.call_args.kwargs["files"])
@@ -54,8 +54,8 @@ class AnalisisPrevio(TestCase):
             r = self.analizar()
         self.assertEqual(r.json()["estilo_sugerido"], "E-99")
         self.assertEqual(r.json()["nombre"], "Fuera de catálogo")
-        self.assertEqual(r.json()["confianza_maxima"], .59)
-        self.assertEqual(len(r.json()["estilos"]), 7)
+        self.assertNotIn("confianza_maxima", r.json())
+        self.assertNotIn("estilos", r.json())
         self.assert_sin_guardado()
 
     def test_envia_solo_imagen_recodificada(self):

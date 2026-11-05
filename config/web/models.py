@@ -32,6 +32,16 @@ class Tatuadora(models.Model):
         return self.usuario.get_full_name().strip() or self.nombre
 
 class BloqueHorario(models.Model):
+    class Tipo(models.TextChoices):
+        DISPONIBILIDAD = "DISPONIBILIDAD", "Disponible para trabajar"
+        CITA = "CITA", "Sesión reservada"
+        BLOQUEO = "BLOQUEO", "Bloqueo personal"
+
+    referencia = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    tipo = models.CharField(max_length=15, choices=Tipo.choices, default=Tipo.DISPONIBILIDAD)
+    postulacion = models.ForeignKey("Postulacion", null=True, blank=True, on_delete=models.RESTRICT, related_name="sesiones")
+    nota = models.CharField(max_length=300, blank=True)
+    actualizada_en = models.DateTimeField(auto_now=True)
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
     fecha = models.DateField()
     hora_inicio = models.TimeField()
@@ -39,7 +49,12 @@ class BloqueHorario(models.Model):
     estado = models.CharField(max_length=15)
 
     class Meta:
-        unique_together = ('tatuadora', 'fecha', 'hora_inicio')
+        ordering = ["fecha", "hora_inicio", "pk"]
+        constraints = [models.CheckConstraint(condition=models.Q(hora_inicio__lt=models.F("hora_fin")), name="bloque_intervalo_positivo")]
+        indexes = [models.Index(fields=["tatuadora", "fecha", "estado"], name="agenda_busqueda")]
+
+    def __str__(self):
+        return f"{self.fecha} {self.hora_inicio:%H:%M}–{self.hora_fin:%H:%M} · {self.get_tipo_display()}"
 
 class Postulacion(models.Model):
     class EstadoML(models.TextChoices):
@@ -48,11 +63,13 @@ class Postulacion(models.Model):
         COMPLETADO = "COMPLETADO", "Completado"
         NO_DISPONIBLE = "NO_DISPONIBLE", "No disponible"
 
+    abono_verificado_en = models.DateTimeField(null=True, blank=True)
+    abono_verificado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="abonos_verificados")
     referencia = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     estado_ml = models.CharField(max_length=20, choices=EstadoML.choices, default=EstadoML.LEGADO)
     cliente = models.ForeignKey(Cliente, on_delete=models.RESTRICT)
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
-    bloque = models.OneToOneField(BloqueHorario, on_delete=models.SET_NULL, null=True, blank=True)
+    bloque = models.OneToOneField(BloqueHorario, on_delete=models.SET_NULL, null=True, blank=True, related_name="solicitud_principal")
     zona_cuerpo = models.CharField(max_length=100)
     alto_cm = models.DecimalField(max_digits=5, decimal_places=2)
     ancho_cm = models.DecimalField(max_digits=5, decimal_places=2)
@@ -149,3 +166,14 @@ def crear_perfil_tatuadora(sender, instance, created, raw=False, **kwargs):
         Tatuadora.objects.get_or_create(
             usuario=instance, defaults={"nombre": nombre_completo, "activa": True},
         )
+
+
+class EventoSolicitud(models.Model):
+    postulacion = models.ForeignKey(Postulacion, on_delete=models.RESTRICT, related_name="eventos")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    tipo = models.CharField(max_length=40)
+    detalle = models.CharField(max_length=500, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en", "-pk"]

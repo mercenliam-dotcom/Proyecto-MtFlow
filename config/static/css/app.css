@@ -102,3 +102,12 @@
 .cotizacion-imagen + .cotizacion-imagen { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--borde); }
 .cotizaciones-paginacion { margin-top: 1.5rem; align-items: center; }
 .cotizaciones-lista .boton { max-width: 100%; overflow-wrap: anywhere; }
+/* Agenda privada: calendario y alternativa en lista, ambos con los mismos datos. */
+#agenda-calendar { --fc-border-color: #dedbd3; --fc-today-bg-color: #f2eef7; --fc-button-bg-color: #624188; --fc-button-border-color: #624188; font-size: .92rem; }
+#agenda-calendar .fc-toolbar { flex-wrap: wrap; gap: .8rem; }
+#agenda-calendar .fc-toolbar-title { font-size: 1.3rem; }
+#agenda-calendar .agenda-disponibilidad { background: #eee7f5; color: #493263; border-color: #b9a4cc; }
+#agenda-calendar .agenda-disponibilidad .fc-event-main { color: #493263; }
+#agenda-calendar .agenda-cita { background: #624188; border-color: #624188; }
+#agenda-calendar .agenda-bloqueo { background: #7e6049; border-color: #7e6049; }
+@media (max-width: 600px) { #agenda-calendar .fc-toolbar-chunk { width: 100%; } }

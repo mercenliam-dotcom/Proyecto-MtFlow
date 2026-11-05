@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 from django.db import DatabaseError, transaction
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
@@ -41,11 +41,7 @@ def analizar_referencia(request):
     return JsonResponse({
         "estilo_sugerido": resultado.estilo_sugerido,
         "nombre": ESTILOS[resultado.estilo_sugerido],
-        "confianza_maxima": resultado.confianza_maxima,
-        "umbral_confianza": resultado.umbral_confianza,
         "simulado": resultado.version_modelo.startswith("simulado"),
-        "estilos": [{"nombre": ESTILOS[codigo], "confianza": confianza}
-                    for codigo, confianza in resultado.ordenadas() if codigo != "E-99"],
     })
 
 
@@ -57,7 +53,7 @@ def portafolio(request):
 
 
 def horarios(request):
-    return render(request, "web/horarios.html")
+    return redirect("nucleo:agenda")
 
 
 @transaction.non_atomic_requests

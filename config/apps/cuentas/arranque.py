@@ -32,6 +32,9 @@ def preparar_admin_entorno(using="default"):
                 ) from exc
         return
 
+    if not getattr(settings, "ADMIN_DESARROLLO_HABILITADO", False):
+        return
+
     existente = usuarios.filter(nombre_usuario="admin").first()
     if existente is not None and not existente.es_admin_desarrollo:
         # Nunca sustituir una cuenta legítima ni su contraseña.

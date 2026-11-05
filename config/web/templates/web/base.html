@@ -3,7 +3,6 @@
 {% block navigation %}
 <a class="nav-item" href="{% url 'web:portafolio' %}" {% if request.resolver_match.url_name == 'portafolio' %}aria-current="page"{% endif %}><span aria-hidden="true">01</span> Estilos & portafolio</a>
 <a class="nav-item" href="{% url 'web:cotizacion' %}" {% if request.resolver_match.url_name == 'cotizacion' %}aria-current="page"{% endif %}><span aria-hidden="true">02</span> Tu cotización</a>
-<a class="nav-item" href="{% url 'web:horarios' %}" {% if request.resolver_match.url_name == 'horarios' %}aria-current="page"{% endif %}><span aria-hidden="true">03</span> Horarios</a>
 {% endblock %}
 {% block access %}<a class="team-access" href="{% url 'cuentas:login' %}">Acceso del equipo ↗</a>{% endblock %}
 {% block page_content %}{% block content %}{% endblock %}{% endblock %}

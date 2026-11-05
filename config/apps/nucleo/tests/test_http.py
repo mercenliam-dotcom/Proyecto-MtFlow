@@ -131,7 +131,7 @@ class SitioPublico(TestCase):
     """Las pantallas del equipo (app web) siguen siendo públicas y protegidas por CSP."""
 
     def test_paginas_publicas_sin_sesion(self):
-        for nombre in ("web:portafolio", "web:horarios", "web:cotizacion"):
+        for nombre in ("web:portafolio", "web:cotizacion"):
             r = self.client.get(reverse(nombre))
             self.assertEqual(r.status_code, 200, nombre)
             self.assertIn("script-src 'self'", r["Content-Security-Policy"])

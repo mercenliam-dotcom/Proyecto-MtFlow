@@ -9,8 +9,13 @@ from apps.cuentas.arranque import ArranqueASGI, preparar_admin_entorno
 from apps.cuentas.models import Rol, Usuario
 
 
-@override_settings(DEBUG=True)
+@override_settings(DEBUG=True, ADMIN_DESARROLLO_HABILITADO=True)
 class AdminDesarrollo(TestCase):
+    @override_settings(ADMIN_DESARROLLO_HABILITADO=False)
+    def test_no_crea_cuenta_predeterminada_sin_opt_in(self):
+        preparar_admin_entorno()
+        self.assertFalse(Usuario.objects.filter(es_admin_desarrollo=True).exists())
+
     def test_crea_admin_sin_perfil_de_tatuadora_y_sin_forzar_cambio(self):
         preparar_admin_entorno()
         admin = Usuario.objects.get(nombre_usuario="admin")

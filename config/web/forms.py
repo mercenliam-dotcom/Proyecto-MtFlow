@@ -37,7 +37,7 @@ class CotizacionForm(forms.Form):
     cobertura = forms.BooleanField(label="Quiero cubrir un tatuaje existente", required=False)
     imagen = forms.FileField(label="Imagen de referencia", help_text="JPG o PNG · máximo 5 MB · mínimo 224 píxeles por lado.", widget=forms.FileInput(attrs={"id": "reference", "accept": TIPOS_ACEPTADOS_HTML}))
     analizar = forms.BooleanField(label="Analizar el estilo al seleccionar la imagen", required=False, initial=True,
-                                 help_text="Análisis en este equipo. Solo se asigna un estilo si alcanza el 60 % de confianza; en otro caso queda fuera de catálogo.")
+                                 help_text="La imagen se procesa con el servicio de análisis configurado por el estudio. La tatuadora revisará la sugerencia antes de acordar tu sesión.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

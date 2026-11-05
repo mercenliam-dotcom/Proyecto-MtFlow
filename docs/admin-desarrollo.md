@@ -1,5 +1,7 @@
 # Cuenta predeterminada de desarrollo
 
+> Desde la integración del 5/11, la creación/restauración automática requiere también `ADMIN_DESARROLLO_HABILITADO=1`. Está deshabilitada por defecto; se recomienda crear una cuenta propia con `createsuperuser`.
+
 Por instrucción del usuario, con `DJANGO_DEBUG=1` se prepara automáticamente:
 
 - Usuario: `admin`

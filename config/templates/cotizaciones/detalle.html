@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Detalle de cotización{% endblock %}
 {% block contenido %}
-<p class="miga">{% if es_equipo %}<a href="{% url 'nucleo:equipo_cotizaciones' %}">← Cotizaciones del equipo</a>{% else %}<a href="{% url 'nucleo:cotizaciones' %}">← Mis cotizaciones</a>{% endif %}</p>
+<p class="miga">{% if es_equipo %}<a href="{% url 'nucleo:equipo_cotizaciones' %}">← Cotizaciones del equipo</a>{% else %}<a href="{% url 'nucleo:cotizaciones' %}">← Solicitudes</a>{% endif %}</p>
 <div class="encabezado"><h1>La propuesta de {{ propuesta.cliente.nombres }}</h1><span class="chip">{{ estado_legible }}</span></div>
 <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }}</p>
 <p class="bajada">Esta propuesta está dirigida a {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
@@ -42,4 +42,17 @@
     {% empty %}<p>No hay imágenes registradas para esta propuesta.</p>{% endfor %}
   </section>
 </div>
+<section class="tarjeta">
+  <h2>Acuerdo y sesiones</h2>
+  <dl class="cotizacion-datos"><div><dt>Precio acordado</dt><dd>{{ propuesta.precio_final|default_if_none:"Pendiente" }} CLP</dd></div><div><dt>Abono verificado</dt><dd>{% if propuesta.abono_verificado_en %}{{ propuesta.monto_abono }} CLP · {{ propuesta.abono_verificado_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</dd></div></dl>
+  <p class="nota">Los pagos se realizan fuera de MTFlow. Registrar un abono significa que la tatuadora verificó su recepción.</p>
+  {% if puede_gestionar %}
+  {% if gestion_form.fields.accion.choices %}<form method="post" action="{% url 'nucleo:cotizacion_gestion' propuesta.referencia %}">{% csrf_token %}{% for campo in gestion_form %}{% include "_campo.html" %}{% endfor %}<button class="boton" type="submit">Actualizar solicitud</button></form>{% endif %}
+  {% if propuesta.abono_verificado_en and propuesta.estado == 'ACEPTADA' or propuesta.abono_verificado_en and propuesta.estado == 'RESERVADA' %}<p><a class="boton" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar una sesión</a></p>{% endif %}
+  {% endif %}
+  <h3>Sesiones registradas</h3>
+  <ul>{% for sesion in sesiones %}<li>{{ sesion.fecha|date:"d/m/Y" }} · {{ sesion.hora_inicio|time:"H:i" }}–{{ sesion.hora_fin|time:"H:i" }} · {{ sesion.estado }}{% if puede_gestionar %} · <a href="{% url 'nucleo:agenda_editar' sesion.referencia %}">Ver horario</a>{% endif %}</li>{% empty %}<li>Aún no hay sesiones.</li>{% endfor %}</ul>
+  <h3>Historial de la solicitud</h3>
+  <ul>{% for evento in eventos %}<li>{{ evento.creado_en|date:"d/m/Y H:i" }} · {{ evento.tipo|capfirst }} · {{ evento.detalle }}</li>{% empty %}<li>Sin cambios posteriores a la recepción.</li>{% endfor %}</ul>
+</section>
 {% endblock %}

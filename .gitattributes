@@ -1,0 +1,2 @@
+# Preserve vendor checksums on Windows and Linux.
+config/static/vendor/** -text

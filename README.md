@@ -63,7 +63,7 @@ cp .env.example .env
 # y descomentar DATABASE_URL.
 
 python manage.py migrate
-# Con DJANGO_DEBUG=1, migrate y el arranque preparan admin / admin.
+# El administrador de demostración requiere además ADMIN_DESARROLLO_HABILITADO=1.
 # En producción la cuenta predeterminada se elimina y el administrador se crea
 # de forma segura con: python manage.py createsuperuser
 python manage.py test               # deben pasar todas
@@ -129,7 +129,7 @@ El bundle incluido es `ml_service/modelos/efficientnet_b0_v2/MTFlow_EfficientNet
 
 ## Producción
 
-La cuenta `admin` / `admin` existe automáticamente solo en modo desarrollo. Al pasar a `DJANGO_DEBUG=0` se elimina la cuenta marcada de desarrollo; no se reemplazan administradores reales. Consultar [cuenta predeterminada y transición](docs/admin-desarrollo.md).
+La cuenta `admin` / `admin` solo se prepara en desarrollo si se activa explícitamente `ADMIN_DESARROLLO_HABILITADO=1` (desactivado por defecto). Al pasar a `DJANGO_DEBUG=0` se elimina la cuenta marcada de desarrollo; no se reemplazan administradores reales. Consultar [cuenta predeterminada y transición](docs/admin-desarrollo.md).
 
 `DJANGO_DEBUG=0`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `DATABASE_URL` (PostgreSQL/Supabase, obligatoria), `DB_SSLMODE=require`, `DJANGO_ADMIN_URL`. Con `DEBUG=0` se activan solos HTTPS, HSTS y cookies seguras. `python manage.py check --deploy` lo verifica.
 
@@ -148,3 +148,7 @@ No requiere Node.js ni dependencias nuevas. Reiniciar Django para cargar los cam
 Detalles de reglas, seguridad, pruebas y pendientes: [revisión de noviembre](docs/revision-2026-11.md).
 
 **Despliegue tras un proxy:** `CONFIAR_EN_PROXY=1` se configura explícitamente solo si el proxy reescribe los encabezados de origen/protocolo y bloquea el acceso directo al backend. De lo contrario, dejarlo en `0`. En desarrollo local no hace falta cambiarlo.
+
+## Agenda y solicitudes
+
+Ver [integración, funcionamiento y pendientes](docs/integracion-agenda-2026-11-05.md).

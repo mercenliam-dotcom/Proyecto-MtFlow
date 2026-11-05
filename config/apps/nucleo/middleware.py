@@ -1,4 +1,5 @@
 from django.conf import settings
+import secrets
 
 
 class CabecerasSeguridadMiddleware:
@@ -18,9 +19,13 @@ class CabecerasSeguridadMiddleware:
         self.csp = getattr(settings, "CONTENT_SECURITY_POLICY", "")
 
     def __call__(self, request):
+        request.csp_nonce = secrets.token_urlsafe(24)
         response = self.get_response(request)
         if self.csp:
-            response.setdefault("Content-Security-Policy", self.csp)
+            csp = self.csp
+            if request.path == "/panel/agenda/":
+                csp = csp.replace("style-src 'self'", "style-src 'self' 'nonce-" + request.csp_nonce + "'")
+            response.setdefault("Content-Security-Policy", csp)
         response.setdefault(
             "Permissions-Policy",
             "camera=(), microphone=(), geolocation=(), payment=(), usb=()",

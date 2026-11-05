@@ -21,6 +21,7 @@
       {% for valor, etiqueta in estados %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
     </select>
   </div>
+<div class="campo"><label for="orden">Ordenar</label><select id="orden" name="orden"><option value="fecha">Más recientes</option><option value="confianza" {% if request.GET.orden == "confianza" %}selected{% endif %}>Mayor confianza primero</option></select></div>
   <button class="boton secundario" type="submit">Filtrar</button>
 </form>
 {% endif %}
@@ -34,7 +35,7 @@
     <p class="nota">Recibida el {{ propuesta.creada_en|date:"d/m/Y" }} a las {{ propuesta.creada_en|date:"H:i" }}</p>
     <dl class="cotizacion-datos">
       {% if es_equipo %}<div><dt>Tatuadora</dt><dd>{{ propuesta.tatuadora.nombre_publico }}</dd></div>{% endif %}<div><dt>Zona</dt><dd>{{ propuesta.zona_cuerpo|capfirst }}</dd></div>
-      <div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
+      <div><dt>Confianza del modelo</dt><dd>{{ propuesta.confianza_legible }}</dd></div><div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
       <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
     </dl>
     <a class="boton" href="{% url detalle_nombre propuesta.referencia %}">Ver propuesta de {{ propuesta.cliente.nombres }}</a>

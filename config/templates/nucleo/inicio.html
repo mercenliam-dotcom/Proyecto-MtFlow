@@ -4,8 +4,9 @@
 <h1>Hola, {{ user.nombre }}</h1>
 <p class="bajada">Sesión iniciada como <strong>{{ user.get_rol_display }}</strong>.</p>
 <div class="rejilla">
+{% if user.es_tatuadora %}<a class="tarjeta accion" href="{% url 'nucleo:agenda' %}"><h2>Mi agenda</h2><p>Organiza tu disponibilidad y reserva sesiones con abono verificado.</p></a>{% endif %}
   <a class="tarjeta accion" href="{% url 'nucleo:cotizaciones' %}">
-    <h2>Mis cotizaciones</h2>
+    <h2>Solicitudes</h2>
     <p>Revisa las propuestas que te enviaron, sus referencias y el análisis de estilo.</p>
   </a>
   <a class="tarjeta accion" href="{% url 'clasificacion:probar' %}">

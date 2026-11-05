@@ -10,9 +10,7 @@ const analysisPanel = document.getElementById("live-analysis");
 const analysisStatus = document.getElementById("analysis-status");
 const analysisResult = document.getElementById("analysis-result");
 const analysisStyle = document.getElementById("analysis-style");
-const analysisConfidence = document.getElementById("analysis-confidence");
 const analysisNote = document.getElementById("analysis-note");
-const analysisScores = document.getElementById("analysis-scores");
 const retryAnalysis = document.getElementById("retry-analysis");
 
 let objectUrl = null;
@@ -29,7 +27,6 @@ function clearAnalysis() {
     analysisPanel.removeAttribute("aria-busy");
     analysisResult.hidden = true;
     retryAnalysis.hidden = true;
-    analysisScores.replaceChildren();
     analysisStatus.textContent = analyzeInput.checked
         ? "Selecciona una imagen para ver su estilo antes de enviar."
         : "Análisis desactivado. Puedes activarlo cuando quieras.";
@@ -50,7 +47,7 @@ async function analyzeReference() {
         controller.abort();
     }, 20000);
     analysisPanel.setAttribute("aria-busy", "true");
-    analysisStatus.textContent = "Analizando tu imagen con el modelo local…";
+    analysisStatus.textContent = "Analizando tu imagen…";
     const payload = new FormData();
     payload.append("imagen", file);
     payload.append("analizar", "on");
@@ -65,20 +62,9 @@ async function analyzeReference() {
         if (currentVersion !== analysisVersion || currentSelection !== selectionVersion || !analyzeInput.checked) return;
         if (!response.ok) throw new Error(data.error || "No pudimos analizar la imagen.");
         analysisStyle.textContent = data.nombre;
-        const confidence = percentage.format(data.confianza_maxima * 100);
-        const threshold = percentage.format(data.umbral_confianza * 100);
-        if (data.estilo_sugerido === "E-99") {
-            analysisConfidence.textContent = `Mayor puntuación: ${confidence} %. No se asignó un estilo con la exigencia del ${threshold} %.`;
-            analysisNote.textContent = "Fuera de catálogo: la referencia necesita revisión profesional. El modelo no aprendió una octava categoría.";
-        } else {
-            analysisConfidence.textContent = `Confianza del estilo sugerido: ${confidence} %.`;
-            analysisNote.textContent = "La sugerencia orienta a la tatuadora y no confirma una reserva ni el precio.";
-        }
-        for (const style of data.estilos) {
-            const item = document.createElement("li");
-            item.textContent = `${style.nombre}: ${percentage.format(style.confianza * 100)} %`;
-            analysisScores.append(item);
-        }
+        analysisNote.textContent = data.estilo_sugerido === "E-99"
+            ? "La referencia necesita revisión profesional para definir su estilo."
+            : "La sugerencia orienta a la tatuadora y no confirma una reserva ni el precio.";
         analysisResult.hidden = false;
         analysisStatus.textContent = data.simulado
             ? "Resultado simulado: el modelo real no está activo."

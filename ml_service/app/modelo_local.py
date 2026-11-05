@@ -53,7 +53,10 @@ def leer_bundle(directorio: Path):
         raise ValueError("Preprocesamiento incompatible: se requiere EfficientNetB0, RGB 224x224, bilinear y rango 0..255.")
     ruta = ruta_pesos(directorio, version)
     with ruta.open("rb") as archivo:
-        digest = hashlib.file_digest(archivo, "sha256").hexdigest()
+        resumen = hashlib.sha256()
+        for bloque in iter(lambda: archivo.read(1024 * 1024), b""):
+            resumen.update(bloque)
+        digest = resumen.hexdigest()
     if digest != (directorio / "model_sha256.txt").read_text(encoding="utf-8-sig").strip().lower():
         raise ValueError("La huella SHA-256 del modelo no coincide con el bundle.")
     return ruta, codigos, digest
