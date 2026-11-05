@@ -21,14 +21,25 @@
 <div class="alerta alerta-error" role="alert">Has realizado varias consultas. Espera unos minutos antes de volver a intentarlo.</div>
 {% endif %}
 
+{% if referencia %}
+<div class="alerta alerta-info" role="status">
+    <strong>{% if repetida %}Esta propuesta ya fue recibida.{% else %}Propuesta recibida.{% endif %}</strong>
+    <p>Referencia: {{ referencia }}. La tatuadora seleccionada revisará tu propuesta y podrá confirmarla o rechazarla. Esto no confirma una reserva ni un precio final.</p>
+    <a href="{% url 'web:cotizacion' %}">Enviar otra propuesta</a>
+</div>
+{% endif %}
+
 {% if form.errors %}
-<div class="alerta alerta-error" role="alert" tabindex="-1" id="form-errors">Revisa los campos indicados. Por seguridad, vuelve a seleccionar tu imagen antes de enviar.</div>
+<div class="alerta alerta-error" role="alert" tabindex="-1" id="form-errors">Revisa los campos indicados. Por seguridad, vuelve a seleccionar tu imagen antes de enviar.
+    {{ form.non_field_errors }}{{ form.envio.errors }}
+</div>
 {% endif %}
 
 <div class="quote-layout">
     <section class="surface">
         <form id="quote-form" method="post" enctype="multipart/form-data" action="{% url 'web:cotizacion' %}">
             {% csrf_token %}
+            {{ form.envio }}
             
             <fieldset>
                 <legend><span class="step">01</span> Dale forma a tu idea</legend>
@@ -80,10 +91,10 @@
                     {% include "_campo.html" with campo=form.telefono %}
                 </div>
                 <!-- TEXTO ACTUALIZADO (Ya que ahora sí guardamos en BD) -->
-                <p class="field-help">Tus datos serán procesados y guardados de forma segura en nuestro sistema para que la tatuadora pueda evaluar tu idea.</p>
+                <p class="field-help">Al enviar guardaremos tus datos de contacto, propuesta e imagen de referencia para que la tatuadora elegida los revise. La imagen no se publica en el portafolio. El análisis de estilo es opcional.</p>
             </fieldset>
 
-            <button class="primary-button" type="submit" id="estimate-button">Calcular mi estimación ↗</button>
+            <button class="primary-button" type="submit" id="estimate-button">Enviar propuesta y ver estimación ↗</button>
             <p id="submit-status" role="status" class="field-help"></p>
             
             <noscript>
@@ -152,7 +163,7 @@
                 </dl>
             </details>
             <!-- TEXTO ACTUALIZADO (Ya que ahora sí guardamos en BD) -->
-            <p class="field-help">Tu solicitud ha sido registrada exitosamente en nuestro sistema.</p>
+            <p class="field-help">Tu propuesta y su imagen se guardaron para revisión. La estimación no confirma una reserva.</p>
         </section>
 
         <section class="quote-note">

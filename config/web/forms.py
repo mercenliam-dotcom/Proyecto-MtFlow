@@ -1,19 +1,28 @@
+import uuid
+
 from django import forms
+from django.core import signing
+from django.core.exceptions import ValidationError
 from apps.nucleo.imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML
-from .models import Tatuadora  # <-- Importante: Traemos la tabla
+from .models import Tatuadora
+
+
+def token_envio():
+    return signing.dumps(str(uuid.uuid4()), salt="web.recepcion")
 
 class CotizacionForm(forms.Form):
+    envio = forms.CharField(widget=forms.HiddenInput, initial=token_envio)
     nombre = forms.CharField(label="Nombre o alias", max_length=80, widget=forms.TextInput(attrs={"id": "client-name", "autocomplete": "name"}))
-    email = forms.EmailField(label="Correo electrónico", max_length=150, widget=forms.EmailInput(attrs={"id": "client-email", "autocomplete": "email"}))
+    email = forms.EmailField(label="Correo electrónico", max_length=254, widget=forms.EmailInput(attrs={"id": "client-email", "autocomplete": "email"}))
     telefono = forms.CharField(label="Teléfono (opcional)", max_length=25, required=False, widget=forms.TextInput(attrs={"id": "client-phone", "type": "tel", "autocomplete": "tel"}))
     
     # 1. Selector dinámico conectado a la Base de Datos
     tatuadora = forms.ModelChoiceField(
-        queryset=Tatuadora.objects.filter(activa=True),
-        empty_label="Cualquiera de las dos",
-        label="Preferencia de tatuadora",
+        queryset=Tatuadora.objects.filter(activa=True, usuario__is_active=True, usuario__es_tatuadora=True).select_related('usuario').order_by('usuario__nombre', 'usuario__apellido', 'pk'),
+        empty_label="Selecciona tu tatuadora",
+        label="Tatuadora con quien quieres tatuarte",
         widget=forms.Select(attrs={"id": "quote-artist"}),
-        required=False
+        required=True
     )
     
     zona = forms.ChoiceField(label="Zona del cuerpo", choices=[("", "Selecciona una zona"), ("brazo", "Brazo"), ("antebrazo", "Antebrazo"), ("pierna", "Pierna"), ("espalda", "Espalda"), ("pecho", "Pecho"), ("costillas", "Costillas"), ("otra", "Otra zona / por definir")], widget=forms.Select(attrs={"id": "body-zone"}))
@@ -34,6 +43,18 @@ class CotizacionForm(forms.Form):
         for campo in self.fields.values():
             if not isinstance(campo.widget, forms.CheckboxInput):
                 campo.widget.attrs["class"] = "form-control"
+
+    def clean_envio(self):
+        try:
+            return uuid.UUID(signing.loads(self.cleaned_data["envio"], salt="web.recepcion", max_age=86400))
+        except (signing.BadSignature, ValueError, TypeError):
+            raise ValidationError("El formulario venció o no es válido. Recarga la página antes de enviar.")
+
+    def clean(self):
+        datos = super().clean()
+        if not self.fields["tatuadora"].queryset.exists():
+            raise ValidationError("No hay tatuadoras habilitadas para recibir propuestas en este momento. Inténtalo más tarde.")
+        return datos
 
     def clean_imagen(self):
         self.validada = validar_imagen(self.cleaned_data["imagen"])

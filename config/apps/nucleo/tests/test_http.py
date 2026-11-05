@@ -13,7 +13,7 @@ from . import utilidades as u
 
 def usuario():
     x = Usuario.objects.create_user("tatuadora1", "t@e.cl", "Tinta2026segura",
-                                    nombre="Ana", apellido="Rojas", rol=Rol.USUARIO)
+                                    nombre="Ana", apellido="Rojas", rol=Rol.USUARIO, es_tatuadora=True)
     x.debe_cambiar_contrasena = False
     x.save()
     return x
@@ -76,6 +76,11 @@ class Cabeceras(TestCase):
 
 class UrlsFirmadas(TestCase):
     def setUp(self):
+        from web.models import Cliente, Tatuadora, Postulacion, Imagen
+        self.owner = usuario()
+        cliente = Cliente.objects.create(nombres="Cliente", apellidos="Prueba")
+        postulacion = Postulacion.objects.create(cliente=cliente, tatuadora=Tatuadora.objects.get(usuario=self.owner), zona_cuerpo="brazo", alto_cm=5, ancho_cm=5, categoria_tamano="pequeno", descripcion="Prueba", estado="RECIBIDA")
+        Imagen.objects.create(postulacion=postulacion, url="postulaciones/abc.jpg", orden=1, formato="JPEG", ancho_px=400, alto_px=300, tamano_bytes=100)
         self.tmp = tempfile.TemporaryDirectory()
         self.media = Path(self.tmp.name)
         (self.media / "postulaciones").mkdir()
@@ -87,7 +92,7 @@ class UrlsFirmadas(TestCase):
 
     def test_url_firmada_sirve_archivo(self):
         with override_settings(MEDIA_ROOT=self.media):
-            self.client.force_login(usuario())
+            self.client.force_login(self.owner)
             r = self.client.get(url_archivo("postulaciones/abc.jpg"))
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r["Content-Type"], "image/jpeg")
@@ -99,26 +104,26 @@ class UrlsFirmadas(TestCase):
 
     def test_token_alterado_da_404(self):
         with override_settings(MEDIA_ROOT=self.media):
-            self.client.force_login(usuario())
+            self.client.force_login(self.owner)
             url = url_archivo("postulaciones/abc.jpg")
             alterada = url[:-3] + ("A" if url[-3] != "A" else "B") + url[-2:]
             self.assertEqual(self.client.get(alterada).status_code, 404)
 
     def test_token_caducado_da_404(self):
         with override_settings(MEDIA_ROOT=self.media, URL_FIRMADA_SEGUNDOS=-1):
-            self.client.force_login(usuario())
+            self.client.force_login(self.owner)
             self.assertEqual(self.client.get(url_archivo("postulaciones/abc.jpg")).status_code, 404)
 
     def test_no_sale_de_media_aunque_este_firmado(self):
         with override_settings(MEDIA_ROOT=self.media / "postulaciones"):
-            self.client.force_login(usuario())
+            self.client.force_login(self.owner)
             for ruta in ("../secreto.txt", "/etc/passwd"):
                 r = self.client.get(reverse("nucleo:archivo", args=[firmar_ruta(ruta)]))
                 self.assertEqual(r.status_code, 404, ruta)
 
     def test_solo_sirve_imagenes(self):
         with override_settings(MEDIA_ROOT=self.media):
-            self.client.force_login(usuario())
+            self.client.force_login(self.owner)
             self.assertEqual(self.client.get(url_archivo("secreto.txt")).status_code, 404)
 
 

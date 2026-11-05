@@ -14,7 +14,7 @@
       <td><code>{{ c.nombre_usuario }}</code>{% if c.pk == user.pk %} <span class="chip">tú</span>{% endif %}</td>
       <td>{{ c.get_full_name }}</td>
       <td>{{ c.email }}</td>
-      <td><span class="chip chip-{{ c.rol|lower }}">{{ c.get_rol_display }}</span></td>
+      <td><span class="chip chip-{{ c.rol|lower }}">{{ c.get_rol_display }}</span>{% if c.es_tatuadora %} <span class="chip">Tatuadora</span>{% endif %}</td>
       <td>{% if c.is_active %}Activa{% else %}Desactivada{% endif %}{% if c.debe_cambiar_contrasena %}<br><small class="ayuda">clave temporal</small>{% endif %}</td>
       <td class="derecha"><a href="{% url 'cuentas:editar' c.uuid %}">Editar</a></td>
     </tr>

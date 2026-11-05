@@ -104,7 +104,7 @@ form.addEventListener("submit", (event) => {
     form.dataset.submitting = "true";
     submitButton.disabled = true;
     form.setAttribute("aria-busy", "true");
-    submitStatus.textContent = "Preparando tu estimación. El análisis de la imagen puede tardar unos segundos…";
+    submitStatus.textContent = "Guardando tu propuesta. El análisis opcional de la imagen puede tardar unos segundos…";
 });
 window.addEventListener("pageshow", () => {
     delete form.dataset.submitting;

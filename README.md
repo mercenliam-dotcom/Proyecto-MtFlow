@@ -1,5 +1,11 @@
 # MtFlow
 
+> **Rama de revisión: `feature/recepcion-bandejas-cotizaciones`.**
+> Incluye el avance integrado de interfaz, cuentas, seguridad, Roboflow y SQL,
+> más recepción persistente, imágenes privadas, funciones combinadas de cuentas,
+> bandejas personales y del equipo con detalle y filtros. La agenda tipo FullCalendar
+> sigue pendiente. Consulta [funcionalidades, preparación y validación](docs/avance-integrado.md).
+
 Sistema web para Maldita Ternura Estudio. Identifica el estilo de una imagen de referencia de tatuaje y **recomienda** (no decide) si la solicitud calza con el estudio.
 
 ## Qué hay en el repositorio

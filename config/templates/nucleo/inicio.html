@@ -4,11 +4,19 @@
 <h1>Hola, {{ user.nombre }}</h1>
 <p class="bajada">Sesión iniciada como <strong>{{ user.get_rol_display }}</strong>.</p>
 <div class="rejilla">
+  <a class="tarjeta accion" href="{% url 'nucleo:cotizaciones' %}">
+    <h2>Mis cotizaciones</h2>
+    <p>Revisa las propuestas que te enviaron, sus referencias y el análisis de estilo.</p>
+  </a>
   <a class="tarjeta accion" href="{% url 'clasificacion:probar' %}">
     <h2>Identificar estilo</h2>
     <p>Sube una imagen de referencia y revisa a qué estilo del catálogo se parece.</p>
   </a>
   {% if user.es_admin %}
+  <a class="tarjeta accion" href="{% url 'nucleo:equipo_cotizaciones' %}">
+    <h2>Cotizaciones del equipo</h2>
+    <p>Consulta las propuestas del estudio y filtra por tatuadora, estado y fechas.</p>
+  </a>
   <a class="tarjeta accion" href="{% url 'cuentas:lista' %}">
     <h2>Gestionar cuentas</h2>
     <p>Crear cuentas, asignar roles, desactivar accesos y restablecer contraseñas.</p>

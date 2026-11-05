@@ -66,6 +66,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     nombre = models.CharField(max_length=60, validators=[validar_nombre_persona])
     apellido = models.CharField(max_length=60, validators=[validar_nombre_persona])
     rol = models.CharField(max_length=10, choices=Rol.choices, default=Rol.USUARIO)
+    es_tatuadora = models.BooleanField(
+        "Es tatuadora", default=False,
+        help_text="Puede recibir propuestas como tatuadora, independientemente de su rol de administración.",
+    )
     is_active = models.BooleanField("activa", default=True)
     creado_en = models.DateTimeField(default=timezone.now, editable=False)
     creado_por = models.ForeignKey(

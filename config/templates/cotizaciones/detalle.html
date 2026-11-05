@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titulo %}Detalle de cotización{% endblock %}
+{% block contenido %}
+<p class="miga">{% if es_equipo %}<a href="{% url 'nucleo:equipo_cotizaciones' %}">← Cotizaciones del equipo</a>{% else %}<a href="{% url 'nucleo:cotizaciones' %}">← Mis cotizaciones</a>{% endif %}</p>
+<div class="encabezado"><h1>La propuesta de {{ propuesta.cliente.nombres }}</h1><span class="chip">{{ estado_legible }}</span></div>
+<p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }}</p>
+<p class="bajada">Esta propuesta está dirigida a {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
+<div class="rejilla dos">
+  <section class="tarjeta">
+    <h2>Contacto y propuesta</h2>
+    <dl class="cotizacion-datos">
+      <div><dt>Cliente</dt><dd>{{ propuesta.cliente.nombres }} {{ propuesta.cliente.apellidos }}</dd></div>
+      <div><dt>Correo</dt><dd>{{ propuesta.cliente.correo|default:"No indicado" }}</dd></div>
+      <div><dt>Teléfono</dt><dd>{{ propuesta.cliente.telefono|default:"No indicado" }}</dd></div>
+      <div><dt>Zona del cuerpo</dt><dd>{{ propuesta.zona_cuerpo|capfirst }}</dd></div>
+      <div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
+      <div><dt>Área declarada</dt><dd>{% if propuesta.area_cm2 != None %}{{ propuesta.area_cm2 }} cm²{% else %}No registrada{% endif %}</dd></div>
+      <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
+    </dl>
+    <p class="nota">El precio sugerido es referencial y no representa un precio final acordado.</p>
+    {% if opciones %}<dl class="cotizacion-datos"><div><dt>Color</dt><dd>{{ opciones.color }}</dd></div><div><dt>Detalle solicitado</dt><dd>{{ opciones.detalle }}</dd></div><div><dt>Cubrir un tatuaje existente</dt><dd>{{ opciones.cobertura }}</dd></div></dl>{% endif %}<h3>Descripción enviada</h3><p class="cotizacion-descripcion">{{ propuesta.idea_legible }}</p>
+  </section>
+  <section class="tarjeta">
+    <h2>Referencia y análisis de estilo</h2>
+    {% for referencia in referencias %}
+    <article class="cotizacion-imagen">
+      <h3>Imagen {{ referencia.imagen.orden }}</h3>
+      {% if referencia.url %}
+      <figure class="vista-previa"><img src="{{ referencia.url }}" alt="Referencia enviada para esta propuesta" loading="lazy"><figcaption>{{ referencia.imagen.ancho_px }} × {{ referencia.imagen.alto_px }} px · {{ referencia.imagen.formato }}</figcaption></figure>
+      {% else %}<p class="alerta alerta-info">La imagen no está disponible en el almacenamiento de este equipo. El registro de la propuesta se conserva.</p>{% endif %}
+      {% if referencia.prediccion %}
+        {% if referencia.simulado %}<p class="alerta alerta-info">Resultado simulado: no proviene de un análisis real del modelo.</p>{% endif %}
+        <p><strong>Estilo sugerido:</strong> {{ referencia.prediccion.estilo_sugerido.nombre }}{% if referencia.confianza != None %} · {{ referencia.confianza }} %{% endif %}</p>
+        {% if referencia.filas %}<h3>Confianzas registradas</h3><ul>{% for fila in referencia.filas %}<li>{{ fila.nombre }}: {% if fila.omitida %}&lt; 40 %{% else %}{{ fila.porcentaje }} %{% endif %}</li>{% endfor %}</ul>{% else %}<p class="nota">No hay un desglose de confianzas registrado para esta predicción.</p>{% endif %}
+        <p class="nota cotizacion-referencia">Modelo: {{ referencia.prediccion.version_modelo }}</p>
+        <p class="nota">La clasificación orienta la revisión. No acepta ni rechaza la propuesta ni determina su precio.</p>
+      {% elif propuesta.estado_ml == "NO_SOLICITADO" %}<p>No se solicitó el análisis de estilo.</p>
+      {% elif propuesta.estado_ml == "NO_DISPONIBLE" %}<p>El análisis no estuvo disponible al recibir la propuesta. Puedes revisar la referencia igualmente.</p>
+      {% else %}<p>No hay una predicción registrada para esta imagen.</p>{% endif %}
+    </article>
+    {% empty %}<p>No hay imágenes registradas para esta propuesta.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

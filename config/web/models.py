@@ -1,4 +1,6 @@
 
+import uuid
+
 from django.db import models
 from django.conf import settings
 
@@ -6,8 +8,8 @@ class Cliente(models.Model):
     rut = models.CharField(max_length=12, unique=True, null=True, blank=True)
     nombres = models.CharField(max_length=80)
     apellidos = models.CharField(max_length=160)
-    correo = models.EmailField(max_length=120, null=True, blank=True)
-    telefono = models.CharField(max_length=20, null=True, blank=True)
+    correo = models.EmailField(max_length=254, null=True, blank=True)
+    telefono = models.CharField(max_length=25, null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
@@ -22,7 +24,12 @@ class Tatuadora(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.nombre
+        return self.nombre_publico
+
+    @property
+    def nombre_publico(self):
+        """El nombre vigente de la cuenta vinculada, incluso en perfiles antiguos."""
+        return self.usuario.get_full_name().strip() or self.nombre
 
 class BloqueHorario(models.Model):
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
@@ -35,6 +42,14 @@ class BloqueHorario(models.Model):
         unique_together = ('tatuadora', 'fecha', 'hora_inicio')
 
 class Postulacion(models.Model):
+    class EstadoML(models.TextChoices):
+        LEGADO = "LEGADO", "Sin trazabilidad previa"
+        NO_SOLICITADO = "NO_SOLICITADO", "No solicitado"
+        COMPLETADO = "COMPLETADO", "Completado"
+        NO_DISPONIBLE = "NO_DISPONIBLE", "No disponible"
+
+    referencia = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    estado_ml = models.CharField(max_length=20, choices=EstadoML.choices, default=EstadoML.LEGADO)
     cliente = models.ForeignKey(Cliente, on_delete=models.RESTRICT)
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
     bloque = models.OneToOneField(BloqueHorario, on_delete=models.SET_NULL, null=True, blank=True)
@@ -79,7 +94,7 @@ class Estilo(models.Model):
 
 class Prediccion(models.Model):
     imagen = models.ForeignKey(Imagen, on_delete=models.RESTRICT)
-    version_modelo = models.CharField(max_length=40)
+    version_modelo = models.CharField(max_length=120)
     estilo_sugerido = models.ForeignKey(Estilo, on_delete=models.RESTRICT)
     confianza_maxima = models.DecimalField(max_digits=5, decimal_places=4)
     tiempo_inferencia_ms = models.IntegerField()
@@ -124,21 +139,12 @@ class TrabajoPortafolio(models.Model):
 from django.db.models.signals import post_save
 from django.dispatch import receiver  
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def crear_perfil_tatuadora(sender, instance, created, **kwargs):
-    if created:
-        # 1. Capturamos ambas partes por separado y limpiamos espacios
-        nombres = getattr(instance, 'first_name', '').strip()
-        apellidos = getattr(instance, 'last_name', '').strip()
-        
-        # 2. Las unimos de forma limpia
-        nombre_completo = f"{nombres} {apellidos}".strip() 
-        
-        # 3. Fallback de seguridad
-        if not nombre_completo:
-            nombre_completo = getattr(instance, 'username', 'Nueva Artista')
-            
-        Tatuadora.objects.create(
-            usuario=instance, 
-            nombre=nombre_completo,
-            activa=True
+def crear_perfil_tatuadora(sender, instance, created, raw=False, **kwargs):
+    if not raw and instance.es_tatuadora:
+        nombre_completo = (instance.get_full_name().strip() or instance.nombre_usuario)[:120]
+
+        # Habilitar la función en una cuenta existente también crea su perfil.
+        # Deshabilitarla no elimina el perfil ni sus propuestas históricas.
+        Tatuadora.objects.get_or_create(
+            usuario=instance, defaults={"nombre": nombre_completo, "activa": True},
         )

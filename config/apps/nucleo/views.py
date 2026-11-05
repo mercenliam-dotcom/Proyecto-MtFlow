@@ -23,6 +23,12 @@ def archivo(request, token):
     ruta_relativa = leer_ruta_firmada(token)
     if not ruta_relativa:
         raise Http404
+    from web.models import Imagen
+    imagenes = Imagen.objects.filter(url=ruta_relativa)
+    if not request.user.es_admin:
+        imagenes = imagenes.filter(postulacion__tatuadora__usuario=request.user)
+    if not imagenes.exists():
+        raise Http404
     raiz = Path(settings.MEDIA_ROOT).resolve()
     ruta = (raiz / ruta_relativa).resolve()
     # Impide salir de MEDIA_ROOT con "../" aunque la firma fuera válida.

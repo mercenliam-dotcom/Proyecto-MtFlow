@@ -88,3 +88,17 @@
 .rejilla.dos { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
 .tarjeta.angosta { max-width: 460px; }
 @media (max-width: 520px) { .rejilla { grid-template-columns: 1fr; }.tarjeta { padding: 22px 18px; } }
+
+/* Bandeja personal de propuestas. */
+.cotizaciones-filtros { display: flex; gap: 1rem; flex-wrap: wrap; align-items: end; margin-bottom: 1.5rem; }
+.cotizaciones-filtros .campo { margin-bottom: 0; min-width: min(100%, 240px); }
+.cotizaciones-lista { display: grid; gap: 1rem; }
+.cotizaciones-lista h2 { margin: 0; overflow-wrap: anywhere; }
+.cotizacion-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 1rem; }
+.cotizacion-datos dt { color: var(--tinta-suave); font-size: .85rem; }
+.cotizacion-datos dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.cotizacion-referencia { overflow-wrap: anywhere; }
+.cotizacion-descripcion { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cotizacion-imagen + .cotizacion-imagen { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--borde); }
+.cotizaciones-paginacion { margin-top: 1.5rem; align-items: center; }
+.cotizaciones-lista .boton { max-width: 100%; overflow-wrap: anywhere; }
