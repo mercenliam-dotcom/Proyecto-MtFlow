@@ -1,6 +1,6 @@
 # Modelo local → FastAPI → Django → base de datos
 
-El modelo principal es el EfficientNetB0 v1 de TensorFlow/Keras, con siete clases.
+El modelo de esta rama es EfficientNetB0 v2 de TensorFlow/Keras, con siete clases.
 FastAPI ejecuta la inferencia en CPU y devuelve JSON. Solo Django escribe las
 propuestas, referencias privadas, predicciones y confianzas en la base de datos.
 No se llama a Roboflow en `ML_PREDICTOR=local`.
@@ -44,25 +44,22 @@ cd ml_service
 python -m pip install -r requirements.txt -r requirements-modelo.txt
 ```
 
-Copiar únicamente estos cuatro archivos del bundle original a
-`ml_service/modelos/efficientnet_b0_v1/`:
+La rama incluye estos cuatro archivos en `ml_service/modelos/efficientnet_b0_v2/`:
 
-- `MTFlow_EfficientNetB0_v1.keras`
+- `MTFlow_EfficientNetB0_v2.keras`
 - `training_config.json`
 - `class_names.json`
 - `model_sha256.txt`
 
-No se necesita copiar el dataset. `ml_service/modelos/` está excluido de Git;
-cada instalación debe aprovisionar el bundle por separado. Se conservan los
-archivos originales del prototipo. El modelo integrado tiene SHA-256
-`5bb9a804fcc889c25ba774e1030597166eec08a30595ec95fba9fa16a1d662a2`.
+Los cuatro archivos bastan para ejecutar la inferencia. El modelo tiene SHA-256
+`d0b1eddeb3c5742dba88acd85a1706080ff59c6058908fed37adb0d4860f0938`.
 
 Crear `ml_service/.env` a partir de su ejemplo:
 
 ```dotenv
 ML_SERVICE_API_KEY=una-clave-compartida-larga
 ML_PREDICTOR=local
-MTFLOW_MODEL_DIR=modelos/efficientnet_b0_v1
+MTFLOW_MODEL_DIR=modelos/efficientnet_b0_v2
 ```
 
 Las rutas relativas de `MTFLOW_MODEL_DIR` se resuelven desde `ml_service/`,
@@ -93,10 +90,9 @@ Se verifica el SHA-256 antes de cargar Keras con `safe_mode=True`, sin compilar.
 Se comprueba el orden de clases contra `training_config.json` y se traduce cada
 nombre a su código. El modelo debe recibir RGB 224 × 224 y producir siete salidas.
 
-Se conserva el procedimiento del prototipo: decodificación TensorFlow de los
-bytes validados, orientación EXIF, redimensionado bilineal sin antialias, rango
-0..255. **No** se divide por 255, no se aplica CenterCrop ni normalización de
-PyTorch: el reescalado ya está dentro del modelo.
+La v2 aplica la orientación EXIF, convierte a RGB y redimensiona a 224 × 224 con
+Pillow mediante interpolación bilineal. Conserva el rango 0..255 porque el
+reescalado forma parte del modelo.
 
 Django valida y recodifica la imagen antes de enviarla, eliminando metadatos.
 La referencia almacenada es la misma versión limpia enviada a FastAPI; compararla
@@ -111,7 +107,7 @@ Ejemplo ilustrativo de abstención; los números no corresponden a una foto real
 
 ```json
 {
-  "version_modelo": "efficientnet_b0:v1:<SHA-256 completo>",
+  "version_modelo": "efficientnet_b0:v2:<SHA-256 completo>",
   "confianzas": {
     "E-01": 0.57, "E-02": 0.13, "E-03": 0.06, "E-04": 0.06,
     "E-05": 0.06, "E-06": 0.06, "E-07": 0.06

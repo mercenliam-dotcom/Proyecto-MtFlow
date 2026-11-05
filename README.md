@@ -1,6 +1,6 @@
 # MtFlow
 
-Versión integrada para `main`, actualizada el 5 de noviembre de 2026.
+Rama de pruebas con EfficientNetB0 v2. El bundle del modelo viene incluido al clonar la rama.
 Incluye recepción persistente, cuentas del equipo, bandejas privadas y clasificación
 inmediata mediante EfficientNetB0 local, con umbral del 60 % y respuesta JSON.
 Consulta el [estado de los módulos y los cambios de esta entrega](docs/estado-modulos.md).
@@ -40,10 +40,17 @@ El modo principal es `ML_PREDICTOR=local`: requiere el bundle Keras y no utiliza
 
 ## Puesta en marcha (Windows, Git Bash)
 
+Instalar Python 3.12 y clonar la rama:
+
+```bash
+git clone --depth 1 --single-branch --branch pruebas-modelo-v2-con-pesos https://github.com/mercenliam-dotcom/Proyecto-MtFlow.git
+cd Proyecto-MtFlow
+python -m venv .venv
+```
+
 Terminal 1, la web:
 
 ```bash
-cd ~/OneDrive/Escritorio/"Proyecto mtFlow"
 source .venv/Scripts/activate        # aparece (.venv) al inicio de la línea
 pip install -r requirements.txt
 
@@ -63,21 +70,17 @@ python manage.py test               # deben pasar todas
 python manage.py runserver          # http://127.0.0.1:8000
 ```
 
-Terminal 2, el servicio de inferencia:
+Terminal 2, el servicio de inferencia, desde la raíz del repositorio:
 
 ```bash
-cd ~/OneDrive/Escritorio/"Proyecto mtFlow"
 source .venv/Scripts/activate
 cd ml_service
-pip install -r requirements.txt
-cp .env.example .env    # completar ML_SERVICE_API_KEY y la ubicación del bundle
-pip install -r requirements-modelo.txt  # Python 3.12, TensorFlow 2.21.0
-# Para el modo local, completar ML_SERVICE_API_KEY y copiar el bundle descrito
-# en docs/modelo-local-fastapi.md. ROBOFLOW_API_KEY no se necesita.
-uvicorn app.main:app --port 8001
+python -m pip install -r requirements.txt -r requirements-modelo.txt
+cp .env.example .env    # usar la misma ML_SERVICE_API_KEY de config/.env
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-Para ver qué modelo quedó activo, abre http://127.0.0.1:8001/salud. Con el modelo local indica `efficientnet_b0:v1:<SHA-256>` y `umbral_confianza: 0.9`.
+Abre http://127.0.0.1:8001/salud y comprueba que muestre `efficientnet_b0:v2:<SHA-256>` y `umbral_confianza: 0.6`. En Django, inicia sesión y sube un JPG o PNG en `/clasificacion/probar/`.
 
 ### Probar la conexión real con Roboflow (smoke test)
 
@@ -122,7 +125,7 @@ Para tener las 7 confianzas completas, el workflow tendría que exponer el pará
 
 `ML_PREDICTOR=local` es la configuración principal del ejemplo. Las alternativas son `roboflow_workflow`, `roboflow_modelo`, `local_pytorch`, `simulado` y `auto`. En `auto` se conserva la prioridad de una clave Roboflow; para asegurar inferencia local usar explícitamente `local`. El umbral de decisión del sistema es 60 % también al usar conectores alternativos; el 40 % descrito arriba corresponde exclusivamente a la salida del workflow histórico.
 
-El bundle actual es `ml_service/modelos/efficientnet_b0_v1/MTFlow_EfficientNetB0_v1.keras`, acompañado por `training_config.json`, `class_names.json` y `model_sha256.txt`. Su salida contiene E-01…E-07; E-99 se asigna por abstención cuando la mayor confianza es menor a 0.60, sin inventar una octava probabilidad. Los pesos `.pt` del adaptador histórico requieren `ML_PREDICTOR=local_pytorch` y `requirements-pytorch.txt`; no son compatibles con este bundle.
+El bundle incluido es `ml_service/modelos/efficientnet_b0_v2/MTFlow_EfficientNetB0_v2.keras`, acompañado por `training_config.json`, `class_names.json` y `model_sha256.txt`. Su salida contiene E-01…E-07; E-99 se asigna por abstención cuando la mayor confianza es menor a 0.60, sin inventar una octava probabilidad. Los pesos `.pt` del adaptador histórico requieren `ML_PREDICTOR=local_pytorch` y `requirements-pytorch.txt`; no son compatibles con este bundle.
 
 ## Producción
 

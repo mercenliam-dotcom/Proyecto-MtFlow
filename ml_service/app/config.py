@@ -27,7 +27,7 @@ MAX_PIXELES = 40_000_000
 # ---------------------------------------------------------------------------
 #   roboflow_workflow -> Roboflow Workflow "tattoo-styles-vtattoo-styles-2-resnet18-t1-logic"
 #   roboflow_modelo   -> endpoint directo del modelo en Roboflow (alias: roboflow)
-#   local    -> bundle TensorFlow/Keras v1 en MTFLOW_MODEL_DIR (siete clases)
+#   local    -> bundle TensorFlow/Keras en MTFLOW_MODEL_DIR (siete clases)
 #   local_pytorch -> adaptador histórico para MODELO_RUTA (.pt, ocho salidas)
 #   simulado -> resultados falsos y deterministas, para desarrollar sin modelo
 #   auto     -> roboflow_workflow si hay ROBOFLOW_API_KEY; si no, local si existen los
@@ -35,7 +35,7 @@ MAX_PIXELES = 40_000_000
 MODO_PREDICTOR = os.environ.get("ML_PREDICTOR", "auto").lower()
 FORZAR_STUB = os.environ.get("ML_FORZAR_STUB", "0") == "1"  # compatibilidad
 MODELO_RUTA = os.environ.get("MODELO_RUTA", "modelos/efficientnet_b0_mtflow.pt")
-MTFLOW_MODEL_DIR = Path(os.environ.get("MTFLOW_MODEL_DIR", "modelos/efficientnet_b0_v1"))
+MTFLOW_MODEL_DIR = Path(os.environ.get("MTFLOW_MODEL_DIR", "modelos/efficientnet_b0_v2"))
 if not MTFLOW_MODEL_DIR.is_absolute():
     MTFLOW_MODEL_DIR = BASE_DIR / MTFLOW_MODEL_DIR
 

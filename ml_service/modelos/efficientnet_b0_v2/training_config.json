@@ -1,0 +1,52 @@
+{
+  "model_version": "v2",
+  "architecture": "EfficientNetB0",
+  "initial_weights": "imagenet",
+  "source": "Roboflow / martin-stgmar-gmail-com / tattoo-styles",
+  "import_method": "descarga directa de las imágenes etiquetadas del proyecto",
+  "dataset_snapshot_utc": "20261105T052151892939Z",
+  "split_method": "particiones de origen auditadas",
+  "image_size": [
+    224,
+    224
+  ],
+  "input_range": [
+    0,
+    255
+  ],
+  "color_mode": "rgb",
+  "resize": "Pillow bilinear con orientación EXIF aplicada",
+  "class_ids": [
+    "Alto contraste",
+    "Anime",
+    "Cibersigilismo",
+    "Lettering",
+    "Linea Fina",
+    "Ornamentos",
+    "Tribal-Neotribal"
+  ],
+  "seed": 42,
+  "batch_size": 32,
+  "class_weights": {
+    "Alto contraste": 0.9949520230293274,
+    "Anime": 1.0985902547836304,
+    "Cibersigilismo": 0.9386358857154846,
+    "Lettering": 1.0365498065948486,
+    "Linea Fina": 1.2219998836517334,
+    "Ornamentos": 0.8048735857009888,
+    "Tribal-Neotribal": 1.1467262506484985
+  },
+  "tensorflow": "2.21.0",
+  "keras": "3.13.2",
+  "checkpoint_monitor": "val_f1_macro",
+  "head": {
+    "max_epochs": 12,
+    "learning_rate": 0.001
+  },
+  "finetune": {
+    "max_epochs": 20,
+    "learning_rate": 3e-05,
+    "last_layers": 40,
+    "batch_norm_frozen": true
+  }
+}

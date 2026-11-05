@@ -1,4 +1,4 @@
-# EfficientNetB0 v1 exportado en formato .keras. Usar Python 3.12.
+# EfficientNetB0 exportado en formato .keras. Usar Python 3.12.
 # Instalar además ml_service/requirements.txt en el entorno del servicio.
 tensorflow==2.21.0
 pillow>=11,<13
