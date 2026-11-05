@@ -126,7 +126,7 @@ def _detalle(request, referencia, propuestas, es_equipo=False):
         if prediccion:
             simulado = prediccion.version_modelo.startswith("simulado")
             confianzas = list(prediccion.confianzaestilo_set.all())
-            parcial = not simulado and sum(f.confianza for f in confianzas if f.estilo.codigo != "E-99") < Decimal(".99")
+            parcial = prediccion.version_modelo.startswith("roboflow") and sum(f.confianza for f in confianzas if f.estilo.codigo != "E-99") < Decimal(".99")
             for fila in sorted(confianzas, key=lambda f: (-f.confianza, f.estilo.codigo)):
                 if fila.estilo.codigo != "E-99":
                     filas.append({
@@ -139,6 +139,8 @@ def _detalle(request, referencia, propuestas, es_equipo=False):
         referencias.append({
             "imagen": imagen, "url": url_archivo(imagen.url) if disponible else None,
             "prediccion": prediccion, "filas": filas, "simulado": simulado, "confianza": confianza,
+            "maxima": (prediccion.confianza_maxima * 100).quantize(Decimal(".1")) if prediccion else None,
+            "umbral": (prediccion.umbral_confianza * 100).quantize(Decimal("1")) if prediccion and prediccion.umbral_confianza is not None else None,
         })
     return render(request, "cotizaciones/detalle.html", {
         "propuesta": propuesta, "referencias": referencias,

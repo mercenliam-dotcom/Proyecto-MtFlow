@@ -335,3 +335,5 @@ if len(sys.argv) > 1 and sys.argv[1] == "test":
 # Control de consumo del estimador público (usar caché compartida al escalar).
 COTIZACION_MAX_INTENTOS = int(env("COTIZACION_MAX_INTENTOS", "10"))
 COTIZACION_VENTANA_SEGUNDOS = int(env("COTIZACION_VENTANA_SEGUNDOS", "600"))
+ANALISIS_MAX_INTENTOS = int(env("ANALISIS_MAX_INTENTOS", "20"))
+ANALISIS_VENTANA_SEGUNDOS = int(env("ANALISIS_VENTANA_SEGUNDOS", "600"))

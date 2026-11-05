@@ -1,0 +1,3 @@
+# Solo para el adaptador histórico ML_PREDICTOR=local_pytorch.
+torch>=2.3
+torchvision>=0.18

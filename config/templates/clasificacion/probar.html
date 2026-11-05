@@ -40,7 +40,9 @@
         </li>
         {% endif %}{% endfor %}
       </ul>
-      <p class="nota">Modelo: {{ resultado.version_modelo }}. {% if not simulado %}El workflow de Roboflow puede omitir estilos bajo su umbral del 40 %.{% endif %} El número es la confianza de clasificación del modelo, no una medida exacta de similitud.</p>
+      <p class="nota">Exigencia de clasificación automática: 60 %. Si ningún estilo la alcanza, el resultado es «Fuera de catálogo» y requiere revisión profesional.</p>
+      {% if resultado.estilo_sugerido == "E-99" %}<p class="nota">La mayor puntuación entre los siete estilos fue {{ confianza_pct }} %. No es una probabilidad de «Fuera de catálogo».</p>{% endif %}
+      <p class="nota">Modelo: {{ resultado.version_modelo }}. La confianza es una puntuación del clasificador; no es un intervalo estadístico ni garantiza un acierto.</p>
     {% else %}
       <p class="vacio">Aquí aparecerá el resultado del análisis.</p>
     {% endif %}

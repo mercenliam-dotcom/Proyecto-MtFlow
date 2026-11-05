@@ -46,7 +46,7 @@ def probar(request):
             contexto["simulado"] = resultado.version_modelo.startswith("simulado")
             # Si las confianzas suman menos de 1, el modelo omitió los estilos
             # bajo su umbral: esos se muestran como "< 40 %", no como 0 %.
-            parcial = sum(resultado.confianzas.values()) < 0.99
+            parcial = resultado.version_modelo.startswith("roboflow") and sum(resultado.confianzas.values()) < 0.99
             contexto["filas"] = [
                 {"codigo": c, "nombre": ESTILOS[c], "porcentaje": round(p * 100, 1),
                  "no_informado": parcial and p == 0}

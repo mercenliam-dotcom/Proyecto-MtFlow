@@ -114,7 +114,7 @@ class VistaProbar(TestCase):
             r = self.client.post(self.url, {"imagen": u.jpg_valido()})
         self.assertContains(r, "No recomendado")
         self.assertContains(r, "Fuera de catálogo")
-        self.assertContains(r, "40 %")
+        self.assertContains(r, "60 %")
         self.assertNotContains(r, "100,0%")
 
     def test_respuesta_real_con_una_sola_clase(self):
@@ -126,10 +126,25 @@ class VistaProbar(TestCase):
         with mock.patch("requests.post", return_value=resp):
             r = self.client.post(self.url, {"imagen": u.jpg_valido()})
         self.assertContains(r, "Línea fina")
-        self.assertContains(r, "41,8%")
+        self.assertContains(r, "Fuera de catálogo")
+        self.assertContains(r, "41,8 %")
         self.assertContains(r, "No recomendado")   # 0,42 < umbral 0,85 de la recomendación
         self.assertContains(r, "&lt; 40 %", count=6)  # los otros 6 estilos no informados
         self.assertContains(r, "roboflow-workflow:martin")
+
+    def test_umbral_60_no_redondea_hacia_arriba(self):
+        for maxima, esperado in ((.6, "E-01"), (.59999998, "E-99")):
+            vector = {"E-01": maxima, **{f"E-{i:02}": (1 - maxima) / 6 for i in range(2, 8)}}
+            resultado = _validar_respuesta({"version_modelo": "efficientnet_b0:v1:test", "confianzas": vector})
+            self.assertEqual(resultado.estilo_sugerido, esperado)
+            self.assertEqual(resultado.confianza_maxima, maxima)
+            self.assertNotIn("E-99", resultado.confianzas)
+
+    def test_rechaza_declaraciones_que_burlan_el_umbral(self):
+        vector = {"E-01": .57, **{f"E-{i:02}": .43 / 6 for i in range(2, 8)}}
+        for metadatos in ({"estilo_sugerido": "E-01"}, {"umbral_confianza": .85}, {"confianza_maxima": .99}):
+            with self.assertRaises(ServicioMLNoDisponible):
+                _validar_respuesta({"confianzas": vector, **metadatos})
 
     def test_video_disfrazado_no_llega_al_servicio(self):
         with mock.patch("requests.post") as post:

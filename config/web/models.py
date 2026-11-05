@@ -96,7 +96,8 @@ class Prediccion(models.Model):
     imagen = models.ForeignKey(Imagen, on_delete=models.RESTRICT)
     version_modelo = models.CharField(max_length=120)
     estilo_sugerido = models.ForeignKey(Estilo, on_delete=models.RESTRICT)
-    confianza_maxima = models.DecimalField(max_digits=5, decimal_places=4)
+    confianza_maxima = models.DecimalField(max_digits=17, decimal_places=16)
+    umbral_confianza = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
     tiempo_inferencia_ms = models.IntegerField()
     generada_en = models.DateTimeField(auto_now_add=True)
 
@@ -106,7 +107,7 @@ class Prediccion(models.Model):
 class ConfianzaEstilo(models.Model):
     prediccion = models.ForeignKey(Prediccion, on_delete=models.RESTRICT)
     estilo = models.ForeignKey(Estilo, on_delete=models.RESTRICT)
-    confianza = models.DecimalField(max_digits=5, decimal_places=4)
+    confianza = models.DecimalField(max_digits=17, decimal_places=16)
 
     class Meta:
         unique_together = ('prediccion', 'estilo')

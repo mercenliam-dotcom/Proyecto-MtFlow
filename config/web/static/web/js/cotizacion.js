@@ -5,12 +5,107 @@ const placeholder = document.getElementById("preview-placeholder");
 const fileDetails = document.getElementById("file-details");
 const fileError = document.getElementById("file-error");
 const summary = document.getElementById("quote-summary");
+const analyzeInput = document.getElementById("id_analizar");
+const analysisPanel = document.getElementById("live-analysis");
+const analysisStatus = document.getElementById("analysis-status");
+const analysisResult = document.getElementById("analysis-result");
+const analysisStyle = document.getElementById("analysis-style");
+const analysisConfidence = document.getElementById("analysis-confidence");
+const analysisNote = document.getElementById("analysis-note");
+const analysisScores = document.getElementById("analysis-scores");
+const retryAnalysis = document.getElementById("retry-analysis");
 
 let objectUrl = null;
 let imageReady = false;
 let selectionVersion = 0;
+let analysisVersion = 0;
+let analysisController = null;
+const percentage = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 });
+
+function clearAnalysis() {
+    analysisVersion += 1;
+    if (analysisController) analysisController.abort();
+    analysisController = null;
+    analysisPanel.removeAttribute("aria-busy");
+    analysisResult.hidden = true;
+    retryAnalysis.hidden = true;
+    analysisScores.replaceChildren();
+    analysisStatus.textContent = analyzeInput.checked
+        ? "Selecciona una imagen para ver su estilo antes de enviar."
+        : "Análisis desactivado. Puedes activarlo cuando quieras.";
+}
+
+async function analyzeReference() {
+    clearAnalysis();
+    const file = fileInput.files[0];
+    if (!analyzeInput.checked || !imageReady || !file) return;
+
+    const currentVersion = analysisVersion;
+    const currentSelection = selectionVersion;
+    const controller = new AbortController();
+    analysisController = controller;
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, 20000);
+    analysisPanel.setAttribute("aria-busy", "true");
+    analysisStatus.textContent = "Analizando tu imagen con el modelo local…";
+    const payload = new FormData();
+    payload.append("imagen", file);
+    payload.append("analizar", "on");
+    const csrf = form.elements.namedItem("csrfmiddlewaretoken").value;
+    payload.append("csrfmiddlewaretoken", csrf);
+    try {
+        const response = await fetch(analysisPanel.dataset.url, {
+            method: "POST", body: payload, credentials: "same-origin",
+            headers: { "X-CSRFToken": csrf }, signal: controller.signal,
+        });
+        const data = await response.json();
+        if (currentVersion !== analysisVersion || currentSelection !== selectionVersion || !analyzeInput.checked) return;
+        if (!response.ok) throw new Error(data.error || "No pudimos analizar la imagen.");
+        analysisStyle.textContent = data.nombre;
+        const confidence = percentage.format(data.confianza_maxima * 100);
+        const threshold = percentage.format(data.umbral_confianza * 100);
+        if (data.estilo_sugerido === "E-99") {
+            analysisConfidence.textContent = `Mayor puntuación: ${confidence} %. No se asignó un estilo con la exigencia del ${threshold} %.`;
+            analysisNote.textContent = "Fuera de catálogo: la referencia necesita revisión profesional. El modelo no aprendió una octava categoría.";
+        } else {
+            analysisConfidence.textContent = `Confianza del estilo sugerido: ${confidence} %.`;
+            analysisNote.textContent = "La sugerencia orienta a la tatuadora y no confirma una reserva ni el precio.";
+        }
+        for (const style of data.estilos) {
+            const item = document.createElement("li");
+            item.textContent = `${style.nombre}: ${percentage.format(style.confianza * 100)} %`;
+            analysisScores.append(item);
+        }
+        analysisResult.hidden = false;
+        analysisStatus.textContent = data.simulado
+            ? "Resultado simulado: el modelo real no está activo."
+            : "Análisis listo. Puedes continuar completando tu propuesta.";
+    } catch (error) {
+        if (currentVersion !== analysisVersion || currentSelection !== selectionVersion) return;
+        if (error.name === "AbortError" && !timedOut) return;
+        analysisStatus.textContent = timedOut
+            ? "El análisis está tardando más de lo esperado. Puedes reintentarlo."
+            : (error instanceof SyntaxError || error instanceof TypeError)
+                ? "No pudimos conectar con el análisis. Reintenta o envía tu propuesta para revisión."
+                : error.message;
+        retryAnalysis.hidden = false;
+    } finally {
+        window.clearTimeout(timeout);
+        if (currentVersion === analysisVersion) {
+            analysisPanel.removeAttribute("aria-busy");
+            analysisController = null;
+        }
+    }
+}
+
+analyzeInput.addEventListener("change", analyzeReference);
+retryAnalysis.addEventListener("click", analyzeReference);
 
 function clearPreview() {
+    clearAnalysis();
     selectionVersion += 1;
     imageReady = false;
     preview.onload = null;
@@ -65,6 +160,7 @@ fileInput.addEventListener("change", () => {
         placeholder.hidden = true;
         fileDetails.hidden = false;
         document.getElementById("file-name").textContent = file.name;
+        analyzeReference();
     };
 
     preview.onerror = () => {
@@ -102,6 +198,9 @@ form.addEventListener("submit", (event) => {
         return;
     }
     form.dataset.submitting = "true";
+    // La recepción vuelve a clasificar en el servidor: nunca confía en datos
+    // de la vista previa. Cancelar su respuesta evita mostrar un resultado viejo.
+    clearAnalysis();
     submitButton.disabled = true;
     form.setAttribute("aria-busy", "true");
     submitStatus.textContent = "Guardando tu propuesta. El análisis opcional de la imagen puede tardar unos segundos…";

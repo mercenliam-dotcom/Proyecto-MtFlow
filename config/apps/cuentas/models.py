@@ -6,7 +6,8 @@ Decisiones (ADR-0008):
     el panel. El cliente del estudio no tiene cuenta (decisión #1 del modelo).
   - Dos roles: ADMIN y USUARIO. El rol es un campo, no un grupo, porque el
     sistema solo tiene dos y la regla debe ser evidente en la base de datos.
-  - Las cuentas no se borran: se desactivan. Así se conserva quién hizo qué.
+  - Las cuentas normales se desactivan. La cuenta marcada de desarrollo es una
+    excepción: se elimina al pasar a producción (ver arranque.py).
   - En las URLs nunca aparece el id numérico (adivinable: /cuentas/1, /2, /3...);
     se usa un UUID aleatorio.
 """
@@ -71,6 +72,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         help_text="Puede recibir propuestas como tatuadora, independientemente de su rol de administración.",
     )
     is_active = models.BooleanField("activa", default=True)
+    es_admin_desarrollo = models.BooleanField(default=False, editable=False)
     creado_en = models.DateTimeField(default=timezone.now, editable=False)
     creado_por = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL,

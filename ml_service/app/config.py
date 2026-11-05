@@ -14,7 +14,8 @@ def _cargar_env(ruta: Path) -> None:
             os.environ.setdefault(clave.strip(), valor.strip().strip('"').strip("'"))
 
 
-_cargar_env(Path(__file__).resolve().parent.parent / ".env")
+BASE_DIR = Path(__file__).resolve().parent.parent
+_cargar_env(BASE_DIR / ".env")
 
 # Clave que Django debe enviar en X-API-Key (la misma de config/.env)
 API_KEY = os.environ.get("ML_SERVICE_API_KEY", "")
@@ -26,13 +27,21 @@ MAX_PIXELES = 40_000_000
 # ---------------------------------------------------------------------------
 #   roboflow_workflow -> Roboflow Workflow "tattoo-styles-vtattoo-styles-2-resnet18-t1-logic"
 #   roboflow_modelo   -> endpoint directo del modelo en Roboflow (alias: roboflow)
-#   local    -> pesos propios en MODELO_RUTA (EfficientNet-B0)
+#   local    -> bundle TensorFlow/Keras v1 en MTFLOW_MODEL_DIR (siete clases)
+#   local_pytorch -> adaptador histórico para MODELO_RUTA (.pt, ocho salidas)
 #   simulado -> resultados falsos y deterministas, para desarrollar sin modelo
 #   auto     -> roboflow_workflow si hay ROBOFLOW_API_KEY; si no, local si existen los
 #               pesos; si no, simulado
 MODO_PREDICTOR = os.environ.get("ML_PREDICTOR", "auto").lower()
 FORZAR_STUB = os.environ.get("ML_FORZAR_STUB", "0") == "1"  # compatibilidad
 MODELO_RUTA = os.environ.get("MODELO_RUTA", "modelos/efficientnet_b0_mtflow.pt")
+MTFLOW_MODEL_DIR = Path(os.environ.get("MTFLOW_MODEL_DIR", "modelos/efficientnet_b0_v1"))
+if not MTFLOW_MODEL_DIR.is_absolute():
+    MTFLOW_MODEL_DIR = BASE_DIR / MTFLOW_MODEL_DIR
+
+# Política confirmada: un valor menor no se acepta como categoría automática.
+# No se permite rebajar esta exigencia mediante variables de entorno.
+UMBRAL_CONFIANZA = 0.60
 
 # ---------------------------------------------------------------------------
 # Roboflow

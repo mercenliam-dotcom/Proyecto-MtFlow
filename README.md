@@ -1,10 +1,10 @@
 # MtFlow
 
-> **Rama de revisión: `feature/recepcion-bandejas-cotizaciones`.**
-> Incluye el avance integrado de interfaz, cuentas, seguridad, Roboflow y SQL,
-> más recepción persistente, imágenes privadas, funciones combinadas de cuentas,
-> bandejas personales y del equipo con detalle y filtros. La agenda tipo FullCalendar
-> sigue pendiente. Consulta [funcionalidades, preparación y validación](docs/avance-integrado.md).
+Versión integrada para `main`, actualizada el 5 de noviembre de 2026.
+Incluye recepción persistente, cuentas del equipo, bandejas privadas y clasificación
+inmediata mediante EfficientNetB0 local, con umbral del 60 % y respuesta JSON.
+Consulta el [estado de los módulos y los cambios de esta entrega](docs/estado-modulos.md).
+La agenda operativa y el despliegue público siguen pendientes.
 
 Sistema web para Maldita Ternura Estudio. Identifica el estilo de una imagen de referencia de tatuaje y **recomienda** (no decide) si la solicitud calza con el estudio.
 
@@ -23,21 +23,20 @@ Sistema web para Maldita Ternura Estudio. Identifica el estilo de una imagen de 
 ## Cómo se conectan las piezas
 
 ```
-Navegador ──► Django (puerto 8000) ──► FastAPI (puerto 8001) ──► Roboflow Workflow
-              valida y limpia la         traduce las 7 clases        "Tattoo styles …-t1 Logic"
-              imagen, decide Apto /      del modelo a E-01…E-07      (modelo ResNet18)
-              En evaluación / No
-              recomendado y lo muestra
+Navegador ──► Django (8000) ──► FastAPI (8001) ──► EfficientNetB0 Keras local
+                 │                 │                     siete probabilidades
+                 │                 └── JSON: estilo o E-99, confianza, umbral 0.60
+                 └── valida el JSON y guarda propuesta, imagen y predicción en BD
 ```
 
-Hay **dos claves distintas**:
+La conexión Django→FastAPI utiliza una clave compartida. Roboflow queda como alternativa explícita:
 
 | Clave | Qué es | Dónde va |
 |---|---|---|
 | `ML_SERVICE_API_KEY` | Contraseña que inventan ustedes, para que FastAPI solo le responda a Django | Igual en `config/.env` y en `ml_service/.env` |
 | `ROBOFLOW_API_KEY` | Clave privada de la cuenta de Roboflow (Settings → API Keys) | Solo en `ml_service/.env` |
 
-Sin `ROBOFLOW_API_KEY` el servicio usa resultados simulados, así la web se puede probar sin conexión. Detalles y riesgos en `docs/decisiones/ADR-0009-modelo-roboflow.md`.
+El modo principal es `ML_PREDICTOR=local`: requiere el bundle Keras y no utiliza Roboflow. Si falta o no coincide su SHA-256, no se sustituye silenciosamente por resultados simulados. Para pruebas ficticias seleccionar `simulado` expresamente. Consulta [integración local y contrato JSON](docs/modelo-local-fastapi.md).
 
 ## Puesta en marcha (Windows, Git Bash)
 
@@ -57,7 +56,9 @@ cp .env.example .env
 # y descomentar DATABASE_URL.
 
 python manage.py migrate
-python manage.py createsuperuser    # crea el primer ADMINISTRADOR
+# Con DJANGO_DEBUG=1, migrate y el arranque preparan admin / admin.
+# En producción la cuenta predeterminada se elimina y el administrador se crea
+# de forma segura con: python manage.py createsuperuser
 python manage.py test               # deben pasar todas
 python manage.py runserver          # http://127.0.0.1:8000
 ```
@@ -69,11 +70,14 @@ cd ~/OneDrive/Escritorio/"Proyecto mtFlow"
 source .venv/Scripts/activate
 cd ml_service
 pip install -r requirements.txt
-cp .env.example .env    # completar ML_SERVICE_API_KEY y ROBOFLOW_API_KEY
+cp .env.example .env    # completar ML_SERVICE_API_KEY y la ubicación del bundle
+pip install -r requirements-modelo.txt  # Python 3.12, TensorFlow 2.21.0
+# Para el modo local, completar ML_SERVICE_API_KEY y copiar el bundle descrito
+# en docs/modelo-local-fastapi.md. ROBOFLOW_API_KEY no se necesita.
 uvicorn app.main:app --port 8001
 ```
 
-Para ver qué modelo quedó activo, abre http://127.0.0.1:8001/salud. Debe decir `roboflow-workflow:martin-stgmar-gmail-com/tattoo-styles-vtattoo-styles-2-resnet18-t1-logic`, o `simulado-0.2` si no hay clave.
+Para ver qué modelo quedó activo, abre http://127.0.0.1:8001/salud. Con el modelo local indica `efficientnet_b0:v1:<SHA-256>` y `umbral_confianza: 0.9`.
 
 ### Probar la conexión real con Roboflow (smoke test)
 
@@ -116,11 +120,13 @@ El bloque del modelo usa un umbral de confianza de 0,4, y Roboflow **solo inform
 
 Para tener las 7 confianzas completas, el workflow tendría que exponer el parámetro `confidence` (o fijarlo en 0) en Roboflow.
 
-`ML_PREDICTOR` en `ml_service/.env` puede ser `roboflow_workflow` (por defecto con clave), `roboflow_modelo` (endpoint directo del modelo), `local`, `simulado` o `auto`. Si cambian las clases en Roboflow, hay que actualizar `CLASES_ROBOFLOW` en `ml_service/app/config.py` y `ESTILOS` en `config/apps/clasificacion/catalogo.py`.
+`ML_PREDICTOR=local` es la configuración principal del ejemplo. Las alternativas son `roboflow_workflow`, `roboflow_modelo`, `local_pytorch`, `simulado` y `auto`. En `auto` se conserva la prioridad de una clave Roboflow; para asegurar inferencia local usar explícitamente `local`. El umbral de decisión del sistema es 60 % también al usar conectores alternativos; el 40 % descrito arriba corresponde exclusivamente a la salida del workflow histórico.
 
-Para usar pesos propios en vez de Roboflow: dejar los pesos entrenados en `ml_service/modelos/efficientnet_b0_mtflow.pt` (un `state_dict` de `torchvision.models.efficientnet_b0` con 8 salidas en orden E-01…E-07, E-99) e instalar `ml_service/requirements-modelo.txt`. El servicio los detecta al arrancar; Django no cambia. Los nombres de los estilos se cambian en `config/apps/clasificacion/catalogo.py`.
+El bundle actual es `ml_service/modelos/efficientnet_b0_v1/MTFlow_EfficientNetB0_v1.keras`, acompañado por `training_config.json`, `class_names.json` y `model_sha256.txt`. Su salida contiene E-01…E-07; E-99 se asigna por abstención cuando la mayor confianza es menor a 0.60, sin inventar una octava probabilidad. Los pesos `.pt` del adaptador histórico requieren `ML_PREDICTOR=local_pytorch` y `requirements-pytorch.txt`; no son compatibles con este bundle.
 
 ## Producción
+
+La cuenta `admin` / `admin` existe automáticamente solo en modo desarrollo. Al pasar a `DJANGO_DEBUG=0` se elimina la cuenta marcada de desarrollo; no se reemplazan administradores reales. Consultar [cuenta predeterminada y transición](docs/admin-desarrollo.md).
 
 `DJANGO_DEBUG=0`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `DATABASE_URL` (PostgreSQL/Supabase, obligatoria), `DB_SSLMODE=require`, `DJANGO_ADMIN_URL`. Con `DEBUG=0` se activan solos HTTPS, HSTS y cookies seguras. `python manage.py check --deploy` lo verifica.
 
@@ -133,7 +139,7 @@ El flujo está listo en `docs/ci/ci.yml`. Para activarlo ver `docs/ci/LEEME.md`.
 
 El sitio y el equipo comparten `config/templates/layout.html` y `config/static/css/design.css`.
 En `/cotizacion/` se calcula un rango **ficticio y provisional en CLP**, con análisis de estilo opcional.
-La cotización no guarda solicitudes ni reserva horarios. Las tarifas se ajustan en `config/web/precios.py`.
+La versión actual guarda propuestas, imágenes privadas y el análisis solicitado; no reserva horarios. Las tarifas se ajustan en `config/web/precios.py`.
 No requiere Node.js ni dependencias nuevas. Reiniciar Django para cargar los cambios de Python.
 
 Detalles de reglas, seguridad, pruebas y pendientes: [revisión de noviembre](docs/revision-2026-11.md).

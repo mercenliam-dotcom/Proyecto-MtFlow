@@ -9,7 +9,8 @@ re-escalan (re-escalar inflaría la confianza).
   Es el camino recomendado.
 - PredictorRoboflow: consulta directamente el endpoint del modelo
   (ResNet18, proyecto "Tattoo styles").
-- PredictorEfficientNet: pesos propios entrenados localmente (opcional).
+- PredictorEfficientNetKeras: modelo local v1 de siete clases, cargado bajo demanda.
+- PredictorEfficientNet: adaptador histórico de PyTorch (local_pytorch).
 - PredictorSimulado: resultados falsos pero deterministas, para desarrollar
   la web sin conexión ni modelo.
 """
@@ -223,8 +224,10 @@ def cargar_predictor():
     if modo == "auto":
         if config.ROBOFLOW_API_KEY:
             modo = "roboflow_workflow"
-        elif Path(config.MODELO_RUTA).is_file():
+        elif (config.MTFLOW_MODEL_DIR / "MTFlow_EfficientNetB0_v1.keras").is_file():
             modo = "local"
+        elif Path(config.MODELO_RUTA).is_file():
+            modo = "local_pytorch"
         else:
             modo = "simulado"
     if modo in ("roboflow_workflow", "workflow"):
@@ -244,10 +247,13 @@ def cargar_predictor():
             config.ROBOFLOW_TIMEOUT, config.ROBOFLOW_LADO_MAX, config.CLASES_ROBOFLOW,
         )
     if modo == "local":
+        from .modelo_local import PredictorEfficientNetKeras
+        return PredictorEfficientNetKeras(config.MTFLOW_MODEL_DIR)
+    if modo == "local_pytorch":
         return PredictorEfficientNet(Path(config.MODELO_RUTA))
     if modo == "simulado":
         return PredictorSimulado()
     raise ValueError(
         f"ML_PREDICTOR desconocido: {modo!r} "
-        "(usa roboflow_workflow, roboflow_modelo, local, simulado o auto)"
+        "(usa local, local_pytorch, roboflow_workflow, roboflow_modelo, simulado o auto)"
     )

@@ -1,4 +1,4 @@
-# Solo cuando existan pesos entrenados. En Windows/Linux sin GPU:
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-torch>=2.3
-torchvision>=0.18
+# EfficientNetB0 v1 exportado en formato .keras. Usar Python 3.12.
+# Instalar además ml_service/requirements.txt en el entorno del servicio.
+tensorflow==2.21.0
+pillow>=11,<13

@@ -1,13 +1,11 @@
 """
 Catálogo de estilos del estudio y lógica de recomendación.
 
-Los nombres son las 7 clases del modelo entrenado en Roboflow (proyecto
-"Tattoo styles"). El servicio de inferencia traduce cada clase a su código
-(ml_service/app/config.py, CLASES_ROBOFLOW). Si se agrega o renombra una
-clase, hay que cambiar ambos lugares.
+Los nombres corresponden a las siete clases del EfficientNetB0 Keras local.
+El servicio de inferencia traduce el orden exportado a E-01…E-07.
 
-E-99 representa la ausencia de clases sobre el umbral del workflow.
-No demuestra por sí sola que una imagen no sea un tatuaje.
+E-99 es la abstención del sistema cuando ninguna clase alcanza el 60 %.
+No es una octava clase aprendida ni demuestra que la imagen no sea un tatuaje.
 """
 from dataclasses import dataclass
 
@@ -45,10 +43,11 @@ def recomendar(estilo: str, confianza: float) -> Recomendacion:
     if estilo == CODIGO_FUERA_DE_CATALOGO:
         return Recomendacion(
             "NO_RECOMENDADO", "REVISION_ESPECIAL", "No recomendado",
-            "Ningún estilo del catálogo alcanzó la similitud mínima del modelo (40 %). "
+            "No se asignó una categoría automática con la exigencia del 60 %. "
+            "Fuera de catálogo indica abstención del sistema, no una octava clase aprendida. "
             "La revisión final corresponde a la tatuadora.",
         )
-    if confianza >= settings.UMBRAL_PRE_APROBADA:
+    if confianza >= max(0.90, settings.UMBRAL_PRE_APROBADA):
         return Recomendacion(
             "APTO", "PRE_APROBADA", "Apto",
             "Alta similitud con un estilo que el estudio trabaja.",

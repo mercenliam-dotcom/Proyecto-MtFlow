@@ -43,6 +43,38 @@ class RecepcionPersistente(TestCase):
     def archivos(self):
         return [p for p in Path(self.tmp.name).rglob("*") if p.is_file()]
 
+    def test_json_bajo_60_guarda_e99_y_siete_confianzas_originales(self):
+        from unittest.mock import Mock
+        vector = {"E-01": .59999998, **{f"E-{i:02}": .40000002 / 6 for i in range(2, 8)}}
+        respuesta = Mock(status_code=200, json=lambda: {
+            "version_modelo": "efficientnet_b0:v1:test", "confianzas": vector,
+            "estilo_sugerido": "E-99", "confianza_maxima": .59999998, "umbral_confianza": .60,
+        })
+        with patch("requests.post", return_value=respuesta):
+            r = self.client.post(self.url, propuesta(self.artista, analizar="on"))
+        self.assertEqual(r.status_code, 200)
+        p = Prediccion.objects.get()
+        self.assertEqual(p.estilo_sugerido.codigo, "E-99")
+        self.assertLess(p.confianza_maxima, Decimal(".60"))
+        self.assertEqual(p.umbral_confianza, Decimal(".60"))
+        self.assertEqual(ConfianzaEstilo.objects.count(), 7)
+        self.assertFalse(ConfianzaEstilo.objects.filter(estilo__codigo="E-99").exists())
+        self.assertEqual(Postulacion.objects.get().estado_ml, "COMPLETADO")
+        self.assertEqual(Postulacion.objects.get().estado, "RECIBIDA")
+
+    def test_json_con_60_guarda_categoria_sin_rechazar_la_propuesta(self):
+        from unittest.mock import Mock
+        vector = {"E-01": .60, **{f"E-{i:02}": .4 / 6 for i in range(2, 8)}}
+        respuesta = Mock(status_code=200, json=lambda: {
+            "version_modelo": "efficientnet_b0:v1:test", "confianzas": vector,
+            "estilo_sugerido": "E-01", "confianza_maxima": .60, "umbral_confianza": .60,
+        })
+        with patch("requests.post", return_value=respuesta):
+            r = self.client.post(self.url, propuesta(self.artista, analizar="on"))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(Prediccion.objects.get().estilo_sugerido.codigo, "E-01")
+        self.assertEqual(Postulacion.objects.get().estado, "RECIBIDA")
+
     def test_guarda_propuesta_y_archivo_recodificado_con_medidas_reales(self):
         original = jpg_valido(tamano=(500, 350))
         contenido_original = original.read()

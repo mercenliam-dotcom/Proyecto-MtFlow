@@ -4,7 +4,8 @@ Servicio de inferencia de MTFlow (ADR-0002).
 Contrato:
   GET  /salud       -> {"estado": "ok", "version_modelo": "..."}
   POST /clasificar  (multipart, campo "imagen", cabecera X-API-Key)
-                    -> {"version_modelo": "...", "confianzas": {"E-01": 0.1, ...}}
+                    -> versión, siete confianzas del modelo local, estilo sugerido
+                       (E-01…E-07 o E-99), confianza máxima y umbral fijo de 0.60
 
 Este servicio NO está pensado para recibir tráfico del público: solo lo
 llama el backend Django, con una clave compartida. Igualmente vuelve a
@@ -16,10 +17,12 @@ import secrets
 import warnings
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 from PIL import Image, UnidentifiedImageError
 
 from . import config
 from .predictor import PredictorNoDisponible, cargar_predictor
+from .decision import construir_respuesta
 
 # Mensajes del servicio visibles en la terminal de uvicorn (motivo de cada 503)
 log = logging.getLogger("mtflow.ml")
@@ -41,7 +44,8 @@ def verificar_clave(x_api_key: str = Header(default="")):
 
 @app.get("/salud")
 def salud():
-    return {"estado": "ok", "version_modelo": predictor.version}
+    return {"estado": "ok", "version_modelo": predictor.version,
+            "umbral_confianza": config.UMBRAL_CONFIANZA}
 
 
 @app.post("/clasificar", dependencies=[Depends(verificar_clave)])
@@ -65,9 +69,14 @@ async def clasificar(imagen: UploadFile = File(...)):
             Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise HTTPException(status_code=422, detail="Imagen no válida")
     try:
-        confianzas = predictor.predecir(img)
+        # La inferencia es bloqueante: dejar libre el bucle de FastAPI.
+        if hasattr(predictor, "predecir_bytes"):
+            confianzas = await run_in_threadpool(predictor.predecir_bytes, datos)
+        else:
+            confianzas = await run_in_threadpool(predictor.predecir, img)
+        respuesta = construir_respuesta(predictor.version, confianzas)
     except PredictorNoDisponible as e:
         # Django muestra "servicio no disponible" y la imagen no se pierde.
         log.warning("clasificar -> 503: %s", e)
         raise HTTPException(status_code=503, detail="Modelo no disponible")
-    return {"version_modelo": predictor.version, "confianzas": confianzas}
+    return respuesta

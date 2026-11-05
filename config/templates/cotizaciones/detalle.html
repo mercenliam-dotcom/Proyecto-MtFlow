@@ -31,6 +31,7 @@
       {% if referencia.prediccion %}
         {% if referencia.simulado %}<p class="alerta alerta-info">Resultado simulado: no proviene de un análisis real del modelo.</p>{% endif %}
         <p><strong>Estilo sugerido:</strong> {{ referencia.prediccion.estilo_sugerido.nombre }}{% if referencia.confianza != None %} · {{ referencia.confianza }} %{% endif %}</p>
+        {% if referencia.umbral != None %}<p class="nota">Exigencia aplicada: {{ referencia.umbral }} %.{% if referencia.prediccion.estilo_sugerido.codigo == "E-99" %} Ningún estilo alcanzó el umbral. Mayor puntuación: {{ referencia.maxima }} %. «Fuera de catálogo» es una decisión del sistema y requiere revisión profesional.{% endif %}</p>{% endif %}
         {% if referencia.filas %}<h3>Confianzas registradas</h3><ul>{% for fila in referencia.filas %}<li>{{ fila.nombre }}: {% if fila.omitida %}&lt; 40 %{% else %}{{ fila.porcentaje }} %{% endif %}</li>{% endfor %}</ul>{% else %}<p class="nota">No hay un desglose de confianzas registrado para esta predicción.</p>{% endif %}
         <p class="nota cotizacion-referencia">Modelo: {{ referencia.prediccion.version_modelo }}</p>
         <p class="nota">La clasificación orienta la revisión. No acepta ni rechaza la propuesta ni determina su precio.</p>

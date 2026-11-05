@@ -108,6 +108,7 @@ def recibir(datos, validada, referencia, clasificador):
                     imagen=imagen, version_modelo=resultado.version_modelo,
                     estilo_sugerido=estilos[resultado.estilo_sugerido],
                     confianza_maxima=Decimal(str(resultado.confianza_maxima)), tiempo_inferencia_ms=tiempo_ms,
+                    umbral_confianza=Decimal(str(resultado.umbral_confianza)),
                 )
                 ConfianzaEstilo.objects.bulk_create([
                     ConfianzaEstilo(prediccion=prediccion, estilo=estilos[codigo], confianza=Decimal(str(confianza)))

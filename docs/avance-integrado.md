@@ -1,6 +1,9 @@
 # Avance integrado: recepción y bandejas de cotizaciones
 
-Rama de revisión: `feature/recepcion-bandejas-cotizaciones`.
+Este documento describe la base de recepción y bandejas creada en
+`feature/recepcion-bandejas-cotizaciones` e integrada posteriormente en `main`.
+Para el estado actual, incluidos el modelo local y el análisis inmediato,
+consultar [estado de módulos y cambios](estado-modulos.md).
 
 Integra las ramas previas de interfaz, cuentas, seguridad, Roboflow e implementación
 SQL, y completa la recepción persistente de propuestas y su consulta por el equipo.
@@ -57,7 +60,7 @@ la habilitación de los perfiles existentes; revisar y desmarcar «Es tatuadora�
 las cuentas exclusivamente administrativas o de demostración. Las cuentas nuevas
 requieren seleccionar esa función expresamente.
 
-Se verificaron **183 pruebas Django en SQLite**, con datos temporales. Incluyen
+En esa entrega base se verificaron **183 pruebas Django en SQLite**, con datos temporales. Incluyen
 recepción, archivos, rollback, reenvíos, funciones combinadas, filtros, permisos y
 aislamiento entre profesionales. Se comprobaron lista, detalle e imagen en la vista
 previa local, y las migraciones sobre una copia poblada. No se incorporan cuentas,
@@ -68,7 +71,7 @@ contraseñas ni configuración privada de esa vista previa a esta entrega.
 - Agenda operativa por tatuadora con calendario tipo **FullCalendar**.
 - Flujo de confirmación/rechazo y conexión posterior con reservas y horarios reales.
 - Validación de las reglas de duración, disponibilidad, solapamientos y cambios de cita.
-- Tarifario definitivo y validación del despliegue con PostgreSQL y Roboflow real.
+- Tarifario definitivo y validación del despliegue con PostgreSQL y el modelo local.
 
 La pantalla de horarios sigue siendo de demostración. La clasificación orienta la
 revisión profesional; no acepta ni rechaza automáticamente propuestas.

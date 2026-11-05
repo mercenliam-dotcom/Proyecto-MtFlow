@@ -36,7 +36,8 @@ class CotizacionForm(forms.Form):
     idea = forms.CharField(label="Cuéntanos tu idea", max_length=1500, widget=forms.Textarea(attrs={"id": "idea", "rows": 4, "placeholder": "Motivo, ubicación y detalles que imaginas…"}))
     cobertura = forms.BooleanField(label="Quiero cubrir un tatuaje existente", required=False)
     imagen = forms.FileField(label="Imagen de referencia", help_text="JPG o PNG · máximo 5 MB · mínimo 224 píxeles por lado.", widget=forms.FileInput(attrs={"id": "reference", "accept": TIPOS_ACEPTADOS_HTML}))
-    analizar = forms.BooleanField(label="Quiero analizar el estilo con Roboflow", required=False)
+    analizar = forms.BooleanField(label="Analizar el estilo al seleccionar la imagen", required=False, initial=True,
+                                 help_text="Análisis en este equipo. Solo se asigna un estilo si alcanza el 60 % de confianza; en otro caso queda fuera de catálogo.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

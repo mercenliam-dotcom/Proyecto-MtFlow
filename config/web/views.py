@@ -2,18 +2,51 @@ import logging
 
 from django.conf import settings
 from django.db import DatabaseError, transaction
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from apps.clasificacion.catalogo import ESTILOS
-from apps.clasificacion.cliente_ml import clasificar
+from apps.clasificacion.cliente_ml import clasificar, ServicioMLNoDisponible
+from apps.clasificacion.forms import ImagenReferenciaForm
 from apps.clasificacion.views import _miniatura_data_uri
 from .forms import CotizacionForm
-from .limites import admitir_cotizacion
+from .limites import admitir_cotizacion, admitir_analisis
 from .recepcion import recibir_una_vez, TatuadoraNoDisponible
 
 log = logging.getLogger("mtflow.seguridad")
+
+
+@transaction.non_atomic_requests
+@never_cache
+@require_http_methods(["POST"])
+def analizar_referencia(request):
+    """Vista previa pública: solo procesa la imagen y no guarda propuestas."""
+    if not admitir_analisis(request):
+        respuesta = JsonResponse({"error": "Has analizado varias imágenes. Espera unos minutos antes de volver a intentarlo."}, status=429)
+        respuesta["Retry-After"] = str(settings.ANALISIS_VENTANA_SEGUNDOS)
+        return respuesta
+    if request.POST.get("analizar") != "on":
+        return JsonResponse({"error": "Activa el análisis de estilo para analizar la referencia."}, status=400)
+    form = ImagenReferenciaForm(request.POST, request.FILES)
+    if not form.is_valid():
+        return JsonResponse({"error": " ".join(str(error) for errores in form.errors.values() for error in errores)}, status=400)
+    validada = form.validada
+    try:
+        resultado = clasificar(validada.archivo.read(), validada.archivo.name,
+                               "image/jpeg" if validada.formato == "JPEG" else "image/png")
+    except ServicioMLNoDisponible:
+        return JsonResponse({"error": "El análisis no está disponible en este momento. Puedes reintentarlo o enviar tu propuesta para revisión."}, status=503)
+    return JsonResponse({
+        "estilo_sugerido": resultado.estilo_sugerido,
+        "nombre": ESTILOS[resultado.estilo_sugerido],
+        "confianza_maxima": resultado.confianza_maxima,
+        "umbral_confianza": resultado.umbral_confianza,
+        "simulado": resultado.version_modelo.startswith("simulado"),
+        "estilos": [{"nombre": ESTILOS[codigo], "confianza": confianza}
+                    for codigo, confianza in resultado.ordenadas() if codigo != "E-99"],
+    })
 
 
 def portafolio(request):
