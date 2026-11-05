@@ -1,4 +1,4 @@
-"""EfficientNetB0 Keras v1: mismo preprocesamiento que el prototipo verificado."""
+"""Inferencia local con el preprocesamiento de cada bundle EfficientNetB0."""
 from __future__ import annotations
 
 import hashlib
@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import threading
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from .predictor import PredictorNoDisponible, _clave_nombre
 
@@ -18,6 +18,17 @@ CLASES_LOCALES = {
     "Lettering": "E-04", "Linea Fina": "E-05", "Ornamentos": "E-06",
     "Tribal-Neotribal": "E-07",
 }
+
+VERSIONES_KERAS = ("v1", "v2")
+REDIMENSIONADO_V2 = "Pillow bilinear con orientación EXIF aplicada"
+
+
+def ruta_pesos(directorio: Path, version: str) -> Path:
+    return directorio / f"MTFlow_EfficientNetB0_{version}.keras"
+
+
+def hay_pesos_keras(directorio: Path) -> bool:
+    return any(ruta_pesos(directorio, version).is_file() for version in VERSIONES_KERAS)
 
 
 def leer_bundle(directorio: Path):
@@ -32,10 +43,15 @@ def leer_bundle(directorio: Path):
     if (clases != cfg.get("class_ids") or len(codigos) != 7
             or set(codigos) != set(CLASES_LOCALES.values())):
         raise ValueError("El bundle debe contener exactamente los siete estilos y su orden de entrenamiento.")
+    version = cfg.get("model_version", "v1")
+    if version not in VERSIONES_KERAS:
+        raise ValueError("Versión de EfficientNetB0 no compatible.")
+    resize = REDIMENSIONADO_V2 if version == "v2" else "bilinear"
     if (cfg.get("architecture") != "EfficientNetB0" or cfg.get("image_size") != [224, 224]
-            or cfg.get("input_range") != [0, 255] or cfg.get("resize") != "bilinear"):
+            or cfg.get("input_range") != [0, 255] or cfg.get("resize") != resize
+            or cfg.get("color_mode", "rgb") != "rgb"):
         raise ValueError("Preprocesamiento incompatible: se requiere EfficientNetB0, RGB 224x224, bilinear y rango 0..255.")
-    ruta = directorio / "MTFlow_EfficientNetB0_v1.keras"
+    ruta = ruta_pesos(directorio, version)
     with ruta.open("rb") as archivo:
         digest = hashlib.file_digest(archivo, "sha256").hexdigest()
     if digest != (directorio / "model_sha256.txt").read_text(encoding="utf-8-sig").strip().lower():
@@ -64,11 +80,20 @@ class PredictorEfficientNetKeras:
         self.modelo = tf.keras.models.load_model(ruta, compile=False, safe_mode=True)
         if tuple(self.modelo.input_shape[1:]) != (224, 224, 3) or self.modelo.output_shape[-1] != 7:
             raise ValueError("El modelo no tiene la entrada RGB 224x224 y las siete salidas esperadas.")
-        self.version = f"efficientnet_b0:v1:{digest}"
+        self._version_bundle = ruta.stem.rsplit("_", 1)[-1]
+        self.version = f"efficientnet_b0:{self._version_bundle}:{digest}"
         self._lock = threading.Lock()
 
     def preparar_bytes(self, datos: bytes):
         tf = self.tf
+        if self._version_bundle == "v2":
+            import numpy as np
+
+            with Image.open(io.BytesIO(datos)) as imagen:
+                rgb = ImageOps.exif_transpose(imagen).convert("RGB")
+                pixels = np.asarray(rgb.resize((224, 224), Image.Resampling.BILINEAR))
+            return tf.convert_to_tensor(pixels[None, ...])
+
         with Image.open(io.BytesIO(datos)) as imagen:
             orientacion = imagen.getexif().get(274, 1)
         # Decodificación TensorFlow igual a la utilizada en entrenamiento y en el

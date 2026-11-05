@@ -222,9 +222,11 @@ class PredictorEfficientNet:
 def cargar_predictor():
     modo = "simulado" if config.FORZAR_STUB else config.MODO_PREDICTOR
     if modo == "auto":
+        from .modelo_local import hay_pesos_keras
+
         if config.ROBOFLOW_API_KEY:
             modo = "roboflow_workflow"
-        elif (config.MTFLOW_MODEL_DIR / "MTFlow_EfficientNetB0_v1.keras").is_file():
+        elif hay_pesos_keras(config.MTFLOW_MODEL_DIR):
             modo = "local"
         elif Path(config.MODELO_RUTA).is_file():
             modo = "local_pytorch"

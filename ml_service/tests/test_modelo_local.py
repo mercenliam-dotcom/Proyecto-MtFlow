@@ -7,7 +7,7 @@ import pytest
 
 from app import config
 from app.decision import CODIGOS, construir_respuesta
-from app.modelo_local import CLASES_LOCALES, leer_bundle, validar_puntuaciones
+from app.modelo_local import CLASES_LOCALES, REDIMENSIONADO_V2, leer_bundle, validar_puntuaciones
 from app.predictor import PredictorNoDisponible
 
 
@@ -34,14 +34,16 @@ def test_respuestas_invalidas_no_se_disfrazan_de_fuera_catalogo(malo):
         construir_respuesta("x", malo)
 
 
-def bundle(tmp_path):
+def bundle(tmp_path, version="v1"):
     clases = list(CLASES_LOCALES)
     cfg = dict(architecture="EfficientNetB0", class_ids=clases,
                image_size=[224, 224], input_range=[0, 255], resize="bilinear")
+    if version == "v2":
+        cfg.update(model_version=version, resize=REDIMENSIONADO_V2, color_mode="rgb")
     (tmp_path / "class_names.json").write_text(json.dumps(clases))
     (tmp_path / "training_config.json").write_text(json.dumps(cfg))
     datos = b"pesos ficticios: las pruebas de contrato no ejecutan Keras"
-    (tmp_path / "MTFlow_EfficientNetB0_v1.keras").write_bytes(datos)
+    (tmp_path / f"MTFlow_EfficientNetB0_{version}.keras").write_bytes(datos)
     (tmp_path / "model_sha256.txt").write_text(hashlib.sha256(datos).hexdigest())
     return cfg
 
@@ -65,13 +67,23 @@ def test_clase_extra_y_orden_inconsistente_se_rechazan(tmp_path):
         leer_bundle(tmp_path)
 
 
-def test_orden_exportado_se_traduce_por_nombre_no_por_posicion(tmp_path):
-    cfg = bundle(tmp_path)
+@pytest.mark.parametrize("version", ["v1", "v2"])
+def test_orden_exportado_se_traduce_por_nombre_no_por_posicion(tmp_path, version):
+    cfg = bundle(tmp_path, version)
     cfg["class_ids"] = cfg["class_ids"][::-1]
     (tmp_path / "class_names.json").write_text(json.dumps(cfg["class_ids"]))
     (tmp_path / "training_config.json").write_text(json.dumps(cfg))
-    _, codigos, _ = leer_bundle(tmp_path)
+    ruta, codigos, _ = leer_bundle(tmp_path)
+    assert ruta.name == f"MTFlow_EfficientNetB0_{version}.keras"
     assert codigos == list(CODIGOS)[::-1]
+
+
+def test_bundle_v2_rechaza_el_redimensionado_v1(tmp_path):
+    cfg = bundle(tmp_path, "v2")
+    cfg["resize"] = "bilinear"
+    (tmp_path / "training_config.json").write_text(json.dumps(cfg))
+    with pytest.raises(ValueError, match="Preprocesamiento incompatible"):
+        leer_bundle(tmp_path)
 
 
 @pytest.mark.parametrize("valores", [[.9] * 7, [float("nan")] * 7, [-.1] + [.2] * 6, [1.]])
