@@ -23,6 +23,14 @@ def test_salud():
     assert cliente.get("/salud").json()["estado"] == "ok"
 
 
+def test_limite_diez_mb_en_servicio():
+    limite = 10 * 1024 * 1024
+    png = _png()
+    datos = png + b"\0" * (limite - len(png))
+    assert cliente.post("/clasificar", files={"imagen": ("limite.png", datos, "image/png")}, headers=CABECERA).status_code == 200
+    assert cliente.post("/clasificar", files={"imagen": ("exceso.png", datos + b"\0", "image/png")}, headers=CABECERA).status_code == 413
+
+
 def test_sin_clave_rechaza():
     r = cliente.post("/clasificar", files={"imagen": ("a.png", _png(), "image/png")})
     assert r.status_code == 401

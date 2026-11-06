@@ -19,7 +19,7 @@ _cargar_env(BASE_DIR / ".env")
 
 # Clave que Django debe enviar en X-API-Key (la misma de config/.env)
 API_KEY = os.environ.get("ML_SERVICE_API_KEY", "")
-MAX_BYTES = int(os.environ.get("ML_MAX_BYTES", str(5 * 1024 * 1024)))
+MAX_BYTES = int(os.environ.get("ML_MAX_BYTES", str(10 * 1024 * 1024)))
 MAX_PIXELES = 40_000_000
 
 # ---------------------------------------------------------------------------

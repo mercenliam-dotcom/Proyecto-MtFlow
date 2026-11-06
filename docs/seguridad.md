@@ -42,7 +42,7 @@ SSL es el nombre antiguo; el protocolo vigente es TLS 1.2/1.3. En el informe con
 | Archivo políglota / código oculto | La imagen se re-codifica desde los píxeles; el original se descarta | `imagenes.py` | `test_elimina_contenido_politoglota` |
 | Fuga de ubicación del cliente | Se eliminan todos los metadatos EXIF (incluido GPS) | `imagenes.py` | `test_elimina_metadatos_exif` |
 | Path traversal | Nombre de archivo reemplazado por UUID; vista de archivos no sale de `MEDIA_ROOT` | `imagenes.py`, `nucleo/views.py` | `test_nombre_guardado_es_aleatorio`, `test_no_sale_de_media_aunque_este_firmado` |
-| Exceso de archivos o tamaño | 5 MB por imagen, máx. 3 archivos por petición | `settings.py` | `test_demasiado_pesada`, `test_mas_de_tres_archivos_rechazado` |
+| Exceso de archivos o tamaño | 10 MB por imagen, máx. 3 archivos por petición | `settings.py` | `test_demasiado_pesada`, `test_mas_de_tres_archivos_rechazado` |
 | Servicio ML expuesto | Clave compartida `X-API-Key` (comparación en tiempo constante); sin `/docs` públicos; re-valida la imagen | `ml_service/app/main.py` | `test_sin_clave_rechaza`, `test_sin_documentacion_publica` |
 | Respuesta ML manipulada | Validación estricta del JSON (clases, rango, suma positiva y ≤ 1,01); sin seguir redirecciones | `cliente_ml.py` | `ValidacionRespuesta` |
 | Fuga de detalles en errores | Páginas 400/403/404/500 propias; `DEBUG=0` en producción | `nucleo/errores.py` | `test_error_404_no_filtra_detalles` |

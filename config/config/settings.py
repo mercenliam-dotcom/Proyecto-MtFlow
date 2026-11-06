@@ -247,7 +247,7 @@ CONTENT_SECURITY_POLICY = (
 # ---------------------------------------------------------------------------
 # Subida de archivos
 # ---------------------------------------------------------------------------
-IMAGEN_MAX_BYTES = int(env("IMAGEN_MAX_BYTES", str(5 * 1024 * 1024)))   # 5 MB
+IMAGEN_MAX_BYTES = int(env("IMAGEN_MAX_BYTES", str(10 * 1024 * 1024)))   # 10 MB
 IMAGEN_LADO_MIN_PX = int(env("IMAGEN_LADO_MIN_PX", "224"))               # entrada de EfficientNet-B0
 IMAGEN_LADO_MAX_PX = int(env("IMAGEN_LADO_MAX_PX", "8000"))
 IMAGEN_MAX_PIXELES = int(env("IMAGEN_MAX_PIXELES", str(40_000_000)))     # anti "bomba de descompresión"

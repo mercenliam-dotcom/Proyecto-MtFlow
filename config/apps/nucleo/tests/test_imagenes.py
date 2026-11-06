@@ -14,6 +14,17 @@ from . import utilidades as u
 
 
 class ImagenesPermitidas(SimpleTestCase):
+    def test_admite_diez_mb_y_rechaza_un_byte_adicional(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        limite = 10 * 1024 * 1024
+        original = u.jpg_valido().read()
+        datos = original + b"\0" * (limite - len(original))
+        validada = validar_imagen(SimpleUploadedFile("limite.jpg", datos, content_type="image/jpeg"))
+        self.assertEqual(validada.formato, "JPEG")
+        self.assertLess(validada.archivo.size, limite)
+        with self.assertRaises(ValidationError):
+            validar_imagen(SimpleUploadedFile("exceso.jpg", datos + b"\0", content_type="image/jpeg"))
+
     def test_jpg_valido(self):
         r = validar_imagen(u.jpg_valido())
         self.assertEqual(r.formato, "JPEG")

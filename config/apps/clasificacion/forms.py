@@ -11,7 +11,7 @@ class ImagenReferenciaForm(forms.Form):
     """
     imagen = forms.FileField(
         label="Imagen de referencia",
-        help_text="Solo JPG o PNG, máximo 5 MB, al menos 224 píxeles por lado.",
+        help_text="Solo JPG o PNG, máximo 10 MB, al menos 224 píxeles por lado.",
         widget=forms.FileInput(attrs={"accept": TIPOS_ACEPTADOS_HTML}),
     )
 
