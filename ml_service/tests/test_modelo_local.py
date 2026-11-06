@@ -94,7 +94,6 @@ def test_vector_local_invalido(valores):
 
 def test_local_no_falla_silenciosamente_a_simulacion(monkeypatch, tmp_path):
     from app.predictor import cargar_predictor
-    monkeypatch.setattr(config, "FORZAR_STUB", False)
     monkeypatch.setattr(config, "MODO_PREDICTOR", "local")
     monkeypatch.setattr(config, "MTFLOW_MODEL_DIR", tmp_path)
     with pytest.raises(FileNotFoundError):

@@ -4,7 +4,7 @@ Rama de pruebas con EfficientNetB0 v2. El bundle del modelo viene incluido al cl
 Incluye recepción persistente, cuentas del equipo, bandejas privadas y clasificación
 inmediata mediante EfficientNetB0 local, con umbral del 60 % y respuesta JSON.
 Consulta el [estado de los módulos y los cambios de esta entrega](docs/estado-modulos.md).
-La agenda operativa y el despliegue público siguen pendientes.
+La agenda operativa está implementada; el despliegue público sigue pendiente.
 
 Sistema web para Maldita Ternura Estudio. Identifica el estilo de una imagen de referencia de tatuaje y **recomienda** (no decide) si la solicitud calza con el estudio.
 
@@ -29,14 +29,9 @@ Navegador ──► Django (8000) ──► FastAPI (8001) ──► EfficientNe
                  └── valida el JSON y guarda propuesta, imagen y predicción en BD
 ```
 
-La conexión Django→FastAPI utiliza una clave compartida. Roboflow queda como alternativa explícita:
-
-| Clave | Qué es | Dónde va |
-|---|---|---|
-| `ML_SERVICE_API_KEY` | Contraseña que inventan ustedes, para que FastAPI solo le responda a Django | Igual en `config/.env` y en `ml_service/.env` |
-| `ROBOFLOW_API_KEY` | Clave privada de la cuenta de Roboflow (Settings → API Keys) | Solo en `ml_service/.env` |
-
-El modo principal es `ML_PREDICTOR=local`: requiere el bundle Keras y no utiliza Roboflow. Si falta o no coincide su SHA-256, no se sustituye silenciosamente por resultados simulados. Para pruebas ficticias seleccionar `simulado` expresamente. Consulta [integración local y contrato JSON](docs/modelo-local-fastapi.md).
+La conexión Django→FastAPI utiliza `ML_SERVICE_API_KEY`, igual en ambos archivos `.env`.
+El único modelo operativo es EfficientNetB0 v2 local. No hay llamadas a proveedores externos ni simulación automática.
+Consulta [ejecución local](docs/efficientnet-local.md).
 
 ## Puesta en marcha (Windows, Git Bash)
 
@@ -73,7 +68,8 @@ python manage.py runserver          # http://127.0.0.1:8000
 Terminal 2, el servicio de inferencia, desde la raíz del repositorio:
 
 ```bash
-source .venv/Scripts/activate
+py -3.12 -m venv .venv-ml  # solo al crear el entorno por primera vez
+source .venv-ml/Scripts/activate
 cd ml_service
 python -m pip install -r requirements.txt -r requirements-modelo.txt
 cp .env.example .env    # usar la misma ML_SERVICE_API_KEY de config/.env
@@ -81,18 +77,6 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
 Abre http://127.0.0.1:8001/salud y comprueba que muestre `efficientnet_b0:v2:<SHA-256>` y `umbral_confianza: 0.6`. En Django, inicia sesión y sube un JPG o PNG en `/clasificacion/probar/`.
-
-### Probar la conexión real con Roboflow (smoke test)
-
-```bash
-cd ml_service
-pip install pytest httpx
-ROBOFLOW_SMOKE=1 python -m pytest tests/test_smoke_roboflow.py -s
-# con una foto propia:
-ROBOFLOW_SMOKE=1 ROBOFLOW_SMOKE_IMAGEN=ruta/foto.jpg python -m pytest tests/test_smoke_roboflow.py -s
-```
-
-Llama al workflow real (consume créditos de Roboflow) y comprueba que devuelve la salida `predictions` con clases conocidas. Las demás pruebas (`python -m pytest`) nunca salen a internet.
 
 En PowerShell: `.\.venv\Scripts\Activate.ps1` en vez de `source ...` y `copy` en vez de `cp`.
 
@@ -106,26 +90,9 @@ En PowerShell: `.\.venv\Scripts\Activate.ps1` en vez de `source ...` y `copy` en
 | `/clasificacion/probar/` | Equipo: subir imagen y ver el estilo sugerido |
 | `/cuentas/` | **Solo administradores**: crear, editar, desactivar cuentas |
 
-## Integración con Roboflow
+## Modelo local
 
-El cliente está en `ml_service/app/roboflow_workflow.py`. La función `clasificar_tatuaje(imagen, cfg)` hace esto:
-
-- `POST https://serverless.roboflow.com/martin-stgmar-gmail-com/workflows/tattoo-styles-vtattoo-styles-2-resnet18-t1-logic`
-- Envía la entrada `image` en base64. El workflow no declara parámetros, así que no se envía ninguno.
-- La API key va en `Authorization: Bearer`, leída de `ROBOFLOW_API_KEY`; nunca en la URL ni en el cuerpo.
-- Usa un timeout de 15 s y 2 reintentos con espera creciente cuando hay cortes de red, HTTP 429 o 5xx.
-- Ante cualquier falla lanza errores con tipo: `RoboflowAutenticacionError` (401/403), `RoboflowNoEncontradoError` (404), `RoboflowLimiteError` (429), `RoboflowNoDisponibleError` y `RoboflowRespuestaInvalidaError`.
-- Lee solo la salida `predictions` (clase y confianza). No hay salidas de imagen.
-
-El bloque del modelo usa un umbral de confianza de 0,4, y Roboflow **solo informa las clases que lo superan**. Así se comprobó con la API real: una respuesta trajo únicamente `{"Linea Fina": 0.4182}`. Por eso:
-- las confianzas suman menos de 1 y **no se re-escalan**, para no inflar el porcentaje; la web muestra "< 40 %" en los estilos no informados;
-- si ninguna clase supera 0,4, la lista llega vacía y se interpreta como **fuera de catálogo (E-99)** → "No recomendado". No es un error.
-
-Para tener las 7 confianzas completas, el workflow tendría que exponer el parámetro `confidence` (o fijarlo en 0) en Roboflow.
-
-`ML_PREDICTOR=local` es la configuración principal del ejemplo. Las alternativas son `roboflow_workflow`, `roboflow_modelo`, `local_pytorch`, `simulado` y `auto`. En `auto` se conserva la prioridad de una clave Roboflow; para asegurar inferencia local usar explícitamente `local`. El umbral de decisión del sistema es 60 % también al usar conectores alternativos; el 40 % descrito arriba corresponde exclusivamente a la salida del workflow histórico.
-
-El bundle incluido es `ml_service/modelos/efficientnet_b0_v2/MTFlow_EfficientNetB0_v2.keras`, acompañado por `training_config.json`, `class_names.json` y `model_sha256.txt`. Su salida contiene E-01…E-07; E-99 se asigna por abstención cuando la mayor confianza es menor a 0.60, sin inventar una octava probabilidad. Los pesos `.pt` del adaptador histórico requieren `ML_PREDICTOR=local_pytorch` y `requirements-pytorch.txt`; no son compatibles con este bundle.
+El bundle `ml_service/modelos/efficientnet_b0_v2/` contiene los pesos Keras, clases, configuración de entrenamiento y SHA-256. Se verifica antes de cargarlo. Produce siete probabilidades; E-99 indica que ninguna alcanza 60 %. Si falta el modelo, el servicio no arranca con resultados ficticios.
 
 ## Producción
 

@@ -2,3 +2,4 @@
 # Instalar además ml_service/requirements.txt en el entorno del servicio.
 tensorflow==2.21.0
 pillow>=11,<13
+keras==3.13.2

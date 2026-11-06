@@ -28,3 +28,5 @@ ml_training/data/
 .idea/
 .pytest_cache/
 mtflow-ml-workflow-2.bundle
+
+.venv-ml/

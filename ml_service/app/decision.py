@@ -8,14 +8,12 @@ CODIGOS = tuple(f"E-{i:02}" for i in range(1, 8))
 
 
 def construir_respuesta(version, confianzas):
-    if not isinstance(confianzas, dict) or not set(CODIGOS) <= set(confianzas):
+    if not isinstance(confianzas, dict) or set(confianzas) != set(CODIGOS):
         raise PredictorNoDisponible("Faltan probabilidades de los siete estilos.")
-    if not set(confianzas) <= set(CODIGOS) | {"E-99"}:
-        raise PredictorNoDisponible("Clase desconocida.")
     valores = list(confianzas.values())
     if (any(isinstance(p, bool) or not isinstance(p, (int, float))
             or not math.isfinite(p) or not 0 <= p <= 1 for p in valores)
-            or not 0 < sum(valores) <= 1.01):
+            or not math.isclose(sum(valores), 1.0, abs_tol=1e-4)):
         raise PredictorNoDisponible("Probabilidades inválidas.")
     ganador = max(CODIGOS, key=confianzas.get)
     maxima = confianzas[ganador]
