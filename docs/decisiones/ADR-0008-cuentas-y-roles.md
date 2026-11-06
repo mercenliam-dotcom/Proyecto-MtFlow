@@ -1,5 +1,7 @@
 # ADR-0008 — Cuentas y roles sin registro público
 
+> Decisión histórica parcialmente sustituida por el [portal de clientes del 6 de noviembre de 2026](../portal-clientes-2026-11-06.md), autorizado posteriormente. Se conserva la creación administrativa de cuentas del equipo y se añade registro público limitado al rol Cliente.
+
 **Estado:** aceptada · **Fecha:** 2026-11-02
 
 ## Contexto

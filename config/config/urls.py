@@ -6,6 +6,7 @@ admin.site.site_header = "MTFlow · administración interna"
 admin.site.site_title = "MTFlow"
 
 urlpatterns = [
+    path("mi-cuenta/", include("apps.cuentas.urls_cliente")),
     path(settings.DJANGO_ADMIN_URL, admin.site.urls),
     path("cuentas/", include("apps.cuentas.urls")),
     path("clasificacion/", include("apps.clasificacion.urls")),

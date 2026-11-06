@@ -16,6 +16,7 @@
 <div class="notice">
     <strong>Estimación en CLP.</strong> Los valores son referenciales y sujetos a validación por el estudio.
 </div>
+{% if user.es_cliente %}<p class="notice">Esta solicitud quedará vinculada a tu cuenta. Podrás seguirla en <a href="{% url 'clientes:inicio' %}">Mis solicitudes</a>.</p>{% elif not user.is_authenticated %}<p class="notice">Puedes enviar sin cuenta. Si quieres seguir tu solicitud en línea, <a href="{% url 'clientes:registro' %}">crea una cuenta</a> o <a href="{% url 'cuentas:login' %}?next=/cotizacion/">ingresa antes de completar el formulario</a>. Las solicitudes enviadas sin sesión no se vinculan automáticamente después.</p>{% endif %}
 
 {% if limite %}
 <div class="alerta alerta-error" role="alert">Has realizado varias consultas. Espera unos minutos antes de volver a intentarlo.</div>
@@ -26,6 +27,7 @@
     <strong>{% if repetida %}Esta propuesta ya fue recibida.{% else %}Propuesta recibida.{% endif %}</strong>
     <p>Referencia: {{ referencia }}. La tatuadora seleccionada revisará tu propuesta y podrá confirmarla o rechazarla. Esto no confirma una reserva ni un precio final.</p>
     <a href="{% url 'web:cotizacion' %}">Enviar otra propuesta</a>
+    {% if user.es_cliente %}<a href="{% url 'clientes:detalle' referencia %}">Ver mi solicitud</a>{% endif %}
 </div>
 {% endif %}
 

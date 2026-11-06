@@ -42,7 +42,7 @@ validado un despliegue público.
 
 | Módulo | Funcionalidad completada y verificada |
 |---|---|
-| Cuentas y acceso del equipo | Login/logout, roles Administrador/Usuario, creación, edición, desactivación y cambio/restablecimiento de contraseña. Sin registro público. Una cuenta puede administrar y ser tatuadora. |
+| Cuentas y acceso | Login/logout y cuentas del equipo Administrador/Usuario. Desde el 6 de noviembre se añade registro público exclusivo de Cliente, con portal propio y permisos separados; ver `portal-clientes-2026-11-06.md`. Una cuenta del equipo puede administrar y ser tatuadora. |
 | Función de tatuadora | Selector público conectado a cuentas y perfiles habilitados; conserva la destinataria elegida y permite consultar su historial. |
 | Clasificación ML local | Carga Keras, siete estilos, umbral del 60 %, abstención E-99, respuesta JSON y validación de Django. También existe una pantalla privada de prueba sin guardar solicitudes. |
 | Análisis previo público | Clasifica al seleccionar la imagen, sin exigir contacto u otros campos y sin escribir registros. Tiene CSRF, validación de imagen y un límite independiente de consultas. |

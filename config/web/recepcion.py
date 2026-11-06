@@ -21,6 +21,15 @@ class TatuadoraNoDisponible(Exception):
     """La profesional dejó de estar habilitada durante el envío."""
 
 
+class EnvioAjeno(Exception):
+    """El token ya fue utilizado desde otra cuenta o sin sesión."""
+
+
+def misma_cuenta(postulacion, cuenta_cliente):
+    if postulacion.cuenta_cliente_id != getattr(cuenta_cliente, "pk", None):
+        raise EnvioAjeno
+
+
 @dataclass
 class Recepcion:
     postulacion: Postulacion
@@ -29,9 +38,10 @@ class Recepcion:
     repetida: bool = False
 
 
-def recibir(datos, validada, referencia, clasificador):
+def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
     anterior = Postulacion.objects.filter(referencia=referencia).first()
     if anterior:
+        misma_cuenta(anterior, cuenta_cliente)
         return Recepcion(anterior, repetida=True)
 
     # La elección del cliente nunca se sustituye por otra profesional.
@@ -80,6 +90,7 @@ def recibir(datos, validada, referencia, clasificador):
             if tatuadora is None:
                 raise TatuadoraNoDisponible
             postulacion = Postulacion.objects.create(
+                cuenta_cliente=cuenta_cliente,
                 referencia=referencia, tatuadora=tatuadora,
                 zona_cuerpo=datos["zona"], alto_cm=alto, ancho_cm=ancho,
                 descripcion=datos["idea"], color=datos["color"], nivel_detalle=datos["detalle"], cobertura=datos["cobertura"],
@@ -123,12 +134,13 @@ def recibir(datos, validada, referencia, clasificador):
         raise
 
 
-def recibir_una_vez(datos, validada, referencia, clasificador):
+def recibir_una_vez(datos, validada, referencia, clasificador, cuenta_cliente=None):
     try:
-        return recibir(datos, validada, referencia, clasificador)
+        return recibir(datos, validada, referencia, clasificador, cuenta_cliente=cuenta_cliente)
     except IntegrityError:
         # Dos POST simultáneos con el mismo token: la restricción única decide.
         anterior = Postulacion.objects.filter(referencia=referencia).first()
         if anterior:
+            misma_cuenta(anterior, cuenta_cliente)
             return Recepcion(anterior, repetida=True)
         raise

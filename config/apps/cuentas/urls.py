@@ -4,7 +4,7 @@ from . import views
 
 app_name = "cuentas"
 
-# No existe ruta de registro público: las cuentas solo las crea un administrador.
+# El registro público de clientes está separado en /mi-cuenta/registro/.
 urlpatterns = [
     path("ingresar/", views.ingresar, name="login"),
     path("salir/", views.salir, name="logout"),

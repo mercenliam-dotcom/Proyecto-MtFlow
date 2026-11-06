@@ -39,6 +39,10 @@ def ingresar(request):
     if request.method == "POST" and form.is_valid():
         login(request, form.usuario)  # rota el id de sesión (anti session fixation)
         log.info("Inicio de sesión usuario=%s", form.usuario.nombre_usuario)
+        if form.usuario.es_cliente:
+            if not (destino.startswith("/mi-cuenta/") or destino == "/cotizacion/"):
+                destino = ""
+            return redirect(destino_seguro(request, destino, "clientes:inicio"))
         return redirect(destino_seguro(request, destino, "nucleo:inicio"))
     return render(request, "cuentas/login.html", {"form": form, "next": destino})
 

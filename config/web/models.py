@@ -73,6 +73,7 @@ class BloqueHorario(models.Model):
         return f"{self.fecha} {self.hora_inicio:%H:%M}–{self.hora_fin:%H:%M} · {self.get_tipo_display()}"
 
 class Postulacion(models.Model):
+    cuenta_cliente = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.RESTRICT, related_name="solicitudes_cliente")
     class DestinoAbono(models.TextChoices):
         PENDIENTE = "PENDIENTE", "Pendiente de acuerdo"
         REAGENDAR = "REAGENDAR", "Conservar para reagendar"

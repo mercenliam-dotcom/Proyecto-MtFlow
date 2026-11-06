@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block titulo %}Mi perfil{% endblock %}
+{% block contenido %}
+<h1>Mi perfil</h1><p class="bajada">Estos datos completarán tus próximas solicitudes. No modifican las que ya enviaste.</p>
+<form method="post" class="tarjeta">{% csrf_token %}{{ datos.non_field_errors }}{{ preferencias.non_field_errors }}{% for campo in datos %}{% include "_campo.html" %}{% endfor %}{% for campo in preferencias %}{% include "_campo.html" %}{% endfor %}<button class="boton" type="submit">Guardar mi perfil</button></form>
+{% endblock %}

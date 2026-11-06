@@ -4,19 +4,23 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.decorators.http import require_GET
 
 from .firmas import leer_ruta_firmada
+from apps.cuentas.permisos import rol_requerido
+from apps.cuentas.models import Rol
 
 
 @login_required
 @require_GET
 def inicio(request):
+    if request.user.es_cliente:
+        return redirect("clientes:inicio")
     return render(request, "nucleo/inicio.html")
 
 
-@login_required
+@rol_requerido(Rol.ADMIN, Rol.USUARIO)
 @require_GET
 def archivo(request, token):
     """Sirve un archivo privado solo si el token firmado es válido y no ha caducado."""

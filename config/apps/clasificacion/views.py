@@ -2,6 +2,8 @@ import base64
 import io
 
 from django.contrib.auth.decorators import login_required
+from apps.cuentas.models import Rol
+from apps.cuentas.permisos import rol_requerido
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from PIL import Image
@@ -20,7 +22,7 @@ def _miniatura_data_uri(contenido: bytes) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-@login_required
+@rol_requerido(Rol.ADMIN, Rol.USUARIO)
 @require_http_methods(["GET", "POST"])
 def probar(request):
     """

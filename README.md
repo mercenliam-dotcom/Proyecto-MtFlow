@@ -14,7 +14,7 @@ Sistema web para Maldita Ternura Estudio. Identifica el estilo de una imagen de 
 |---|---|
 | `config/` | Proyecto Django (aquí está `manage.py`) |
 | `config/web/` | Sitio **público**: portafolio, horarios, cotización |
-| `config/apps/cuentas/` | Cuentas del equipo con rol Administrador / Usuario. **Sin registro público** |
+| `config/apps/cuentas/` | Cuentas del equipo (Administrador / Usuario) y portal separado de clientes con registro público limitado |
 | `config/apps/nucleo/` | Seguridad común: validación de imágenes, enlaces firmados, cabeceras, errores |
 | `config/apps/clasificacion/` | Pantalla "Identificar estilo" que consulta al servicio de inferencia |
 | `ml_service/` | Servicio de inferencia (FastAPI). Programa aparte que recibe una imagen y devuelve el % de cada estilo |

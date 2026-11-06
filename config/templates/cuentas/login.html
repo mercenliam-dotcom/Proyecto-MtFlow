@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block titulo %}Ingresar{% endblock %}
+{% block nav_label %}ACCESO A MTFLOW{% endblock %}
+{% block area %}Acceso{% endblock %}
+{% block navigation %}<a class="nav-item" href="{% url 'cuentas:login' %}" aria-current="page">Ingresar</a><a class="nav-item" href="{% url 'clientes:registro' %}">Crear cuenta de cliente</a>{% endblock %}
 {% block contenido %}
 <section class="tarjeta angosta centrada">
   <h1>Ingresar</h1>
-  <p class="bajada">Acceso exclusivo para el equipo del estudio.</p>
+  <p class="bajada">Ingresa a tu cuenta. Cada persona accede a su propio espacio.</p>
   {% include "_errores_form.html" %}
   <form method="post" novalidate>
     {% csrf_token %}
@@ -11,6 +14,7 @@
     {% for campo in form %}{% include "_campo.html" %}{% endfor %}
     <button type="submit" class="boton ancho">Ingresar</button>
   </form>
-  <p class="nota">¿No tienes cuenta? Las cuentas las crea la administración del estudio.</p>
+  <p class="nota">¿Eres cliente y no tienes cuenta? <a href="{% url 'clientes:registro' %}">Crear mi cuenta</a>.</p>
+  <p class="nota">Las cuentas del equipo las crea la administración del estudio.</p>
 </section>
 {% endblock %}

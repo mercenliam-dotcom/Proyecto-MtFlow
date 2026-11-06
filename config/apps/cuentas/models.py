@@ -2,10 +2,9 @@
 Modelo de usuario de MTFlow.
 
 Decisiones (ADR-0008):
-  - No existe registro público. Las cuentas las crea un ADMINISTRADOR desde
-    el panel. El cliente del estudio no tiene cuenta (decisión #1 del modelo).
-  - Dos roles: ADMIN y USUARIO. El rol es un campo, no un grupo, porque el
-    sistema solo tiene dos y la regla debe ser evidente en la base de datos.
+  - El administrador crea las cuentas del equipo (ADMIN/USUARIO).
+  - El registro público solo crea CLIENTE, sin privilegios del equipo.
+    Las cuentas anteriores conservan su rol; no se reclasifican por correo.
   - Las cuentas normales se desactivan. La cuenta marcada de desarrollo es una
     excepción: se elimina al pasar a producción (ver arranque.py).
   - En las URLs nunca aparece el id numérico (adivinable: /cuentas/1, /2, /3...);
@@ -24,6 +23,7 @@ from .validadores import validar_nombre_persona, validar_nombre_usuario
 class Rol(models.TextChoices):
     ADMIN = "ADMIN", "Administrador"
     USUARIO = "USUARIO", "Usuario"
+    CLIENTE = "CLIENTE", "Cliente"
 
 
 class UsuarioManager(BaseUserManager):
@@ -95,6 +95,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = "usuarios"
         ordering = ["nombre", "apellido"]
         constraints = [
+            models.CheckConstraint(condition=~models.Q(rol="CLIENTE") | models.Q(es_tatuadora=False, is_superuser=False), name="cliente_sin_privilegios_equipo"),
             models.CheckConstraint(
                 condition=models.Q(rol__in=[r.value for r in Rol]),
                 name="usuario_rol_valido",
@@ -113,6 +114,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         return self.is_active and self.rol == Rol.ADMIN
 
     @property
+    def es_cliente(self) -> bool:
+        return self.is_active and self.rol == Rol.CLIENTE
+
+    @property
     def is_staff(self) -> bool:
         # Acceso al admin de Django solo para administradores.
         return self.es_admin
@@ -129,3 +134,12 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.nombre
+
+
+class PerfilCliente(models.Model):
+    """Preferencias actuales; el contacto de cada solicitud es una instantánea."""
+    usuario = models.OneToOneField(Usuario, primary_key=True, on_delete=models.CASCADE, related_name="perfil_cliente")
+    segundo_apellido = models.CharField(max_length=80, blank=True)
+    telefono = models.CharField(max_length=25, blank=True)
+    canal_preferido = models.CharField(max_length=12, default="correo", choices=[("correo", "Correo"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram"), ("tiktok", "TikTok")])
+    usuario_social = models.CharField(max_length=61, blank=True)

@@ -13,7 +13,7 @@ from apps.clasificacion.forms import ImagenReferenciaForm
 from apps.clasificacion.views import _miniatura_data_uri
 from .forms import CotizacionForm
 from .limites import admitir_cotizacion, admitir_analisis
-from .recepcion import recibir_una_vez, TatuadoraNoDisponible
+from .recepcion import recibir_una_vez, TatuadoraNoDisponible, EnvioAjeno
 
 log = logging.getLogger("mtflow.seguridad")
 
@@ -64,16 +64,26 @@ def horarios(request):
 def cotizacion(request):
     contexto = {}
     estado = 200
+    cuenta = request.user if request.user.is_authenticated and request.user.es_cliente else None
+    inicial = {}
+    if cuenta:
+        inicial = {"nombre": cuenta.nombre, "primer_apellido": cuenta.apellido, "email": cuenta.email}
+        perfil = getattr(cuenta, "perfil_cliente", None)
+        if perfil:
+            inicial.update({campo: getattr(perfil, campo) for campo in ("segundo_apellido", "telefono", "canal_preferido", "usuario_social")})
     if request.method == "POST" and not admitir_cotizacion(request):
         contexto["limite"] = True
         form = CotizacionForm()
         estado = 429
     else:
-        form = CotizacionForm(request.POST if request.method == "POST" else None, request.FILES or None)
+        form = CotizacionForm(request.POST if request.method == "POST" else None, request.FILES or None, initial=inicial)
         if request.method == "POST" and form.is_valid():
             datos = form.cleaned_data
             try:
-                recepcion = recibir_una_vez(datos, form.validada, datos["envio"], clasificar)
+                recepcion = recibir_una_vez(datos, form.validada, datos["envio"], clasificar, cuenta_cliente=cuenta)
+            except EnvioAjeno:
+                form.add_error(None, "Este formulario ya fue enviado desde otra sesión. Abre una nueva cotización para continuar.")
+                estado = 409
             except TatuadoraNoDisponible:
                 form.add_error("tatuadora", "La tatuadora seleccionada no está habilitada. Revisa las opciones antes de enviar.")
                 estado = 400
