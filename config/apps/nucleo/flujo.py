@@ -93,7 +93,7 @@ def aplicar(user, referencia, accion, datos):
 
 
 @transaction.non_atomic_requests
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_http_methods(["GET", "POST"])
 def editar(request, referencia, accion):

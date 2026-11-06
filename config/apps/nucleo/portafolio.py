@@ -46,7 +46,7 @@ class PortafolioForm(forms.ModelForm):
         return None
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
 def lista(request):
@@ -55,7 +55,7 @@ def lista(request):
 
 
 @transaction.non_atomic_requests
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_http_methods(["GET", "POST"])
 def editar(request, referencia=None):

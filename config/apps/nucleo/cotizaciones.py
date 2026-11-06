@@ -33,7 +33,7 @@ def precio_legible(propuesta):
     return "$" + f"{propuesta.precio_sugerido:,}".replace(",", ".") + " CLP"
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
 def lista(request):
@@ -94,7 +94,7 @@ def _lista(request, propuestas, es_equipo=False):
     }, status=status)
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
 def detalle(request, referencia):

@@ -20,7 +20,7 @@ def inicio(request):
     return render(request, "nucleo/inicio.html")
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @require_GET
 def archivo(request, token):
     """Sirve un archivo privado solo si el token firmado es válido y no ha caducado."""

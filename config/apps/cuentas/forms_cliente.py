@@ -22,7 +22,7 @@ class RegistroClienteForm(_NormalizarTextoMixin, _ContrasenaNuevaMixin, forms.Mo
     def save(self):
         usuario = super().save(commit=False)
         # Ningún atributo de permisos procede del formulario público.
-        usuario.rol = Rol.CLIENTE
+        usuario.rol = Rol.USUARIO
         usuario.es_tatuadora = usuario.is_superuser = usuario.es_admin_desarrollo = False
         usuario.is_active = True
         usuario.debe_cambiar_contrasena = False

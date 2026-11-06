@@ -15,10 +15,17 @@ from web.test_recepcion import profesional, propuesta
 
 
 def cliente(nombre="cliente1", **extra):
-    return Usuario.objects.create_user(nombre, f"{nombre}@example.test", "Clave2026PersonalSegura", nombre="María", apellido="Pérez", rol=Rol.CLIENTE, debe_cambiar_contrasena=False, **extra)
+    return Usuario.objects.create_user(nombre, f"{nombre}@example.test", "Clave2026PersonalSegura", nombre="María", apellido="Pérez", rol=Rol.USUARIO, debe_cambiar_contrasena=False, **extra)
 
 
 class PortalClientes(TestCase):
+    def test_solo_dos_roles_y_usuario_no_puede_ser_tatuadora(self):
+        from apps.cuentas.forms import CrearCuentaForm
+        self.assertEqual(set(Rol.values), {"ADMIN", "USUARIO"})
+        self.assertEqual(set(dict(CrearCuentaForm().fields["rol"].choices)) - {""}, {"ADMIN", "USUARIO"})
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Usuario.objects.filter(pk=self.u.pk).update(rol="CLIENTE")
+
     def setUp(self):
         cache.clear()
         self.a = profesional()
@@ -41,7 +48,7 @@ class PortalClientes(TestCase):
         r = c.post(reverse("clientes:registro"), datos)
         self.assertRedirects(r, reverse("clientes:inicio"))
         u = Usuario.objects.get(nombre_usuario="nuevo123")
-        self.assertEqual(u.rol, Rol.CLIENTE)
+        self.assertEqual(u.rol, Rol.USUARIO)
         self.assertFalse(any([u.es_tatuadora, u.is_superuser, u.is_staff, u.es_admin_desarrollo, u.debe_cambiar_contrasena]))
         self.assertTrue(u.check_password(datos["password1"]))
         self.assertTrue(PerfilCliente.objects.filter(usuario=u).exists())
@@ -172,7 +179,7 @@ class PortalClientes(TestCase):
         self.assertRedirects(self.client.post(reverse("clientes:perfil"), datos), reverse("clientes:perfil"))
         self.u.refresh_from_db()
         p.refresh_from_db()
-        self.assertEqual(self.u.rol, Rol.CLIENTE)
+        self.assertEqual(self.u.rol, Rol.USUARIO)
         self.assertFalse(self.u.es_tatuadora)
         self.assertEqual(p.contacto.nombres, "Nombre original")
         self.assertEqual(self.u.nombre, "Nombre nuevo")

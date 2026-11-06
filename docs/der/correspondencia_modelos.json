@@ -1,0 +1,333 @@
+[
+  {
+    "modelo": "cuentas.Usuario",
+    "tabla_der": "usuario",
+    "tabla_fisica": "usuario",
+    "columnas": [
+      "id",
+      "password",
+      "last_login",
+      "is_superuser",
+      "uuid",
+      "nombre_usuario",
+      "email",
+      "nombre",
+      "apellido",
+      "rol",
+      "es_tatuadora",
+      "is_active",
+      "es_admin_desarrollo",
+      "creado_en",
+      "creado_por_id",
+      "debe_cambiar_contrasena"
+    ],
+    "fk": [
+      "creado_por_id"
+    ]
+  },
+  {
+    "modelo": "cuentas.PerfilCliente",
+    "tabla_der": "perfil_cliente",
+    "tabla_fisica": "cuentas_perfilcliente",
+    "columnas": [
+      "usuario_id",
+      "segundo_apellido",
+      "telefono",
+      "canal_preferido",
+      "usuario_social"
+    ],
+    "fk": [
+      "usuario_id"
+    ]
+  },
+  {
+    "modelo": "web.Cliente",
+    "tabla_der": "cliente",
+    "tabla_fisica": "web_cliente",
+    "columnas": [
+      "id",
+      "rut",
+      "nombres",
+      "apellidos",
+      "correo",
+      "telefono",
+      "creado_en",
+      "actualizado_en"
+    ],
+    "fk": []
+  },
+  {
+    "modelo": "web.Tatuadora",
+    "tabla_der": "tatuadora",
+    "tabla_fisica": "web_tatuadora",
+    "columnas": [
+      "id",
+      "usuario_id",
+      "nombre_artistico",
+      "activa",
+      "creado_en"
+    ],
+    "fk": [
+      "usuario_id"
+    ]
+  },
+  {
+    "modelo": "web.BloqueHorario",
+    "tabla_der": "bloque_horario",
+    "tabla_fisica": "web_bloquehorario",
+    "columnas": [
+      "id",
+      "referencia",
+      "tipo",
+      "nota",
+      "actualizada_en",
+      "tatuadora_id",
+      "fecha",
+      "hora_inicio",
+      "hora_fin",
+      "estado"
+    ],
+    "fk": [
+      "tatuadora_id"
+    ]
+  },
+  {
+    "modelo": "web.Postulacion",
+    "tabla_der": "postulacion",
+    "tabla_fisica": "web_postulacion",
+    "columnas": [
+      "id",
+      "cuenta_cliente_id",
+      "fecha_propuesta",
+      "hora_propuesta",
+      "abono_solicitado",
+      "alto_final_cm",
+      "ancho_final_cm",
+      "destino_abono",
+      "abono_verificado_en",
+      "abono_verificado_por_id",
+      "referencia",
+      "estado_ml",
+      "cliente_id",
+      "tatuadora_id",
+      "zona_cuerpo",
+      "alto_cm",
+      "ancho_cm",
+      "presupuesto_estimado",
+      "descripcion",
+      "color",
+      "nivel_detalle",
+      "cobertura",
+      "ciclo_de_vida",
+      "estado",
+      "alerta_ml",
+      "motivo_rechazo",
+      "precio_sugerido",
+      "precio_final",
+      "monto_abono",
+      "creada_en",
+      "actualizada_en",
+      "realizada_en"
+    ],
+    "fk": [
+      "cuenta_cliente_id",
+      "abono_verificado_por_id",
+      "cliente_id",
+      "tatuadora_id"
+    ]
+  },
+  {
+    "modelo": "web.ContactoSolicitud",
+    "tabla_der": "contacto_solicitud",
+    "tabla_fisica": "web_contactosolicitud",
+    "columnas": [
+      "postulacion_id",
+      "nombres",
+      "primer_apellido",
+      "segundo_apellido",
+      "canal_preferido",
+      "usuario_social",
+      "correo",
+      "telefono"
+    ],
+    "fk": [
+      "postulacion_id"
+    ]
+  },
+  {
+    "modelo": "web.Sesion",
+    "tabla_der": "sesion",
+    "tabla_fisica": "web_sesion",
+    "columnas": [
+      "bloque_id",
+      "postulacion_id"
+    ],
+    "fk": [
+      "bloque_id",
+      "postulacion_id"
+    ]
+  },
+  {
+    "modelo": "web.Imagen",
+    "tabla_der": "imagen",
+    "tabla_fisica": "web_imagen",
+    "columnas": [
+      "id",
+      "postulacion_id",
+      "url",
+      "orden",
+      "es_principal",
+      "formato",
+      "ancho_px",
+      "alto_px",
+      "tamano_bytes",
+      "nitidez",
+      "cargada_en"
+    ],
+    "fk": [
+      "postulacion_id"
+    ]
+  },
+  {
+    "modelo": "web.Estilo",
+    "tabla_der": "estilo",
+    "tabla_fisica": "web_estilo",
+    "columnas": [
+      "id",
+      "codigo",
+      "nombre",
+      "descripcion",
+      "es_catalogo"
+    ],
+    "fk": []
+  },
+  {
+    "modelo": "web.Prediccion",
+    "tabla_der": "prediccion",
+    "tabla_fisica": "web_prediccion",
+    "columnas": [
+      "id",
+      "imagen_id",
+      "version_modelo",
+      "estilo_sugerido_id",
+      "confianza_maxima",
+      "umbral_confianza",
+      "tiempo_inferencia_ms",
+      "generada_en"
+    ],
+    "fk": [
+      "imagen_id",
+      "estilo_sugerido_id"
+    ]
+  },
+  {
+    "modelo": "web.ConfianzaEstilo",
+    "tabla_der": "confianza_estilo",
+    "tabla_fisica": "web_confianzaestilo",
+    "columnas": [
+      "id",
+      "prediccion_id",
+      "estilo_id",
+      "confianza"
+    ],
+    "fk": [
+      "prediccion_id",
+      "estilo_id"
+    ]
+  },
+  {
+    "modelo": "web.EtiquetaConsolidada",
+    "tabla_der": "etiqueta_consolidada",
+    "tabla_fisica": "web_etiquetaconsolidada",
+    "columnas": [
+      "id",
+      "imagen_id",
+      "estilo_id",
+      "tatuadora_id",
+      "fue_corregida",
+      "apta_entrenamiento",
+      "confirmada_en"
+    ],
+    "fk": [
+      "imagen_id",
+      "estilo_id",
+      "tatuadora_id"
+    ]
+  },
+  {
+    "modelo": "web.TatuadoraEstilo",
+    "tabla_der": "tatuadora_estilo",
+    "tabla_fisica": "web_tatuadoraestilo",
+    "columnas": [
+      "id",
+      "tatuadora_id",
+      "estilo_id",
+      "dominio"
+    ],
+    "fk": [
+      "tatuadora_id",
+      "estilo_id"
+    ]
+  },
+  {
+    "modelo": "web.TrabajoPortafolio",
+    "tabla_der": "trabajo_portafolio",
+    "tabla_fisica": "web_trabajoportafolio",
+    "columnas": [
+      "id",
+      "tatuadora_id",
+      "estilo_id",
+      "referencia",
+      "postulacion_id",
+      "visible",
+      "en_carrusel",
+      "autorizacion_publicacion",
+      "tipo",
+      "actualizada_en",
+      "titulo",
+      "url",
+      "publicado_en",
+      "apto_entrenamiento"
+    ],
+    "fk": [
+      "tatuadora_id",
+      "estilo_id",
+      "postulacion_id"
+    ]
+  },
+  {
+    "modelo": "web.MovimientoCobro",
+    "tabla_der": "movimiento_cobro",
+    "tabla_fisica": "web_movimientocobro",
+    "columnas": [
+      "id",
+      "postulacion_id",
+      "tipo",
+      "monto",
+      "detalle",
+      "verificado_por_id",
+      "creado_en"
+    ],
+    "fk": [
+      "postulacion_id",
+      "verificado_por_id"
+    ]
+  },
+  {
+    "modelo": "web.EventoSolicitud",
+    "tabla_der": "evento_solicitud",
+    "tabla_fisica": "web_eventosolicitud",
+    "columnas": [
+      "id",
+      "postulacion_id",
+      "actor_id",
+      "tipo",
+      "detalle",
+      "creado_en"
+    ],
+    "fk": [
+      "postulacion_id",
+      "actor_id"
+    ]
+  }
+]

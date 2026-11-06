@@ -17,7 +17,7 @@ from .models import ContactoSolicitud, Cliente, ConfianzaEstilo, Imagen, Postula
 
 
 def profesional(nombre="artista1"):
-    user = Usuario.objects.create_user(nombre, f"{nombre}@example.com", "Tinta2026segura", nombre="Ana", apellido="Rojas", debe_cambiar_contrasena=False, es_tatuadora=True)
+    user = Usuario.objects.create_user(nombre, f"{nombre}@example.com", "Tinta2026segura", nombre="Ana", apellido="Rojas", debe_cambiar_contrasena=False, es_tatuadora=True, rol="ADMIN")
     return Tatuadora.objects.get(usuario=user)
 
 
@@ -218,7 +218,9 @@ class RecepcionPersistente(TestCase):
         r.close()
         otra = profesional("artista2")
         self.client.force_login(otra.usuario)
-        self.assertEqual(self.client.get(url).status_code, 404)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)  # La tatuadora también es administradora.
+        r.close()
         admin = Usuario.objects.create_superuser("admin01", "admin@example.com", "Tinta2026segura", nombre="Admin", apellido="Local")
         self.client.force_login(admin)
         r = self.client.get(url)

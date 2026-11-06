@@ -98,8 +98,8 @@ class SelectorTatuadoras(TestCase):
         self.client.force_login(user)
         self.assertContains(self.client.get(reverse("nucleo:cotizaciones")), str(Postulacion.objects.get().referencia))
 
-    def test_ser_tatuadora_no_concede_administracion(self):
+    def test_tatuadora_tiene_rol_administradora(self):
         self.assertTrue(self.artista.usuario.es_tatuadora)
-        self.assertFalse(self.artista.usuario.es_admin)
+        self.assertTrue(self.artista.usuario.es_admin)
         self.client.force_login(self.artista.usuario)
-        self.assertEqual(self.client.get(reverse("cuentas:lista")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("cuentas:lista")).status_code, 200)

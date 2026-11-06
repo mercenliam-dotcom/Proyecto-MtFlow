@@ -23,7 +23,7 @@ def profesional(request):
     return get_object_or_404(Tatuadora, usuario=request.user, activa=True)
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
 def inicio(request):
@@ -32,7 +32,7 @@ def inicio(request):
     return render(request, "agenda/inicio.html", {"bloques": bloques, "hoy": timezone.localdate().isoformat()})
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
 def eventos(request):
@@ -54,7 +54,7 @@ def eventos(request):
 
 
 @transaction.non_atomic_requests
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_http_methods(["GET", "POST"])
 def editar(request, referencia=None):
@@ -92,7 +92,7 @@ def editar(request, referencia=None):
 
 
 @transaction.non_atomic_requests
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_POST
 def cerrar(request, referencia):
@@ -109,7 +109,7 @@ def cerrar(request, referencia):
 
 
 @transaction.non_atomic_requests
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_POST
 def gestion(request, referencia):

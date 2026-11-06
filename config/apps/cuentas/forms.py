@@ -100,7 +100,7 @@ class CrearCuentaForm(_NormalizarTextoMixin, _ContrasenaNuevaMixin, forms.ModelF
         fields = ["nombre_usuario", "nombre", "apellido", "email", "rol", "es_tatuadora"]
         help_texts = {
             "nombre_usuario": "Entre 4 y 30 caracteres: letras minúsculas sin tilde y números.",
-            "rol": "Usuario pertenece al equipo. Cliente solo accede a su perfil y solicitudes propias; no puede ser tatuadora.",
+            "rol": "Administradora gestiona el estudio. Usuario es el cliente y solo accede a su perfil y solicitudes propias.",
         }
 
     def clean(self):
@@ -127,7 +127,7 @@ class EditarCuentaForm(_NormalizarTextoMixin, forms.ModelForm):
     class Meta:
         model = Usuario
         fields = ["nombre", "apellido", "email", "rol", "es_tatuadora", "is_active"]
-        help_texts = {"rol": "Usuario pertenece al equipo. Cliente no puede tener habilitada la función de tatuadora."}
+        help_texts = {"rol": "Para habilitar la función de tatuadora debes seleccionar Administradora."}
 
     def __init__(self, *args, editor=None, **kwargs):
         self.editor = editor

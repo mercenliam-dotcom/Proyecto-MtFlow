@@ -2,9 +2,9 @@
 Modelo de usuario de MTFlow.
 
 Decisiones (ADR-0008):
-  - El administrador crea las cuentas del equipo (ADMIN/USUARIO).
-  - El registro público solo crea CLIENTE, sin privilegios del equipo.
-    Las cuentas anteriores conservan su rol; no se reclasifican por correo.
+  - Las tatuadoras tienen rol ADMIN. USUARIO representa exclusivamente al cliente.
+  - El registro público solo crea USUARIO, sin privilegios administrativos.
+    La migración conserva la identidad y relaciones de las cuentas anteriores.
   - Las cuentas normales se desactivan. La cuenta marcada de desarrollo es una
     excepción: se elimina al pasar a producción (ver arranque.py).
   - En las URLs nunca aparece el id numérico (adivinable: /cuentas/1, /2, /3...);
@@ -21,9 +21,8 @@ from .validadores import validar_nombre_persona, validar_nombre_usuario
 
 
 class Rol(models.TextChoices):
-    ADMIN = "ADMIN", "Administrador"
-    USUARIO = "USUARIO", "Usuario"
-    CLIENTE = "CLIENTE", "Cliente"
+    ADMIN = "ADMIN", "Administradora"
+    USUARIO = "USUARIO", "Usuario (cliente)"
 
 
 class UsuarioManager(BaseUserManager):
@@ -69,7 +68,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     rol = models.CharField(max_length=10, choices=Rol.choices, default=Rol.USUARIO)
     es_tatuadora = models.BooleanField(
         "Es tatuadora", default=False,
-        help_text="Puede recibir propuestas como tatuadora, independientemente de su rol de administración.",
+        help_text="Solo una administradora puede habilitarse como tatuadora y recibir propuestas.",
     )
     is_active = models.BooleanField("activa", default=True)
     es_admin_desarrollo = models.BooleanField(default=False, editable=False)
@@ -95,7 +94,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = "usuarios"
         ordering = ["nombre", "apellido"]
         constraints = [
-            models.CheckConstraint(condition=~models.Q(rol="CLIENTE") | models.Q(es_tatuadora=False, is_superuser=False), name="cliente_sin_privilegios_equipo"),
+            models.CheckConstraint(condition=~models.Q(rol="USUARIO") | models.Q(es_tatuadora=False, is_superuser=False), name="usuario_cliente_sin_privilegios"),
             models.CheckConstraint(
                 condition=models.Q(rol__in=[r.value for r in Rol]),
                 name="usuario_rol_valido",
@@ -115,7 +114,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     @property
     def es_cliente(self) -> bool:
-        return self.is_active and self.rol == Rol.CLIENTE
+        return self.is_active and self.rol == Rol.USUARIO
 
     @property
     def is_staff(self) -> bool:
@@ -124,6 +123,9 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def clean(self):
         super().clean()
+        if self.es_tatuadora and self.rol != Rol.ADMIN:
+            from django.core.exceptions import ValidationError
+            raise ValidationError({"rol": "Una tatuadora debe tener el rol Administradora."})
         if self.nombre_usuario:
             self.nombre_usuario = self.nombre_usuario.strip().lower()
         if self.email:

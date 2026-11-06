@@ -17,7 +17,7 @@ from .models import Rol, PerfilCliente
 from .permisos import rol_requerido
 from .forms_cliente import RegistroClienteForm, DatosClienteForm, ContactoClienteForm
 
-solo_cliente = rol_requerido(Rol.CLIENTE)
+solo_cliente = rol_requerido(Rol.USUARIO)
 
 
 @sensitive_post_parameters("password1", "password2")

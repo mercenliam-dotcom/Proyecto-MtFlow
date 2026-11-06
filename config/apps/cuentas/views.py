@@ -63,7 +63,7 @@ def mi_contrasena(request):
         usuario = form.save()
         update_session_auth_hash(request, usuario)  # cierra las otras sesiones abiertas
         messages.success(request, "Tu contraseña se actualizó.")
-        return redirect("nucleo:inicio")
+        return redirect("clientes:inicio" if usuario.es_cliente else "nucleo:inicio")
     return render(request, "cuentas/mi_contrasena.html", {"form": form})
 
 

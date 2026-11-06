@@ -81,7 +81,7 @@ class ValidacionRespuesta(SimpleTestCase):
 class VistaProbar(TestCase):
     def setUp(self):
         self.user = Usuario.objects.create_user("tatuadora1", "t@e.cl", "Tinta2026segura",
-                                                nombre="Ana", apellido="Rojas", rol=Rol.USUARIO)
+                                                nombre="Ana", apellido="Rojas", rol=Rol.ADMIN)
         self.user.debe_cambiar_contrasena = False
         self.user.save()
         self.client.force_login(self.user)

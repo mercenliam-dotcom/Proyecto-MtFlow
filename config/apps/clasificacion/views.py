@@ -22,7 +22,7 @@ def _miniatura_data_uri(contenido: bytes) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @require_http_methods(["GET", "POST"])
 def probar(request):
     """

@@ -13,7 +13,7 @@ from . import utilidades as u
 
 def usuario():
     x = Usuario.objects.create_user("tatuadora1", "t@e.cl", "Tinta2026segura",
-                                    nombre="Ana", apellido="Rojas", rol=Rol.USUARIO, es_tatuadora=True)
+                                    nombre="Ana", apellido="Rojas", rol=Rol.ADMIN, es_tatuadora=True)
     x.debe_cambiar_contrasena = False
     x.save()
     return x

@@ -1,0 +1,336 @@
+// MTFlow: DER vigente. Referencia: DER del informe, imagen14.jpg.
+// Esquema de negocio, no script de migración. Tipos PostgreSQL para el destino final; hoy se ejecuta en SQLite.
+// Omite tablas técnicas Django (sesiones web, permisos, grupos, migraciones y admin log).
+// Las reglas de on_delete se ejecutan mediante Django; triggers/exclusiones no se exportan como SQL aquí.
+Project MTFlow {
+  database_type: 'PostgreSQL'
+  Note: 'Dos roles: ADMIN (administradora) y USUARIO (cliente). Campos, PK, nulabilidad y FK derivados de los modelos vigentes. No incluye datos personales.'
+}
+
+Table usuario {
+  Note: 'Cuenta de acceso. ADMIN: administradora; USUARIO: cliente. Una tatuadora debe ser ADMIN. Password contiene hash, nunca texto plano. is_staff es calculado y no es una columna. Tabla física Django: usuario.'
+  id bigint [pk, not null, increment]
+  password varchar(128) [not null]
+  last_login timestamptz [null]
+  is_superuser boolean [not null, note: 'Valor inicial en Django: False']
+  uuid uuid [not null, unique, note: 'Valor inicial en Django: generado por aplicación']
+  nombre_usuario varchar(30) [not null, unique]
+  email varchar(254) [not null, unique]
+  nombre varchar(60) [not null]
+  apellido varchar(60) [not null]
+  rol varchar(10) [not null, note: 'Valores de aplicación: ADMIN, USUARIO; Valor inicial en Django: USUARIO']
+  es_tatuadora boolean [not null, note: 'Valor inicial en Django: False']
+  is_active boolean [not null, note: 'Valor inicial en Django: True']
+  es_admin_desarrollo boolean [not null, note: 'Valor inicial en Django: False']
+  creado_en timestamptz [not null, note: 'Valor inicial en Django: generado por aplicación']
+  creado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
+  debe_cambiar_contrasena boolean [not null, note: 'Valor inicial en Django: True']
+  checks {
+    `rol IN ('ADMIN','USUARIO')` [name: 'usuario_rol_valido']
+    `rol <> 'USUARIO' OR (NOT es_tatuadora AND NOT is_superuser)` [name: 'usuario_cliente_sin_privilegios']
+    `nombre_usuario ~ '^[a-z0-9]{4,30}$'` [name: 'usuario_nombre_usuario_formato']
+  }
+}
+
+Table perfil_cliente {
+  Note: 'Preferencias actuales del usuario cliente. Nombre, primer apellido y correo están en usuario; no se duplican aquí. Tabla física Django: cuentas_perfilcliente.'
+  usuario_id bigint [pk, not null, note: 'Al eliminar referente: CASCADE en Django']
+  segundo_apellido varchar(80) [not null]
+  telefono varchar(25) [not null]
+  canal_preferido varchar(12) [not null, note: 'Valores de aplicación: correo, whatsapp, instagram, tiktok; Valor inicial en Django: correo']
+  usuario_social varchar(61) [not null]
+}
+
+Table cliente {
+  Note: 'Entidad heredada de identidad opcional. No equivale a una cuenta de acceso. No se fusiona por coincidencia de correo. Se conserva sin borrar registros históricos. Tabla física Django: web_cliente.'
+  id bigint [pk, not null, increment]
+  rut varchar(12) [null, unique]
+  nombres varchar(80) [not null]
+  apellidos varchar(160) [not null]
+  correo varchar(254) [null]
+  telefono varchar(25) [null]
+  creado_en timestamptz [not null, note: 'Fecha asignada por Django']
+  actualizado_en timestamptz [not null, note: 'Fecha asignada por Django']
+}
+
+Table tatuadora {
+  Note: 'Perfil profesional asociado 1 a 1 a una administradora. El nombre y correo actuales proceden de usuario. Nombre artístico opcional independiente. Tabla física Django: web_tatuadora.'
+  id bigint [pk, not null, increment]
+  usuario_id bigint [not null, unique, note: 'Al eliminar referente: CASCADE en Django']
+  nombre_artistico varchar(120) [null]
+  activa boolean [not null, note: 'Valor inicial en Django: True']
+  creado_en timestamptz [not null, note: 'Fecha asignada por Django']
+}
+
+Table bloque_horario {
+  Note: 'Intervalo de una profesional: disponibilidad, cita o bloqueo personal. Se prohíben solapamientos de ocupación y de disponibilidad mediante triggers SQLite o exclusiones PostgreSQL. NO_ASISTIO conserva ocupación histórica. Tabla física Django: web_bloquehorario.'
+  id bigint [pk, not null, increment]
+  referencia uuid [not null, unique, note: 'Valor inicial en Django: generado por aplicación']
+  tipo varchar(15) [not null, note: 'Valores de aplicación: DISPONIBILIDAD, CITA, BLOQUEO; Valor inicial en Django: DISPONIBILIDAD']
+  nota varchar(300) [not null]
+  actualizada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  fecha date [not null]
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  estado varchar(15) [not null]
+  indexes {
+    (tatuadora_id, fecha, estado) [name: 'agenda_busqueda']
+  }
+  checks {
+    `hora_inicio < hora_fin` [name: 'bloque_intervalo_positivo']
+    `(tipo = 'DISPONIBILIDAD' AND estado IN ('DISPONIBLE','CANCELADA')) OR (tipo = 'CITA' AND estado IN ('RESERVADA','REALIZADA','CANCELADA','NO_ASISTIO')) OR (tipo = 'BLOQUEO' AND estado IN ('BLOQUEADO','CANCELADA'))` [name: 'bloque_tipo_estado_valido']
+  }
+}
+
+Table postulacion {
+  Note: 'Solicitud única: las bandejas son filtros, no tablas duplicadas. cuenta_cliente_id es opcional: envíos sin cuenta permanecen sin propietario de portal. Área, categoría de tamaño, cobro neto, saldo y estado comercial mostrado se calculan; no son columnas. Tabla física Django: web_postulacion.'
+  id bigint [pk, not null, increment]
+  cuenta_cliente_id bigint [null, note: 'Al eliminar referente: RESTRICT en Django']
+  fecha_propuesta date [null]
+  hora_propuesta time [null]
+  abono_solicitado integer [null]
+  alto_final_cm numeric(5,2) [null]
+  ancho_final_cm numeric(5,2) [null]
+  destino_abono varchar(15) [not null, note: 'Valores de aplicación: PENDIENTE, REAGENDAR, RETENIDO, DEVOLVER; Valor inicial en Django: PENDIENTE']
+  abono_verificado_en timestamptz [null]
+  abono_verificado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
+  referencia uuid [not null, unique, note: 'Valor inicial en Django: generado por aplicación']
+  estado_ml varchar(20) [not null, note: 'Valores de aplicación: LEGADO, NO_SOLICITADO, COMPLETADO, NO_DISPONIBLE; Valor inicial en Django: LEGADO']
+  cliente_id bigint [null, note: 'Al eliminar referente: RESTRICT en Django']
+  tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  zona_cuerpo varchar(100) [not null]
+  alto_cm numeric(5,2) [not null]
+  ancho_cm numeric(5,2) [not null]
+  presupuesto_estimado integer [null]
+  descripcion text [not null]
+  color varchar(10) [null, note: 'Valores de aplicación: negro, color']
+  nivel_detalle varchar(10) [null, note: 'Valores de aplicación: normal, alto']
+  cobertura boolean [null]
+  ciclo_de_vida varchar(15) [null]
+  estado varchar(20) [not null]
+  alerta_ml varchar(20) [null]
+  motivo_rechazo text [null]
+  precio_sugerido integer [null]
+  precio_final integer [null]
+  monto_abono integer [null]
+  creada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  actualizada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  realizada_en timestamptz [null]
+  checks {
+    `alto_cm > 0 AND alto_cm <= 999.99 AND ancho_cm > 0 AND ancho_cm <= 999.99` [name: 'solicitud_medidas_validas']
+    `precio_final IS NULL OR (precio_final > 0 AND precio_final <= 100000000)` [name: 'solicitud_precio_valido']
+    `monto_abono IS NULL OR (monto_abono >= 0 AND monto_abono <= 100000000)` [name: 'solicitud_abono_valido']
+    `monto_abono IS NULL OR precio_final IS NULL OR monto_abono <= precio_final` [name: 'abono_no_supera_precio']
+    `abono_verificado_en IS NULL OR (monto_abono IS NOT NULL AND monto_abono > 0 AND precio_final IS NOT NULL)` [name: 'abono_verificado_coherente']
+    `color IS NULL OR color IN ('negro','color')` [name: 'solicitud_color_valido']
+    `nivel_detalle IS NULL OR nivel_detalle IN ('normal','alto')` [name: 'solicitud_detalle_valido']
+    `estado IN ('RECIBIDA','EN_REVISION','ACEPTADA','RESERVADA','REALIZADA','RECHAZADA')` [name: 'solicitud_estado_valido']
+    `abono_solicitado IS NULL OR (abono_solicitado > 0 AND abono_solicitado <= 100000000)` [name: 'abono_solicitado_valido']
+    `abono_solicitado IS NULL OR precio_final IS NULL OR abono_solicitado <= precio_final` [name: 'abono_solicitado_no_supera_total']
+    `(alto_final_cm IS NULL AND ancho_final_cm IS NULL) OR (alto_final_cm IS NOT NULL AND ancho_final_cm IS NOT NULL AND alto_final_cm > 0 AND ancho_final_cm > 0)` [name: 'medidas_finales_coherentes']
+    `(fecha_propuesta IS NULL AND hora_propuesta IS NULL) OR (fecha_propuesta IS NOT NULL AND hora_propuesta IS NOT NULL)` [name: 'preferencia_fecha_hora_completa']
+    `destino_abono IN ('PENDIENTE','REAGENDAR','RETENIDO','DEVOLVER')` [name: 'destino_abono_valido']
+  }
+}
+
+Table contacto_solicitud {
+  Note: 'Instantánea del contacto declarado al enviar. Editar el perfil no altera este registro. Una relación por solicitud. Los apellidos históricos se conservaron íntegros en primer_apellido. Tabla física Django: web_contactosolicitud.'
+  postulacion_id bigint [pk, not null, note: 'Al eliminar referente: RESTRICT en Django']
+  nombres varchar(80) [not null]
+  primer_apellido varchar(160) [not null]
+  segundo_apellido varchar(80) [not null]
+  canal_preferido varchar(12) [not null, note: 'Valores de aplicación: correo, whatsapp, instagram, tiktok; Valor inicial en Django: correo']
+  usuario_social varchar(80) [not null]
+  correo varchar(254) [null]
+  telefono varchar(25) [null]
+}
+
+Table sesion {
+  Note: 'Una solicitud admite varias sesiones. Cada fila vincula exactamente una cita de agenda con su solicitud. Bloque y solicitud deben pertenecer a la misma profesional. El estado y horario viven solo en bloque_horario. Tabla física Django: web_sesion.'
+  bloque_id bigint [pk, not null, note: 'Al eliminar referente: RESTRICT en Django']
+  postulacion_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+}
+
+Table imagen {
+  Note: 'Referencia privada. url es la clave/ruta de almacenamiento, no acceso público. Una principal como máximo por solicitud: índice único condicional WHERE es_principal. Imágenes JPG/PNG de hasta 10 MiB validadas por la aplicación. Tabla física Django: web_imagen.'
+  id bigint [pk, not null, increment]
+  postulacion_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  url text [not null, unique]
+  orden smallint [not null]
+  es_principal boolean [not null, note: 'Valor inicial en Django: False']
+  formato varchar(10) [not null]
+  ancho_px integer [not null]
+  alto_px integer [not null]
+  tamano_bytes integer [not null]
+  nitidez "double precision" [null]
+  cargada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  indexes {
+    (postulacion_id, orden) [unique]
+  }
+  checks {
+    `orden > 0 AND ancho_px > 0 AND alto_px > 0 AND tamano_bytes > 0` [name: 'imagen_metadata_positiva']
+  }
+}
+
+Table estilo {
+  Note: 'Catálogo de estilos; E-99 representa abstención o fuera de catálogo, no una clase entrenada adicional. Tabla física Django: web_estilo.'
+  id bigint [pk, not null, increment]
+  codigo varchar(10) [not null, unique]
+  nombre varchar(80) [not null]
+  descripcion text [null]
+  es_catalogo boolean [not null, note: 'Valor inicial en Django: True']
+}
+
+Table prediccion {
+  Note: 'Resultado automático conservado. La corrección profesional no sobrescribe la predicción. Confianza y umbral entre 0 y 1. Visible al equipo, no al cliente. Tabla física Django: web_prediccion.'
+  id bigint [pk, not null, increment]
+  imagen_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  version_modelo varchar(120) [not null]
+  estilo_sugerido_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  confianza_maxima numeric(17,16) [not null]
+  umbral_confianza numeric(3,2) [null]
+  tiempo_inferencia_ms integer [not null]
+  generada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  indexes {
+    (imagen_id, version_modelo) [unique]
+  }
+  checks {
+    `confianza_maxima >= 0 AND confianza_maxima <= 1 AND tiempo_inferencia_ms >= 0` [name: 'prediccion_valores_validos']
+    `umbral_confianza IS NULL OR (umbral_confianza >= 0 AND umbral_confianza <= 1)` [name: 'prediccion_umbral_valido']
+  }
+}
+
+Table confianza_estilo {
+  Note: 'Puntuación por estilo para una predicción. Cada pareja es única. Tabla física Django: web_confianzaestilo.'
+  id bigint [pk, not null, increment]
+  prediccion_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  estilo_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  confianza numeric(17,16) [not null]
+  indexes {
+    (prediccion_id, estilo_id) [unique]
+  }
+  checks {
+    `confianza >= 0 AND confianza <= 1` [name: 'confianza_estilo_valida']
+  }
+}
+
+Table etiqueta_consolidada {
+  Note: 'Última revisión humana de una imagen. Confirma o corrige estilo sin iniciar entrenamiento automático. El historial de revisión está en evento_solicitud. Tabla física Django: web_etiquetaconsolidada.'
+  id bigint [pk, not null, increment]
+  imagen_id bigint [not null, unique, note: 'Al eliminar referente: RESTRICT en Django']
+  estilo_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  fue_corregida boolean [not null]
+  apta_entrenamiento boolean [not null, note: 'Valor inicial en Django: False']
+  confirmada_en timestamptz [not null, note: 'Fecha asignada por Django']
+}
+
+Table tatuadora_estilo {
+  Note: 'Relación entre profesional y estilo. Se conserva la pareja única; Django utiliza además una PK id. Tabla física Django: web_tatuadoraestilo.'
+  id bigint [pk, not null, increment]
+  tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  estilo_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  dominio varchar(12) [not null]
+  indexes {
+    (tatuadora_id, estilo_id) [unique]
+  }
+}
+
+Table trabajo_portafolio {
+  Note: 'Fotografía final o del estudio, distinta de la referencia privada. Publicación y carrusel explícitos. Solicitud relacionada opcional y propia. Publicar exige autorización; una foto de tatuaje requiere estilo. Tabla física Django: web_trabajoportafolio.'
+  id bigint [pk, not null, increment]
+  tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  estilo_id bigint [null, note: 'Al eliminar referente: RESTRICT en Django']
+  referencia uuid [not null, unique, note: 'Valor inicial en Django: generado por aplicación']
+  postulacion_id bigint [null, note: 'Al eliminar referente: RESTRICT en Django']
+  visible boolean [not null, note: 'Valor inicial en Django: False']
+  en_carrusel boolean [not null, note: 'Valor inicial en Django: False']
+  autorizacion_publicacion boolean [not null, note: 'Valor inicial en Django: False']
+  tipo varchar(10) [not null, note: 'Valores de aplicación: TATUAJE, ESTUDIO; Valor inicial en Django: TATUAJE']
+  actualizada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  titulo varchar(120) [not null]
+  url text [not null]
+  publicado_en date [not null]
+  apto_entrenamiento boolean [not null, note: 'Valor inicial en Django: False']
+}
+
+Table movimiento_cobro {
+  Note: 'Pagos adicionales y devoluciones verificadas fuera del sistema. No repite el abono acumulado de postulacion. Neto = abono verificado + pagos - devoluciones. Sin pasarela de pago. Tabla física Django: web_movimientocobro.'
+  id bigint [pk, not null, increment]
+  postulacion_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  tipo varchar(10) [not null, note: 'Valores de aplicación: PAGO, DEVOLUCION']
+  monto integer [not null]
+  detalle varchar(300) [not null]
+  verificado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
+  creado_en timestamptz [not null, note: 'Fecha asignada por Django']
+  checks {
+    `monto > 0 AND monto <= 100000000` [name: 'cobro_monto_valido']
+    `tipo IN ('PAGO','DEVOLUCION')` [name: 'cobro_tipo_valido']
+  }
+}
+
+Table evento_solicitud {
+  Note: 'Historial interno de decisiones y operaciones, con actor y fecha. No se expone al cliente ni sustituye las columnas monetarias. Tabla física Django: web_eventosolicitud.'
+  id bigint [pk, not null, increment]
+  postulacion_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
+  actor_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
+  tipo varchar(40) [not null]
+  detalle varchar(500) [not null]
+  creado_en timestamptz [not null, note: 'Fecha asignada por Django']
+}
+
+Ref: usuario.creado_por_id > usuario.id
+Ref: usuario.id - perfil_cliente.usuario_id
+Ref: usuario.id - tatuadora.usuario_id
+Ref: bloque_horario.tatuadora_id > tatuadora.id
+Ref: postulacion.cuenta_cliente_id > usuario.id
+Ref: postulacion.abono_verificado_por_id > usuario.id
+Ref: postulacion.cliente_id > cliente.id
+Ref: postulacion.tatuadora_id > tatuadora.id
+Ref: postulacion.id - contacto_solicitud.postulacion_id
+Ref: bloque_horario.id - sesion.bloque_id
+Ref: sesion.postulacion_id > postulacion.id
+Ref: imagen.postulacion_id > postulacion.id
+Ref: prediccion.imagen_id > imagen.id
+Ref: prediccion.estilo_sugerido_id > estilo.id
+Ref: confianza_estilo.prediccion_id > prediccion.id
+Ref: confianza_estilo.estilo_id > estilo.id
+Ref: imagen.id - etiqueta_consolidada.imagen_id
+Ref: etiqueta_consolidada.estilo_id > estilo.id
+Ref: etiqueta_consolidada.tatuadora_id > tatuadora.id
+Ref: tatuadora_estilo.tatuadora_id > tatuadora.id
+Ref: tatuadora_estilo.estilo_id > estilo.id
+Ref: trabajo_portafolio.tatuadora_id > tatuadora.id
+Ref: trabajo_portafolio.estilo_id > estilo.id
+Ref: trabajo_portafolio.postulacion_id > postulacion.id
+Ref: movimiento_cobro.postulacion_id > postulacion.id
+Ref: movimiento_cobro.verificado_por_id > usuario.id
+Ref: evento_solicitud.postulacion_id > postulacion.id
+Ref: evento_solicitud.actor_id > usuario.id
+
+TableGroup Acceso_y_profesionales {
+  usuario
+  perfil_cliente
+  cliente
+  tatuadora
+  tatuadora_estilo
+}
+
+TableGroup Solicitudes_y_agenda {
+  postulacion
+  contacto_solicitud
+  sesion
+  bloque_horario
+  movimiento_cobro
+  evento_solicitud
+}
+
+TableGroup Imagenes_estilos_y_portafolio {
+  imagen
+  estilo
+  prediccion
+  confianza_estilo
+  etiqueta_consolidada
+  trabajo_portafolio
+}

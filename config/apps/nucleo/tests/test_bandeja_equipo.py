@@ -42,12 +42,12 @@ class BandejaEquipo(TestCase):
         self.assertContains(r, "Referencia del cliente")
         self.assertContains(r, 'href="' + self.url + '"')
 
-    def test_tatuadora_no_puede_usar_rutas_de_equipo(self):
+    def test_tatuadora_administradora_puede_consultar_equipo(self):
         self.client.force_login(self.ana.usuario)
         for url in (self.url, self.detalle):
             r = self.client.get(url)
-            self.assertEqual(r.status_code, 403)
-            self.assertNotContains(r, "Cliente Beatriz", status_code=403)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, "Cliente Beatriz")
 
     def test_sin_sesion_redirige_a_login(self):
         self.client.logout()
@@ -108,7 +108,7 @@ class BandejaEquipo(TestCase):
     def test_enlace_de_equipo_solo_para_admin(self):
         self.assertContains(self.client.get(reverse("nucleo:inicio")), self.url)
         self.client.force_login(self.ana.usuario)
-        self.assertNotContains(self.client.get(reverse("nucleo:inicio")), self.url)
+        self.assertContains(self.client.get(reverse("nucleo:inicio")), self.url)
 
     def test_se_puede_consultar_historial_de_profesional_desactivada(self):
         self.bea.activa = False

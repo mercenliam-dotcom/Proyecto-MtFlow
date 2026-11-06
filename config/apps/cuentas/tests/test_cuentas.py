@@ -68,7 +68,7 @@ class PermisosPorRol(Base):
 
     def test_menu_oculta_cuentas_a_usuario_normal(self):
         self.entrar(self.normal)
-        r = self.client.get(reverse("nucleo:inicio"))
+        r = self.client.get(reverse("clientes:inicio"))
         self.assertNotContains(r, reverse("cuentas:lista") + '"')
 
     def test_url_usa_uuid_no_id(self):
@@ -200,7 +200,7 @@ class InicioDeSesion(Base):
 
     def test_login_correcto(self):
         r = self.login("tatuadora1", CLAVE)
-        self.assertRedirects(r, reverse("nucleo:inicio"))
+        self.assertRedirects(r, reverse("clientes:inicio"))
 
     def test_login_ignora_mayusculas_en_usuario(self):
         self.assertEqual(self.login("TATUADORA1", CLAVE).status_code, 302)
@@ -241,12 +241,12 @@ class InicioDeSesion(Base):
                      "javascript:alert(1)", "https:sitio-falso.com"):
             cache.clear()
             r = self.login("tatuadora1", CLAVE, next=malo)
-            self.assertEqual(r["Location"], reverse("nucleo:inicio"), malo)
+            self.assertEqual(r["Location"], reverse("clientes:inicio"), malo)
             self.client.logout()
 
     def test_redireccion_interna_permitida(self):
-        r = self.login("tatuadora1", CLAVE, next="/clasificacion/probar/")
-        self.assertEqual(r["Location"], "/clasificacion/probar/")
+        r = self.login("tatuadora1", CLAVE, next="/mi-cuenta/perfil/")
+        self.assertEqual(r["Location"], "/mi-cuenta/perfil/")
 
     def test_salir_solo_por_post(self):
         self.entrar(self.normal)
@@ -281,7 +281,7 @@ class ContrasenaTemporal(Base):
         self.entrar(u)
         r = self.client.post(reverse("cuentas:mi_contrasena"),
                              {"actual": CLAVE, "password1": "NuevaClave2026", "password2": "NuevaClave2026"})
-        self.assertRedirects(r, reverse("nucleo:inicio"))
+        self.assertRedirects(r, reverse("clientes:inicio"))
         u.refresh_from_db()
         self.assertFalse(u.debe_cambiar_contrasena)
         self.assertTrue(u.check_password("NuevaClave2026"))

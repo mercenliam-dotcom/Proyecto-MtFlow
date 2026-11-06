@@ -44,7 +44,7 @@ def calcular(artista, inicio, fin):
     return {"totales": totales, "recibidas": recibidas, "estados": sorted(estados.items()), "zonas": zonas.most_common(), "estilos": estilos.most_common(), "rechazados": rechazados.most_common(), "ingresos": sorted(ingresos.items()), "ausencias": ausencias}
 
 
-@rol_requerido(Rol.ADMIN, Rol.USUARIO)
+@rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
 def inicio(request):

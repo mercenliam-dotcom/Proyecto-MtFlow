@@ -90,7 +90,9 @@ class MisCotizaciones(TestCase):
         self.assertEqual(imagen.status_code, 200)
         imagen.close()
         self.client.force_login(self.otra.usuario)
-        self.assertEqual(self.client.get(url).status_code, 404)
+        respuesta = self.client.get(url)
+        self.assertEqual(respuesta.status_code, 200)  # Ambas son administradoras.
+        respuesta.close()
 
     def test_imagen_legacy_ausente_se_informa(self):
         self.imagen("temporal_local/no-existe.jpg")
