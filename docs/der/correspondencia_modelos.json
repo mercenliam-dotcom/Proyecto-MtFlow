@@ -1,5 +1,21 @@
 [
   {
+    "modelo": "web.HorarioTrabajo",
+    "tabla_der": "horario_trabajo",
+    "tabla_fisica": "web_horariotrabajo",
+    "columnas": [
+      "id",
+      "tatuadora_id",
+      "dia",
+      "activo",
+      "hora_inicio",
+      "hora_fin"
+    ],
+    "fk": [
+      "tatuadora_id"
+    ]
+  },
+  {
     "modelo": "cuentas.Usuario",
     "tabla_der": "usuario",
     "tabla_fisica": "usuario",

@@ -23,8 +23,11 @@ class CabecerasSeguridadMiddleware:
         response = self.get_response(request)
         if self.csp:
             csp = self.csp
-            if request.path == "/panel/agenda/":
+            if request.path in ("/panel/agenda/", "/cotizacion/"):
                 csp = csp.replace("style-src 'self'", "style-src 'self' 'nonce-" + request.csp_nonce + "'")
+                # FullCalendar incluye su fuente de iconos dentro del archivo local.
+                if "font-src" not in csp:
+                    csp = csp.rstrip("; ") + "; font-src 'self' data:;"
             response.setdefault("Content-Security-Policy", csp)
         response.setdefault(
             "Permissions-Policy",

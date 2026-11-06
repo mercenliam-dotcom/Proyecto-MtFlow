@@ -18,10 +18,14 @@ class BloqueForm(forms.Form):
 
     def __init__(self, *args, tatuadora, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
+        self.fields["tipo"].choices = [("DISPONIBILIDAD", "Horario excepcional de una fecha"), ("CITA", "Sesión reservada"), ("BLOQUEO", "Bloqueo personal")]
+        from django.db.models import Q
         self.fields["postulacion"].queryset = Postulacion.objects.filter(
             tatuadora=tatuadora, estado__in=["ACEPTADA", "RESERVADA"],
-            abono_verificado_en__isnull=False, monto_abono__gt=0,
-        ).select_related("contacto").order_by("-creada_en")
+        ).filter(Q(abono_verificado_en__isnull=False, monto_abono__gt=0) | Q(movimientos__tipo="PAGO")).distinct().select_related("contacto").order_by("-creada_en")
+        self.fields["postulacion"].label = "Solicitud del cliente"
+        self.fields["postulacion"].help_text = "No necesitas una sesión previa: este formulario crea la primera sesión de una solicitud con pago registrado."
         self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto.nombres} · {p.referencia.hex[:8]}"
 
     def clean(self):
@@ -54,7 +58,7 @@ class GestionForm(forms.Form):
     verificado = forms.BooleanField(label="Verifiqué el pago recibido fuera de la plataforma", required=False)
     motivo = forms.CharField(label="Observación / motivo de rechazo", max_length=500, required=False, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"rows": 2}))
 
-    def __init__(self, *args, solicitud=None, **kwargs):
+    def __init__(self, *args, solicitud=None, accion=None, **kwargs):
         super().__init__(*args, **kwargs)
         if solicitud is not None:
             self.fields["version"].required = True
@@ -70,6 +74,18 @@ class GestionForm(forms.Form):
                 permitidas.append("abono")
             self.fields["accion"].choices = [(k, v) for k, v in self.fields["accion"].choices if k in permitidas]
             self.initial.update(precio_final=solicitud.precio_final, monto_abono=solicitud.monto_abono, abono_solicitado=solicitud.abono_solicitado, alto_final_cm=solicitud.alto_final_cm, ancho_final_cm=solicitud.ancho_final_cm)
+        if accion:
+            self.initial["accion"] = accion
+            if accion != "rechazar":
+                self.fields["motivo"].label = "Observación o referencia del comprobante (opcional)" if accion == "abono" else "Observación del acuerdo (opcional)"
+            if accion == "abono":
+                self.fields["monto_abono"].help_text = "Si ya registraste parte del abono aquí, escribe el total acumulado; no vuelvas a sumar un pago registrado por otra opción."
+            self.fields["accion"].widget = forms.HiddenInput()
+            campos = {"aceptar": {"precio_final", "abono_solicitado", "alto_final_cm", "ancho_final_cm", "motivo"},
+                      "abono": {"monto_abono", "verificado", "motivo"}, "revisar": set(), "rechazar": {"motivo"}}
+            for nombre in list(self.fields):
+                if nombre not in campos.get(accion, set()) | {"version", "accion"}:
+                    del self.fields[nombre]
 
     def clean(self):
         d = super().clean()

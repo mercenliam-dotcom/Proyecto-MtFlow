@@ -11,6 +11,7 @@ from django.apps import apps
 from django.db import models
 
 NOMBRES = {
+    'web.HorarioTrabajo': 'horario_trabajo',
     'cuentas.Usuario': 'usuario', 'cuentas.PerfilCliente': 'perfil_cliente',
     'web.Cliente': 'cliente', 'web.Tatuadora': 'tatuadora', 'web.BloqueHorario': 'bloque_horario',
     'web.Postulacion': 'postulacion', 'web.ContactoSolicitud': 'contacto_solicitud', 'web.Sesion': 'sesion',
@@ -20,6 +21,7 @@ NOMBRES = {
     'web.MovimientoCobro': 'movimiento_cobro', 'web.EventoSolicitud': 'evento_solicitud',
 }
 NOTAS = {
+    'horario_trabajo': 'Jornada semanal editable por tatuadora, lunes=0 a domingo=6. Un registro por día. Los bloques DISPONIBILIDAD sustituyen la jornada de una fecha; citas y bloqueos descuentan tiempo libre. La preferencia del cliente no reserva.',
     'usuario': 'Cuenta de acceso. ADMIN: administradora; USUARIO: cliente. Una tatuadora debe ser ADMIN. Password contiene hash, nunca texto plano. is_staff es calculado y no es una columna.',
     'perfil_cliente': 'Preferencias actuales del usuario cliente. Nombre, primer apellido y correo están en usuario; no se duplican aquí.',
     'cliente': 'Entidad heredada de identidad opcional. No equivale a una cuenta de acceso. No se fusiona por coincidencia de correo. Se conserva sin borrar registros históricos.',
@@ -39,6 +41,7 @@ NOTAS = {
     'evento_solicitud': 'Historial interno de decisiones y operaciones, con actor y fecha. No se expone al cliente ni sustituye las columnas monetarias.',
 }
 CHECKS = {
+    'horario_trabajo': [("dia >= 0 AND dia <= 6", 'horario_dia_valido'), ("hora_inicio < hora_fin", 'horario_intervalo_valido')],
     'usuario': [("rol IN ('ADMIN','USUARIO')", 'usuario_rol_valido'), ("rol <> 'USUARIO' OR (NOT es_tatuadora AND NOT is_superuser)", 'usuario_cliente_sin_privilegios'), ("nombre_usuario ~ '^[a-z0-9]{4,30}$'", 'usuario_nombre_usuario_formato')],
     'bloque_horario': [("hora_inicio < hora_fin", 'bloque_intervalo_positivo'), ("(tipo = 'DISPONIBILIDAD' AND estado IN ('DISPONIBLE','CANCELADA')) OR (tipo = 'CITA' AND estado IN ('RESERVADA','REALIZADA','CANCELADA','NO_ASISTIO')) OR (tipo = 'BLOQUEO' AND estado IN ('BLOQUEADO','CANCELADA'))", 'bloque_tipo_estado_valido')],
     'postulacion': [
@@ -61,7 +64,7 @@ CHECKS = {
     'confianza_estilo': [("confianza >= 0 AND confianza <= 1", 'confianza_estilo_valida')],
     'movimiento_cobro': [("monto > 0 AND monto <= 100000000", 'cobro_monto_valido'), ("tipo IN ('PAGO','DEVOLUCION')", 'cobro_tipo_valido')],
 }
-GRUPOS = {'Acceso_y_profesionales': ['usuario','perfil_cliente','cliente','tatuadora','tatuadora_estilo'], 'Solicitudes_y_agenda':['postulacion','contacto_solicitud','sesion','bloque_horario','movimiento_cobro','evento_solicitud'], 'Imagenes_estilos_y_portafolio':['imagen','estilo','prediccion','confianza_estilo','etiqueta_consolidada','trabajo_portafolio']}
+GRUPOS = {'Acceso_y_profesionales': ['usuario','perfil_cliente','cliente','tatuadora','tatuadora_estilo'], 'Solicitudes_y_agenda':['postulacion','contacto_solicitud','sesion','horario_trabajo','bloque_horario','movimiento_cobro','evento_solicitud'], 'Imagenes_estilos_y_portafolio':['imagen','estilo','prediccion','confianza_estilo','etiqueta_consolidada','trabajo_portafolio']}
 
 def texto(s):
     return "'"+str(s).replace('\\','\\\\').replace("'","\\'").replace('\n',' ') + "'"

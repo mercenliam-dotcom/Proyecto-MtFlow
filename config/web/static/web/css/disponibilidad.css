@@ -1,0 +1,7 @@
+#disponibilidad-calendario { margin: 1rem 0; font-size: .85rem; --fc-border-color: #b8b3ad; --fc-button-bg-color: #38332e; --fc-button-border-color: #38332e; }
+#disponibilidad-calendario .horario-libre { background: #d5eddf; border-color: #38764e; color: #173f26; cursor: pointer; }
+#disponibilidad-calendario .horario-ocupado { background: #d2d2d2; border-color: #777; color: #333; }
+#disponibilidad-calendario .horario-libre .fc-event-main { color: #173f26; }
+#disponibilidad-calendario .horario-ocupado .fc-event-main { color: #333; }
+#disponibilidad-calendario .fc-toolbar { flex-wrap: wrap; gap: .5rem; }
+#disponibilidad-calendario .fc-toolbar-title { font-size: 1rem; }

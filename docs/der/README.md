@@ -6,7 +6,7 @@ Fecha: 6 de noviembre de 2026. Referencia: DER del informe existente (imagen14.j
 
 Crear un diagrama y pegar el contenido completo de `MTFlow_DER_actualizado.dbml`. Usa los nombres del DER original. `MTFlow_esquema_fisico.dbml` representa lo mismo con los nombres reales de las tablas de Django. No se deben pegar ambos juntos. La correspondencia exacta está en `correspondencia_modelos.json`.
 
-Los archivos contienen 17 tablas de negocio. Se omiten tablas internas de Django (migraciones, sesiones de acceso, grupos, permisos y registros del administrador). Los tipos se expresan para PostgreSQL, pero este cambio mantiene SQLite local y no despliega una base nueva. DBML documenta el esquema; no reemplaza las migraciones Django ni debe ejecutarse como migración SQL. Sintaxis: https://dbml.dbdiagram.io/docs/
+Los archivos contienen 18 tablas de negocio. Se omiten tablas internas de Django (migraciones, sesiones de acceso, grupos, permisos y registros del administrador). Los tipos se expresan para PostgreSQL, pero este cambio mantiene SQLite local y no despliega una base nueva. DBML documenta el esquema; no reemplaza las migraciones Django ni debe ejecutarse como migración SQL. Sintaxis: https://dbml.dbdiagram.io/docs/
 
 ## Cambios respecto del DER original
 
@@ -16,6 +16,7 @@ Los archivos contienen 17 tablas de negocio. Se omiten tablas internas de Django
 | Cliente con cuenta | Nueva `perfil_cliente`, vinculada 1:1 a usuario. La solicitud tiene `cuenta_cliente_id` opcional para consultar exclusivamente las propias solicitudes. No se vinculan solicitudes ajenas por coincidencia de correo. |
 | Contacto | Nueva `contacto_solicitud`: datos declarados al enviar, con nombres y ambos apellidos separados. Editar el perfil no cambia el contacto histórico. `cliente` se conserva como entidad heredada opcional; no es otro rol. Sus campos históricos no se inventan ni se eliminan. |
 | Agenda | Nueva `sesion`: cada cita pertenece a una solicitud, que puede tener varias sesiones. Sustituye el bloque único de la solicitud. Fecha y hora propuestas son referenciales; no reservan. |
+| Jornada semanal | Nueva `horario_trabajo`: día de semana, activo, inicio y fin por tatuadora. Los bloques DISPONIBILIDAD sustituyen la jornada de una fecha; citas y bloqueos descuentan disponibilidad. |
 | Cotización y pagos | Precio acordado, abono solicitado, abono recibido y verificación. Nueva `movimiento_cobro` para pagos adicionales y devoluciones, sin duplicar el abono. Pagos fuera de la plataforma. |
 | Inasistencia | Estado NO_ASISTIO en la cita y destino del abono en la solicitud. No implica ingreso adicional ficticio: se registra lo efectivamente cobrado. |
 | Historial | Nueva `evento_solicitud` para actor, fecha y detalle de operaciones. Aceptadas y rechazadas son filtros de solicitudes, no copias en otras tablas. |

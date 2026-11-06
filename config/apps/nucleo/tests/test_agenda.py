@@ -75,7 +75,7 @@ class Agenda(TestCase):
             guardar_bloque(self.a.usuario, self.datos("CITA", 10, 11))
         self.aceptar()
         with self.assertRaises(ValidationError):
-            guardar_bloque(self.a.usuario, self.datos("CITA", 10, 11))
+            guardar_bloque(self.a.usuario, self.datos("CITA", 8, 9))
         self.assertEqual(BloqueHorario.objects.count(), 0)
 
     def test_intervalos_solapados_rechazados_contiguos_permitidos(self):
@@ -143,7 +143,7 @@ class Agenda(TestCase):
             self.assertEqual(self.client.get(reverse("nucleo:" + nombre, args=[ref])).status_code, 404)
         self.assertEqual(self.client.post(reverse("nucleo:cotizacion_gestion", args=[self.p.referencia]), {"accion": "revisar"}).status_code, 404)
         r = self.client.get(reverse("nucleo:agenda_eventos"), {"start": str(self.fecha), "end": str(self.fecha + timedelta(days=1))})
-        self.assertEqual(r.json(), [])
+        self.assertEqual([e for e in r.json() if e.get("display") != "background"], [])
 
     def test_feed_limita_intervalo_y_no_filtra_contacto(self):
         self.reservar()
@@ -151,7 +151,7 @@ class Agenda(TestCase):
         self.assertEqual(self.client.get(url).status_code, 400)
         self.assertEqual(self.client.get(url, {"start": str(self.fecha), "end": str(self.fecha + timedelta(days=101))}).status_code, 400)
         r = self.client.get(url, {"start": str(self.fecha), "end": str(self.fecha + timedelta(days=1))})
-        self.assertEqual(len(r.json()), 2)
+        self.assertEqual(len([e for e in r.json() if e.get("display") != "background"]), 2)
         self.assertNotContains(r, "solo@example.test")
 
     def test_formulario_rechaza_sesion_de_otro_cliente(self):

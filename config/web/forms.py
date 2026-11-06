@@ -49,6 +49,8 @@ class CotizacionForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from django.utils import timezone
+        self.fields["fecha_propuesta"].widget.attrs["min"] = timezone.localdate().isoformat()
         for campo in self.fields.values():
             if not isinstance(campo.widget, forms.CheckboxInput):
                 campo.widget.attrs["class"] = "form-control"
@@ -71,6 +73,10 @@ class CotizacionForm(forms.Form):
         if datos.get("fecha_propuesta") and datos.get("hora_propuesta"):
             if from_current_timezone(datetime.combine(datos["fecha_propuesta"], datos["hora_propuesta"])) <= timezone.now():
                 self.add_error("fecha_propuesta", "Propón una fecha y hora futuras.")
+            elif datos.get("tatuadora"):
+                from .disponibilidad import hora_disponible
+                if not hora_disponible(datos["tatuadora"], datos["fecha_propuesta"], datos["hora_propuesta"]):
+                    self.add_error("hora_propuesta", "Esa hora no está disponible dentro del horario de trabajo. Elige otra o envía sin proponer horario.")
         if datos.get("canal_preferido") == "whatsapp" and not datos.get("telefono"):
             self.add_error("telefono", "Indica el teléfono en el que quieres recibir contacto.")
         if datos.get("canal_preferido") in ("instagram", "tiktok") and not datos.get("usuario_social"):

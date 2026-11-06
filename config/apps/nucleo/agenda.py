@@ -17,6 +17,41 @@ from .forms_agenda import BloqueForm, GestionForm
 from .operaciones_agenda import guardar_bloque, cerrar_bloque, gestionar
 
 
+@transaction.non_atomic_requests
+@rol_requerido(Rol.ADMIN)
+@never_cache
+@require_http_methods(["GET", "POST"])
+def paso_gestion(request, referencia, accion):
+    from django.http import Http404
+    pasos = {"aceptar": ("Aceptar y guardar el acuerdo", "Acuerda el precio con el cliente. No necesitas haber recibido el abono para aceptar.", "Aceptar solicitud"),
+             "abono": ("Confirmar abono recibido", "Confirmación manual del pago realizado fuera de MTFlow.", "Confirmar pago externo"),
+             "revisar": ("Revisar solicitud", "Marcar esta solicitud como en revisión.", "Marcar en revisión"),
+             "rechazar": ("Rechazar solicitud", "La solicitud y su referencia se conservan en el historial.", "Rechazar solicitud")}
+    artista=profesional(request)
+    propuesta=get_object_or_404(Postulacion, referencia=referencia, tatuadora=artista)
+    permitidas=dict(GestionForm(solicitud=propuesta).fields["accion"].choices)
+    if accion not in pasos or accion not in permitidas: raise Http404
+    form=GestionForm(request.POST if request.method=="POST" else None, solicitud=propuesta, accion=accion)
+    status=200
+    if request.method=="POST":
+        status=400
+        if form.is_valid():
+            if form.cleaned_data["accion"] != accion:
+                form.add_error(None,"La acción no coincide con este formulario.")
+            else:
+                try:
+                    gestionar(request.user,referencia,form.cleaned_data)
+                except ValidationError as exc:
+                    form.add_error(None," ".join(exc.messages))
+                except DatabaseError:
+                    form.add_error(None,"No se guardó el cambio. Recarga y vuelve a intentar.")
+                else:
+                    messages.success(request,"Pago externo confirmado. Ya puedes revisar la reserva." if accion=="abono" else "Solicitud actualizada.")
+                    return redirect("nucleo:cotizacion_detalle",referencia=referencia)
+    titulo,ayuda,boton=pasos[accion]
+    return render(request,"agenda/gestion.html",{"propuesta":propuesta,"form":form,"accion":accion,"titulo":titulo,"ayuda":ayuda,"boton":boton},status=status)
+
+
 def profesional(request):
     if not request.user.es_tatuadora:
         raise PermissionDenied("La agenda requiere una cuenta habilitada como tatuadora.")
@@ -45,11 +80,21 @@ def eventos(request):
     except ValueError:
         return JsonResponse({"error": "Intervalo de fechas inválido (máximo 100 días)."}, status=400)
     datos = []
-    for b in BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=inicio, fecha__lt=fin).exclude(estado="CANCELADA").select_related("sesion__postulacion__contacto"):
+    bloques = list(BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=inicio, fecha__lt=fin).exclude(estado="CANCELADA").select_related("sesion__postulacion__contacto"))
+    from web.disponibilidad import semana, intervalos_trabajo
+    semanal = semana(artista)
+    por_dia = {}
+    for b in bloques:
+        por_dia.setdefault(b.fecha, []).append(b)
         datos.append({"id": str(b.referencia), "title": (str(b.postulacion.contacto) if b.postulacion_id else b.get_tipo_display()) + " · " + b.estado.lower(),
                       "start": f"{b.fecha}T{b.hora_inicio}", "end": f"{b.fecha}T{b.hora_fin}",
                       "url": reverse("nucleo:agenda_editar", args=[b.referencia]),
                       "classNames": ["agenda-" + b.tipo.lower()]})
+    dia = inicio
+    while dia < fin:
+        for desde, hasta in intervalos_trabajo(artista, dia, por_dia.get(dia, []), semanal):
+            datos.append({"title": "Horario de trabajo", "start": f"{dia}T{desde}", "end": f"{dia}T{hasta}", "display": "background"})
+        dia += timedelta(days=1)
     return JsonResponse(datos, safe=False)
 
 

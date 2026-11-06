@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}Tu cotización{% endblock %}
+{% block styles %}<meta name="csp-nonce" content="{{ request.csp_nonce }}"><link rel="stylesheet" href="{% static 'web/css/disponibilidad.css' %}">{% endblock %}
 
 {% block content %}
 <header class="page-header">
@@ -92,6 +93,13 @@
                 <div class="form-row">{% include "_campo.html" with campo=form.canal_preferido %}{% include "_campo.html" with campo=form.usuario_social %}</div>
                 {% include "_campo.html" with campo=form.presupuesto %}
                 <div class="form-row">{% include "_campo.html" with campo=form.fecha_propuesta %}{% include "_campo.html" with campo=form.hora_propuesta %}</div>
+                <section aria-label="Disponibilidad de la tatuadora">
+                    <h3>Elige una hora disponible</h3>
+                    <p>Verde: disponible · Gris: ocupado o bloqueado. Solo se muestran horas de trabajo. No se muestran datos de otros clientes.</p>
+                    <p id="disponibilidad-estado" role="status" aria-live="polite">Selecciona una tatuadora para consultar su calendario.</p>
+                    <div id="disponibilidad-calendario" data-url="{% url 'web:disponibilidad' %}"></div>
+                    <button type="button" id="sin-horario" class="text-button">Enviar sin proponer una hora</button>
+                </section>
                 <p class="field-help">El horario propuesto es una preferencia, no reserva ni bloquea la agenda. La tatuadora acordará contigo el horario definitivo.</p>
                 <div class="form-row">
                     {% include "_campo.html" with campo=form.email %}
@@ -197,4 +205,6 @@
 
 {% block scripts %}
 <script src="{% static 'web/js/cotizacion.js' %}" defer></script>
+<script src="{% static 'vendor/fullcalendar/index.global.min.js' %}" defer></script>
+<script src="{% static 'web/js/disponibilidad.js' %}" defer></script>
 {% endblock %}

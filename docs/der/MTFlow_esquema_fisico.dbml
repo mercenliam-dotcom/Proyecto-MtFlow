@@ -7,6 +7,23 @@ Project MTFlow {
   Note: 'Dos roles: ADMIN (administradora) y USUARIO (cliente). Campos, PK, nulabilidad y FK derivados de los modelos vigentes. No incluye datos personales.'
 }
 
+Table web_horariotrabajo {
+  Note: 'Jornada semanal editable por tatuadora, lunes=0 a domingo=6. Un registro por día. Los bloques DISPONIBILIDAD sustituyen la jornada de una fecha; citas y bloqueos descuentan tiempo libre. La preferencia del cliente no reserva. Tabla física Django: web_horariotrabajo.'
+  id bigint [pk, not null, increment]
+  tatuadora_id bigint [not null, note: 'Al eliminar referente: CASCADE en Django']
+  dia integer [not null, note: 'Valores de aplicación: 0, 1, 2, 3, 4, 5, 6']
+  activo boolean [not null, note: 'Valor inicial en Django: True']
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  indexes {
+    (tatuadora_id, dia) [unique]
+  }
+  checks {
+    `dia >= 0 AND dia <= 6` [name: 'horario_dia_valido']
+    `hora_inicio < hora_fin` [name: 'horario_intervalo_valido']
+  }
+}
+
 Table usuario {
   Note: 'Cuenta de acceso. ADMIN: administradora; USUARIO: cliente. Una tatuadora debe ser ADMIN. Password contiene hash, nunca texto plano. is_staff es calculado y no es una columna. Tabla física Django: usuario.'
   id bigint [pk, not null, increment]
@@ -280,6 +297,7 @@ Table web_eventosolicitud {
   creado_en timestamptz [not null, note: 'Fecha asignada por Django']
 }
 
+Ref: web_horariotrabajo.tatuadora_id > web_tatuadora.id
 Ref: usuario.creado_por_id > usuario.id
 Ref: usuario.id - cuentas_perfilcliente.usuario_id
 Ref: usuario.id - web_tatuadora.usuario_id
@@ -321,6 +339,7 @@ TableGroup Solicitudes_y_agenda {
   web_postulacion
   web_contactosolicitud
   web_sesion
+  web_horariotrabajo
   web_bloquehorario
   web_movimientocobro
   web_eventosolicitud

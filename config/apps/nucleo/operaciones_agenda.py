@@ -61,7 +61,8 @@ def gestionar(user, referencia, datos):
             raise ValidationError("El abono debe estar verificado, no disminuir y no superar el precio acordado.")
         if p.abono_verificado_en and monto == p.monto_abono:
             return p
-        if p.total_cobrado + monto - (p.monto_abono or 0) > p.precio_final:
+        abono_contabilizado = (p.monto_abono or 0) if p.abono_verificado_en else 0
+        if p.total_cobrado + monto - abono_contabilizado > p.precio_final:
             raise ValidationError("El abono y los demás pagos superan el precio acordado.")
         p.monto_abono = monto
         p.abono_verificado_en = timezone.now()
@@ -103,7 +104,7 @@ def guardar_bloque(user, datos, referencia=None):
     p = None
     if datos["tipo"] == "CITA":
         p = get_object_or_404(Postulacion.objects.select_for_update(), pk=datos["postulacion"].pk, tatuadora=artista)
-        if p.estado not in ("ACEPTADA", "RESERVADA") or not p.abono_verificado_en or p.total_cobrado <= 0 or p.destino_abono in ("RETENIDO", "DEVOLVER") or (p.abono_solicitado and p.total_cobrado < p.abono_solicitado):
+        if p.estado not in ("ACEPTADA", "RESERVADA") or p.total_cobrado <= 0 or p.destino_abono in ("RETENIDO", "DEVOLVER") or (p.abono_solicitado and p.total_cobrado < p.abono_solicitado):
             raise ValidationError("La solicitud necesita acuerdo y abono verificado antes de reservar.")
         if p.sesiones.filter(estado="NO_ASISTIO").exists() and p.destino_abono != "REAGENDAR":
             raise ValidationError("Antes de reservar otra sesión, registra el acuerdo para reagendar después de la inasistencia.")
@@ -113,10 +114,16 @@ def guardar_bloque(user, datos, referencia=None):
             raise ValidationError("Esta disponibilidad se superpone con otra. Edita el bloque existente.")
         if b.pk:
             asegurar_sesiones_cubiertas(b, datos)
+        excepciones = list(BloqueHorario.objects.filter(tatuadora=artista, tipo="DISPONIBILIDAD", estado="DISPONIBLE", fecha=datos["fecha"]).exclude(pk=b.pk).values_list("hora_inicio", "hora_fin"))
+        excepciones.append((datos["hora_inicio"], datos["hora_fin"]))
+        for cita in BloqueHorario.objects.filter(tatuadora=artista, tipo="CITA", estado="RESERVADA", fecha=datos["fecha"]):
+            if not any(inicio <= cita.hora_inicio and fin >= cita.hora_fin for inicio, fin in excepciones):
+                raise ValidationError("El horario excepcional deja una sesión reservada fuera de la jornada. Reprográmala primero.")
     else:
         if candidatos.filter(estado__in=OCUPADOS).exists():
             raise ValidationError("Ese intervalo ya está ocupado. Elige otra hora.")
-        if p and not BloqueHorario.objects.filter(tatuadora=artista, tipo="DISPONIBILIDAD", estado="DISPONIBLE", fecha=datos["fecha"], hora_inicio__lte=datos["hora_inicio"], hora_fin__gte=datos["hora_fin"]).exists():
+        from web.disponibilidad import intervalos_trabajo
+        if p and not any(inicio <= datos["hora_inicio"] and fin >= datos["hora_fin"] for inicio, fin in intervalos_trabajo(artista, datos["fecha"])):
             raise ValidationError("La sesión debe quedar dentro de un bloque de disponibilidad de tu agenda.")
     for campo in ("tipo", "fecha", "hora_inicio", "hora_fin", "nota"):
         setattr(b, campo, datos[campo])

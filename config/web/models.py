@@ -34,6 +34,22 @@ class Tatuadora(models.Model):
         """El nombre vigente de la cuenta vinculada, incluso en perfiles antiguos."""
         return self.usuario.get_full_name().strip() or self.usuario.nombre_usuario
 
+class HorarioTrabajo(models.Model):
+    tatuadora = models.ForeignKey(Tatuadora, on_delete=models.CASCADE, related_name="horario_semanal")
+    dia = models.PositiveIntegerField(choices=list(enumerate(["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"])))
+    activo = models.BooleanField(default=True)
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+
+    class Meta:
+        ordering = ["dia"]
+        unique_together = [("tatuadora", "dia")]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(dia__gte=0, dia__lte=6), name="horario_dia_valido"),
+            models.CheckConstraint(condition=models.Q(hora_inicio__lt=models.F("hora_fin")), name="horario_intervalo_valido"),
+        ]
+
+
 class BloqueHorario(models.Model):
     class Tipo(models.TextChoices):
         DISPONIBILIDAD = "DISPONIBILIDAD", "Disponible para trabajar"

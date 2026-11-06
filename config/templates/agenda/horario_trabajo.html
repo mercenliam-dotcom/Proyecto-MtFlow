@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Mi horario de trabajo{% endblock %}
+{% block contenido %}
+<p><a href="{% url 'nucleo:agenda' %}">← Mi agenda</a></p>
+<h1>Mi horario de trabajo</h1>
+<p>Este horario se repite cada semana. Desmarca los días en que no trabajas. Para abrir un domingo específico o cambiar una fecha, agrega un «Horario excepcional» desde la agenda. Para cerrar un día, bloquea su horario.</p>
+<form method="post">{% csrf_token %}{{ formset.management_form }}{{ formset.non_form_errors }}
+{% if error %}<p class="alerta alerta-error" role="alert">{{ error }}</p>{% endif %}
+<div class="rejilla dos">{% for nombre, form in dias %}<section class="tarjeta"><h2>{{ nombre }}</h2>{{ form.dia }}{{ form.non_field_errors }}{% for campo in form.visible_fields %}{% include "_campo.html" %}{% endfor %}</section>{% endfor %}</div>
+<button class="boton" type="submit">Guardar horario semanal</button></form>
+{% endblock %}
