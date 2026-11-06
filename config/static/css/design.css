@@ -113,3 +113,8 @@ details { border-top: 1px solid var(--border); padding: 16px 0 0; font-size: 12p
 @media (max-width: 850px) { .sidebar-footer { display: block; padding: 0 12px; margin: 0; font-size: 0; }.sidebar-footer p,.sidebar-footer .studio-dot { display: none; }.team-access { width: auto; border: 0; padding: 12px 0 0; font-size: 12px; } }
 
 @media (max-width: 850px) { .studio-location { display: none; } }
+.mt-carrusel { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:1rem; margin-bottom:2rem; }
+.mt-diapositiva { flex:0 0 100%; scroll-snap-align:start; margin:0; min-height:260px; }
+.mt-diapositiva img { width:100%; height:360px; object-fit:contain; background:#18131e; border-radius:12px; }
+.mt-diapositiva figcaption { padding:1rem; }
+.mt-foto { width:100%; height:280px; object-fit:cover; }

@@ -25,11 +25,12 @@
   <button class="boton secundario" type="submit">Filtrar</button>
 </form>
 {% endif %}
+{% if not es_equipo %}<nav class="acciones" aria-label="Bandejas de solicitudes"><a class="boton secundario" href="?bandeja=pendientes">Pendientes</a><a class="boton secundario" href="?bandeja=aceptadas">Aceptadas</a><a class="boton secundario" href="?bandeja=rechazadas">Rechazadas</a><a class="boton secundario" href="?bandeja=terminadas">Terminadas</a><a href="?">Todas</a></nav>{% endif %}
 <div class="cotizaciones-lista">
 {% for propuesta in pagina %}
   <article class="tarjeta">
     <div class="encabezado">
-      <h2>{{ propuesta.contacto.nombres }} {{ propuesta.contacto.apellidos }}</h2>
+      <h2>{{ propuesta.contacto }}</h2>
       <span class="chip">{{ propuesta.estado_legible }}</span>
     </div>
     <p class="nota">Recibida el {{ propuesta.creada_en|date:"d/m/Y" }} a las {{ propuesta.creada_en|date:"H:i" }}</p>

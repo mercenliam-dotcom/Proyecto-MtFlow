@@ -29,6 +29,10 @@ with tempfile.TemporaryDirectory(prefix="mtflow_migracion_") as tmp:
         U, T, C, P, B, I = [apps.get_model(*nombre.split(".")) for nombre in ("cuentas.Usuario", "web.Tatuadora", "web.Cliente", "web.Postulacion", "web.BloqueHorario", "web.Imagen")]
         u = U.objects.create(nombre_usuario="historica", email="historica@example.test", nombre="Ana", apellido="Prueba", password="!", es_tatuadora=True)
         t = T.objects.create(usuario=u, nombre="Ana Prueba")
+        E, TP = apps.get_model("web", "Estilo"), apps.get_model("web", "TrabajoPortafolio")
+        estilo = E.objects.create(codigo="E-05", nombre="Línea fina")
+        for numero in (1, 2):
+            TP.objects.create(tatuadora=t, estilo=estilo, titulo=f"Trabajo anterior {numero}", url=f"portafolio/anterior-{numero}.jpg", publicado_en=date(2026, 1, 1))
         c = C.objects.create(nombres="Cliente anterior", apellidos="Prueba", correo="anterior@example.test")
         p = P.objects.create(cliente=c, tatuadora=t, zona_cuerpo="brazo", alto_cm=5, ancho_cm=4, area_cm2=21 if "--inconsistente" in sys.argv else 20, categoria_tamano="pequeno", descripcion="IDEA: Una flor | COLOR: color | DETALLE: alto | COVER-UP: True", estado="RESERVADA", precio_final=100000, monto_abono=30000)
         referencia = p.referencia
@@ -59,6 +63,12 @@ with tempfile.TemporaryDirectory(prefix="mtflow_migracion_") as tmp:
             assert set(nuevo.sesiones.values_list("pk", flat=True)) == {b1.pk, b2.pk}
             assert nuevo.precio_final == 100000 and nuevo.monto_abono == 30000
             assert nuevo.abono_verificado_en is None  # No inventar verificación de un pago antiguo.
+            assert nuevo.total_cobrado == 0
+            assert nuevo.contacto.primer_apellido == "Prueba"
+            from web.models import TrabajoPortafolio
+            fotos = list(TrabajoPortafolio.objects.all())
+            assert len({f.referencia for f in fotos}) == 2
+            assert all(not f.visible and not f.autorizacion_publicacion for f in fotos)
             assert Imagen.objects.get(pk=im.pk).url == "postulaciones/archivo-anterior.jpg"
             assert Tatuadora.objects.get(pk=t.pk).nombre_artistico is None
             texto = Postulacion.objects.get(pk=libre.pk)

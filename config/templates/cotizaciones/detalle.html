@@ -9,9 +9,12 @@
   <section class="tarjeta">
     <h2>Contacto y propuesta</h2>
     <dl class="cotizacion-datos">
-      <div><dt>Cliente</dt><dd>{{ propuesta.contacto.nombres }} {{ propuesta.contacto.apellidos }}</dd></div>
+      <div><dt>Cliente</dt><dd>{{ propuesta.contacto }}</dd></div>
       <div><dt>Correo</dt><dd>{{ propuesta.contacto.correo|default:"No indicado" }}</dd></div>
       <div><dt>Teléfono</dt><dd>{{ propuesta.contacto.telefono|default:"No indicado" }}</dd></div>
+      <div><dt>Contacto preferido</dt><dd>{{ propuesta.contacto.get_canal_preferido_display }} {{ propuesta.contacto.usuario_social }}</dd></div>
+      <div><dt>Presupuesto del cliente</dt><dd>{{ propuesta.presupuesto_estimado|default_if_none:"No indicado" }} CLP</dd></div>
+      <div><dt>Horario propuesto (sin reserva)</dt><dd>{{ propuesta.fecha_propuesta|date:"d/m/Y"|default:"No indicado" }} {{ propuesta.hora_propuesta|time:"H:i" }}</dd></div>
       <div><dt>Zona del cuerpo</dt><dd>{{ propuesta.zona_cuerpo|capfirst }}</dd></div>
       <div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
       <div><dt>Área declarada</dt><dd>{% if propuesta.area_cm2 != None %}{{ propuesta.area_cm2 }} cm²{% else %}No registrada{% endif %}</dd></div>
@@ -22,6 +25,8 @@
   </section>
   <section class="tarjeta">
     <h2>Referencia y análisis de estilo</h2>
+    <p><strong>Revisión humana:</strong> {% if revision.etiquetaconsolidada %}{{ revision.etiquetaconsolidada.estilo.nombre }} · {{ revision.etiquetaconsolidada.confirmada_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</p>
+    {% if puede_gestionar and revision %}<p><a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'estilo' %}">Confirmar o corregir estilo</a></p>{% endif %}
     {% for referencia in referencias %}
     <article class="cotizacion-imagen">
       <h3>Imagen {{ referencia.imagen.orden }}</h3>
@@ -50,6 +55,12 @@
   {% if gestion_form.fields.accion.choices %}<form method="post" action="{% url 'nucleo:cotizacion_gestion' propuesta.referencia %}">{% csrf_token %}{{ gestion_form.non_field_errors }}{% for campo in gestion_form %}{% if campo.is_hidden %}{{ campo }}{{ campo.errors }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button class="boton" type="submit">Actualizar solicitud</button></form>{% endif %}
   {% if propuesta.abono_verificado_en and propuesta.estado == 'ACEPTADA' or propuesta.abono_verificado_en and propuesta.estado == 'RESERVADA' %}<p><a class="boton" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar una sesión</a></p>{% endif %}
   {% endif %}
+  <h3>Resultado económico</h3>
+  <dl class="cotizacion-datos"><div><dt>Abono solicitado</dt><dd>{{ propuesta.abono_solicitado|default_if_none:"Sin definir" }} CLP</dd></div><div><dt>Total recibido neto</dt><dd>{{ propuesta.total_cobrado }} CLP</dd></div><div><dt>Saldo por cobrar</dt><dd>{{ propuesta.saldo_pendiente }} CLP</dd></div><div><dt>Medidas finales</dt><dd>{{ propuesta.alto_final_cm|default_if_none:"Pendiente" }} × {{ propuesta.ancho_final_cm|default_if_none:"Pendiente" }} cm</dd></div></dl>
+  <p class="nota">El total incluye el abono y descuenta devoluciones. Terminar una sesión no cierra automáticamente un trabajo de varias sesiones. No se procesan pagos en esta página.</p>
+  {% if puede_gestionar %}<div class="acciones">{% if propuesta.precio_final and propuesta.estado != 'RECHAZADA' %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}{% if puede_terminar %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">Terminar trabajo</a>{% endif %}{% if tiene_inasistencias %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'inasistencia' %}">Resolver abono por inasistencia</a>{% endif %}</div>{% endif %}
+  {% if tiene_inasistencias %}<p>Acuerdo por inasistencia: {{ propuesta.get_destino_abono_display }}. Una devolución acordada solo reduce el total al registrarla como efectuada.</p>{% endif %}
+  <ul>{% for movimiento in propuesta.movimientos.all %}<li>{{ movimiento.creado_en|date:"d/m/Y H:i" }} · {{ movimiento.get_tipo_display }}: {{ movimiento.monto }} CLP · {{ movimiento.detalle }}</li>{% empty %}<li>Sin pagos adicionales ni devoluciones.</li>{% endfor %}</ul>
   <h3>Sesiones registradas</h3>
   <ul>{% for sesion in sesiones %}<li>{{ sesion.fecha|date:"d/m/Y" }} · {{ sesion.hora_inicio|time:"H:i" }}–{{ sesion.hora_fin|time:"H:i" }} · {{ sesion.estado }}{% if puede_gestionar %} · <a href="{% url 'nucleo:agenda_editar' sesion.referencia %}">Ver horario</a>{% endif %}</li>{% empty %}<li>Aún no hay sesiones.</li>{% endfor %}</ul>
   <h3>Historial de la solicitud</h3>

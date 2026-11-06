@@ -54,6 +54,9 @@ def _lista(request, propuestas, es_equipo=False):
     if estado not in {valor for valor, _ in estados}:
         estado = ""
     total = propuestas.count()
+    grupos = {"pendientes": ["RECIBIDA", "EN_REVISION"], "aceptadas": ["ACEPTADA", "RESERVADA"], "rechazadas": ["RECHAZADA"], "terminadas": ["REALIZADA"]}
+    if not es_equipo and request.GET.get("bandeja") in grupos:
+        propuestas = propuestas.filter(estado__in=grupos[request.GET["bandeja"]])
     form = None
     status = 200
     if es_equipo:
@@ -78,7 +81,7 @@ def _lista(request, propuestas, es_equipo=False):
         orden = [F("prioridad").desc(nulls_last=True), "creada_en", "pk"]
     pagina = Paginator(propuestas.order_by(*orden), 20).get_page(request.GET.get("pagina"))
     for propuesta in pagina:
-        propuesta.estado_legible = nombre_estado(propuesta.estado)
+        propuesta.estado_legible = propuesta.estado_comercial
         propuesta.precio_legible = precio_legible(propuesta)
         propuesta.confianza_legible = "Sin análisis"
         if propuesta.modelo_resumen:
@@ -149,10 +152,12 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
             "umbral": (prediccion.umbral_confianza * 100).quantize(Decimal("1")) if prediccion and prediccion.umbral_confianza is not None else None,
         })
     return render(request, "cotizaciones/detalle.html", {
-        "propuesta": propuesta, "referencias": referencias,
-        "estado_legible": nombre_estado(propuesta.estado),
+        "propuesta": propuesta, "referencias": referencias, "revision": propuesta.imagen_set.filter(es_principal=True).select_related("etiquetaconsolidada__estilo").first(),
+        "estado_legible": propuesta.estado_comercial,
         "opciones": opciones, "es_equipo": es_equipo,
         "gestion_form": gestion_form if gestion_form is not None else GestionForm(solicitud=propuesta),
         "puede_gestionar": propuesta.tatuadora.usuario_id == request.user.pk and request.user.es_tatuadora and propuesta.tatuadora.activa,
         "sesiones": propuesta.sesiones.all(), "eventos": propuesta.eventos.select_related("actor")[:50],
+        "tiene_inasistencias": propuesta.sesiones.filter(estado="NO_ASISTIO").exists(),
+        "puede_terminar": propuesta.estado in ("ACEPTADA", "RESERVADA") and propuesta.sesiones.filter(estado="REALIZADA").exists() and not propuesta.sesiones.filter(estado="RESERVADA").exists(),
     }, status=status)

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<p class="miga">{% if portafolio %}<a href="{% url 'nucleo:portafolio' %}">← Mi portafolio</a>{% else %}<a href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}">← Solicitud</a>{% endif %}</p>
+<h1>{{ titulo }}</h1>
+{% if propuesta %}<p class="bajada">{{ propuesta.contacto }} · Total acordado: {{ propuesta.precio_final|default_if_none:"Pendiente" }} CLP · Recibido neto: {{ propuesta.total_cobrado }} CLP · Saldo: {{ propuesta.saldo_pendiente }} CLP</p>{% endif %}
+{% if portafolio %}<p class="bajada">Sube una fotografía del trabajo terminado o del estudio. Las referencias privadas de las solicitudes no se publican automáticamente.</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="tarjeta">{% csrf_token %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{{ campo.errors }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button class="boton" type="submit">Guardar</button></form>
+{% endblock %}

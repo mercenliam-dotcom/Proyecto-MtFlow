@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (Cliente, Tatuadora, Postulacion, ContactoSolicitud, Imagen,
                      Estilo, Prediccion, BloqueHorario, Sesion, EventoSolicitud, ConfianzaEstilo)
+from .models import MovimientoCobro, TrabajoPortafolio, EtiquetaConsolidada
 
 
 class RegistroOperativoAdmin(admin.ModelAdmin):
@@ -21,7 +22,7 @@ class TatuadoraAdmin(admin.ModelAdmin):
 
 
 for modelo in (Postulacion, ContactoSolicitud, Imagen, Prediccion, BloqueHorario,
-               Sesion, EventoSolicitud, ConfianzaEstilo):
+               Sesion, EventoSolicitud, ConfianzaEstilo, MovimientoCobro, TrabajoPortafolio, EtiquetaConsolidada):
     admin.site.register(modelo, RegistroOperativoAdmin)
 admin.site.register(Cliente)
 admin.site.register(Tatuadora, TatuadoraAdmin)

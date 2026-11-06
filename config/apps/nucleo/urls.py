@@ -1,10 +1,15 @@
 from django.urls import path
 
-from . import views, cotizaciones, agenda
+from . import views, cotizaciones, agenda, flujo, metricas, portafolio
 
 app_name = "nucleo"
 
 urlpatterns = [
+    path("metricas/", metricas.inicio, name="metricas"),
+    path("portafolio/", portafolio.lista, name="portafolio"),
+    path("portafolio/nuevo/", portafolio.editar, name="portafolio_nuevo"),
+    path("portafolio/<uuid:referencia>/", portafolio.editar, name="portafolio_editar"),
+    path("cotizaciones/<uuid:referencia>/flujo/<str:accion>/", flujo.editar, name="flujo"),
     path("agenda/", agenda.inicio, name="agenda"),
     path("agenda/eventos/", agenda.eventos, name="agenda_eventos"),
     path("agenda/nuevo/", agenda.editar, name="agenda_nuevo"),

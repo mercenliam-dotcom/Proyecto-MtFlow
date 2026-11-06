@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from web.models import BloqueHorario, EventoSolicitud, Postulacion, Tatuadora, Sesion
 
-OCUPADOS = ("RESERVADA", "REALIZADA", "BLOQUEADO")
+OCUPADOS = ("RESERVADA", "REALIZADA", "BLOQUEADO", "NO_ASISTIO")
 
 
 def bloquear_profesional(user):
@@ -42,6 +42,15 @@ def gestionar(user, referencia, datos):
             raise ValidationError("El estado actual no permite registrar este acuerdo.")
         if p.abono_verificado_en and datos["precio_final"] < (p.monto_abono or 0):
             raise ValidationError("El precio no puede ser menor que el abono verificado.")
+        if datos["precio_final"] < p.total_cobrado:
+            raise ValidationError("El precio no puede ser menor que lo efectivamente cobrado.")
+        if datos.get("abono_solicitado") and datos["abono_solicitado"] > datos["precio_final"]:
+            raise ValidationError("El abono solicitado no puede superar el precio total.")
+        if bool(datos.get("alto_final_cm")) != bool(datos.get("ancho_final_cm")):
+            raise ValidationError("Completa ambas medidas finales.")
+        for campo in ("abono_solicitado", "alto_final_cm", "ancho_final_cm"):
+            if datos.get(campo) is not None:
+                setattr(p, campo, datos[campo])
         p.precio_final = datos["precio_final"]
         p.estado = "ACEPTADA"
     elif accion == "abono":
@@ -52,6 +61,8 @@ def gestionar(user, referencia, datos):
             raise ValidationError("El abono debe estar verificado, no disminuir y no superar el precio acordado.")
         if p.abono_verificado_en and monto == p.monto_abono:
             return p
+        if p.total_cobrado + monto - (p.monto_abono or 0) > p.precio_final:
+            raise ValidationError("El abono y los demás pagos superan el precio acordado.")
         p.monto_abono = monto
         p.abono_verificado_en = timezone.now()
         p.abono_verificado_por = user
@@ -82,7 +93,7 @@ def guardar_bloque(user, datos, referencia=None):
     datos = form.cleaned_data
     b = get_object_or_404(BloqueHorario, referencia=referencia, tatuadora=artista) if referencia else BloqueHorario(tatuadora=artista)
     if b.pk:
-        if b.estado in ("CANCELADA", "REALIZADA"):
+        if b.estado in ("CANCELADA", "REALIZADA", "NO_ASISTIO"):
             raise ValidationError("Una sesión cancelada o realizada no se puede reprogramar.")
         if b.actualizada_en.isoformat() != datos.get("version"):
             raise ValidationError("El bloque cambió en otra ventana. Recarga antes de modificarlo.")
@@ -92,8 +103,10 @@ def guardar_bloque(user, datos, referencia=None):
     p = None
     if datos["tipo"] == "CITA":
         p = get_object_or_404(Postulacion.objects.select_for_update(), pk=datos["postulacion"].pk, tatuadora=artista)
-        if p.estado not in ("ACEPTADA", "RESERVADA") or not p.abono_verificado_en or not p.monto_abono:
+        if p.estado not in ("ACEPTADA", "RESERVADA") or not p.abono_verificado_en or p.total_cobrado <= 0 or p.destino_abono in ("RETENIDO", "DEVOLVER") or (p.abono_solicitado and p.total_cobrado < p.abono_solicitado):
             raise ValidationError("La solicitud necesita acuerdo y abono verificado antes de reservar.")
+        if p.sesiones.filter(estado="NO_ASISTIO").exists() and p.destino_abono != "REAGENDAR":
+            raise ValidationError("Antes de reservar otra sesión, registra el acuerdo para reagendar después de la inasistencia.")
     candidatos = BloqueHorario.objects.filter(tatuadora=artista, fecha=datos["fecha"], hora_inicio__lt=datos["hora_fin"], hora_fin__gt=datos["hora_inicio"]).exclude(pk=b.pk)
     if datos["tipo"] == "DISPONIBILIDAD":
         if candidatos.filter(tipo="DISPONIBILIDAD", estado="DISPONIBLE").exists():
@@ -138,13 +151,15 @@ def cerrar_bloque(user, referencia, accion, motivo, version):
     b = get_object_or_404(BloqueHorario, referencia=referencia, tatuadora=artista)
     if b.actualizada_en.isoformat() != version:
         raise ValidationError("El bloque cambió. Recarga la página.")
-    if b.estado in ("CANCELADA", "REALIZADA"):
+    if b.estado in ("CANCELADA", "REALIZADA", "NO_ASISTIO"):
         raise ValidationError("El bloque ya está cerrado.")
-    if accion == "realizar":
+    if accion in ("realizar", "inasistencia"):
         fin = from_current_timezone(datetime.combine(b.fecha, b.hora_fin))
         if b.tipo != "CITA" or fin > timezone.now():
             raise ValidationError("Solo puedes completar una sesión cuyo horario ya terminó.")
-        b.estado = "REALIZADA"
+        if accion == "inasistencia" and not motivo.strip():
+            raise ValidationError("Registra una observación sobre la inasistencia.")
+        b.estado = "REALIZADA" if accion == "realizar" else "NO_ASISTIO"
     elif accion == "cancelar":
         if not motivo.strip():
             raise ValidationError("Indica un motivo para cancelar.")
@@ -156,9 +171,12 @@ def cerrar_bloque(user, referencia, accion, motivo, version):
     b.save(update_fields=["estado", "actualizada_en"])
     if b.postulacion_id:
         p = b.postulacion
+        if b.estado == "NO_ASISTIO":
+            p.destino_abono = "PENDIENTE"
+            p.save(update_fields=["destino_abono", "actualizada_en"])
         otras = p.sesiones.exclude(pk=b.pk)
         if not otras.filter(estado="RESERVADA").exists():
-            p.estado = "REALIZADA" if b.estado == "REALIZADA" else "ACEPTADA"
+            p.estado = "ACEPTADA"  # Una sesión terminada no finaliza automáticamente todo el trabajo.
             if p.estado == "REALIZADA":
                 p.realizada_en = timezone.now()
             p.save(update_fields=["estado", "realizada_en", "actualizada_en"])

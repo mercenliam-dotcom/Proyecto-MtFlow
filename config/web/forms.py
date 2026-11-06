@@ -13,7 +13,14 @@ def token_envio():
 
 class CotizacionForm(forms.Form):
     envio = forms.CharField(widget=forms.HiddenInput, initial=token_envio)
-    nombre = forms.CharField(label="Nombre o alias", max_length=80, validators=[nombre_contacto], widget=forms.TextInput(attrs={"id": "client-name", "autocomplete": "name"}))
+    nombre = forms.CharField(label="Nombres", max_length=80, validators=[nombre_contacto], widget=forms.TextInput(attrs={"id": "client-name", "autocomplete": "name"}))
+    primer_apellido = forms.CharField(label="Primer apellido", max_length=80, required=False, validators=[nombre_contacto])
+    segundo_apellido = forms.CharField(label="Segundo apellido (opcional)", max_length=80, required=False, validators=[nombre_contacto])
+    canal_preferido = forms.ChoiceField(label="Medio de contacto preferido", required=False, choices=[("correo", "Correo"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram"), ("tiktok", "TikTok")], initial="correo")
+    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok", max_length=61, required=False)
+    presupuesto = forms.IntegerField(label="Tu presupuesto en CLP (opcional)", min_value=1, max_value=100000000, required=False)
+    fecha_propuesta = forms.DateField(label="Fecha que propones (opcional)", required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    hora_propuesta = forms.TimeField(label="Hora que propones (opcional)", required=False, widget=forms.TimeInput(attrs={"type": "time"}))
     email = forms.EmailField(label="Correo electrónico", max_length=254, widget=forms.EmailInput(attrs={"id": "client-email", "autocomplete": "email"}))
     telefono = forms.CharField(label="Teléfono (opcional)", max_length=25, required=False, validators=[telefono_contacto], widget=forms.TextInput(attrs={"id": "client-phone", "type": "tel", "autocomplete": "tel"}))
     
@@ -56,6 +63,18 @@ class CotizacionForm(forms.Form):
         datos = super().clean()
         if not self.fields["tatuadora"].queryset.exists():
             raise ValidationError("No hay tatuadoras habilitadas para recibir propuestas en este momento. Inténtalo más tarde.")
+        from datetime import datetime
+        from django.forms.utils import from_current_timezone
+        from django.utils import timezone
+        if bool(datos.get("fecha_propuesta")) != bool(datos.get("hora_propuesta")):
+            raise ValidationError("Para proponer un horario, completa fecha y hora. No representa una reserva.")
+        if datos.get("fecha_propuesta") and datos.get("hora_propuesta"):
+            if from_current_timezone(datetime.combine(datos["fecha_propuesta"], datos["hora_propuesta"])) <= timezone.now():
+                self.add_error("fecha_propuesta", "Propón una fecha y hora futuras.")
+        if datos.get("canal_preferido") == "whatsapp" and not datos.get("telefono"):
+            self.add_error("telefono", "Indica el teléfono en el que quieres recibir contacto.")
+        if datos.get("canal_preferido") in ("instagram", "tiktok") and not datos.get("usuario_social"):
+            self.add_error("usuario_social", "Indica tu usuario para este medio de contacto.")
         return datos
 
     def clean_imagen(self):

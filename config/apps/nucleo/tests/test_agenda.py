@@ -201,7 +201,7 @@ class Agenda(TestCase):
         r = self.client.get(reverse("nucleo:agenda_nuevo"), {"solicitud": "no-es-uuid"})
         self.assertEqual(r.status_code, 404)
 
-    def test_solo_ultima_sesion_realizada_cierra_solicitud(self):
+    def test_ultima_sesion_requiere_cierre_explicito_del_trabajo(self):
         primero = self.reservar()
         segundo = guardar_bloque(self.a.usuario, self.datos("CITA", 11, 12))
         ayer = timezone.localdate() - timedelta(days=1)
@@ -210,6 +210,10 @@ class Agenda(TestCase):
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "RESERVADA")
         cerrar_bloque(self.a.usuario, segundo.referencia, "realizar", "", segundo.actualizada_en.isoformat())
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.estado, "ACEPTADA")
+        from apps.nucleo.flujo import aplicar
+        aplicar(self.a.usuario, self.p.referencia, "terminar", {"version": self.p.actualizada_en.isoformat(), "confirmado": True})
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "REALIZADA")
         self.assertIsNotNone(self.p.realizada_en)

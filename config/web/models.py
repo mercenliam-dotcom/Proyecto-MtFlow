@@ -54,7 +54,7 @@ class BloqueHorario(models.Model):
         ordering = ["fecha", "hora_inicio", "pk"]
         constraints = [
             models.CheckConstraint(condition=models.Q(hora_inicio__lt=models.F("hora_fin")), name="bloque_intervalo_positivo"),
-            models.CheckConstraint(condition=models.Q(tipo="DISPONIBILIDAD", estado__in=["DISPONIBLE", "CANCELADA"]) | models.Q(tipo="CITA", estado__in=["RESERVADA", "REALIZADA", "CANCELADA"]) | models.Q(tipo="BLOQUEO", estado__in=["BLOQUEADO", "CANCELADA"]), name="bloque_tipo_estado_valido"),
+            models.CheckConstraint(condition=models.Q(tipo="DISPONIBILIDAD", estado__in=["DISPONIBLE", "CANCELADA"]) | models.Q(tipo="CITA", estado__in=["RESERVADA", "REALIZADA", "CANCELADA", "NO_ASISTIO"]) | models.Q(tipo="BLOQUEO", estado__in=["BLOQUEADO", "CANCELADA"]), name="bloque_tipo_estado_valido"),
         ]
         indexes = [models.Index(fields=["tatuadora", "fecha", "estado"], name="agenda_busqueda")]
 
@@ -73,6 +73,18 @@ class BloqueHorario(models.Model):
         return f"{self.fecha} {self.hora_inicio:%H:%M}–{self.hora_fin:%H:%M} · {self.get_tipo_display()}"
 
 class Postulacion(models.Model):
+    class DestinoAbono(models.TextChoices):
+        PENDIENTE = "PENDIENTE", "Pendiente de acuerdo"
+        REAGENDAR = "REAGENDAR", "Conservar para reagendar"
+        RETENIDO = "RETENIDO", "Retenido según acuerdo"
+        DEVOLVER = "DEVOLVER", "Devolución acordada (registrar devolución por separado)"
+
+    fecha_propuesta = models.DateField(null=True, blank=True)
+    hora_propuesta = models.TimeField(null=True, blank=True)
+    abono_solicitado = models.PositiveIntegerField(null=True, blank=True)
+    alto_final_cm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    ancho_final_cm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    destino_abono = models.CharField(max_length=15, choices=DestinoAbono.choices, default=DestinoAbono.PENDIENTE)
     class EstadoML(models.TextChoices):
         LEGADO = "LEGADO", "Sin trazabilidad previa"
         NO_SOLICITADO = "NO_SOLICITADO", "No solicitado"
@@ -117,8 +129,31 @@ class Postulacion(models.Model):
     def sesiones(self):
         return BloqueHorario.objects.filter(sesion__postulacion=self)
 
+    @property
+    def total_cobrado(self):
+        # El abono histórico sigue siendo el único registro del depósito.
+        # El libro adicional solo contiene pagos de saldo y devoluciones.
+        from django.db.models import Sum, Case, When, F, IntegerField
+        movimientos = self.movimientos.aggregate(total=Sum(Case(When(tipo="DEVOLUCION", then=-F("monto")), default=F("monto"), output_field=IntegerField())))["total"] or 0
+        return (self.monto_abono or 0 if self.abono_verificado_en else 0) + movimientos
+
+    @property
+    def saldo_pendiente(self):
+        return max(0, (self.precio_final or 0) - self.total_cobrado)
+
+    @property
+    def estado_comercial(self):
+        if self.estado == "ACEPTADA":
+            return "Confirmada" if self.abono_verificado_en and self.total_cobrado > 0 else "Cotizada"
+        return self.estado.replace("_", " ").capitalize()
+
     class Meta:
         constraints = [
+            models.CheckConstraint(condition=models.Q(abono_solicitado__isnull=True) | models.Q(abono_solicitado__gt=0, abono_solicitado__lte=100000000), name="abono_solicitado_valido"),
+            models.CheckConstraint(condition=models.Q(abono_solicitado__isnull=True) | models.Q(precio_final__isnull=True) | models.Q(abono_solicitado__lte=models.F("precio_final")), name="abono_solicitado_no_supera_total"),
+            models.CheckConstraint(condition=models.Q(alto_final_cm__isnull=True, ancho_final_cm__isnull=True) | models.Q(alto_final_cm__isnull=False, ancho_final_cm__isnull=False, alto_final_cm__gt=0, ancho_final_cm__gt=0), name="medidas_finales_coherentes"),
+            models.CheckConstraint(condition=models.Q(fecha_propuesta__isnull=True, hora_propuesta__isnull=True) | models.Q(fecha_propuesta__isnull=False, hora_propuesta__isnull=False), name="preferencia_fecha_hora_completa"),
+            models.CheckConstraint(condition=models.Q(destino_abono__in=["PENDIENTE", "REAGENDAR", "RETENIDO", "DEVOLVER"]), name="destino_abono_valido"),
             models.CheckConstraint(condition=models.Q(alto_cm__gt=0, alto_cm__lte=Decimal("999.99"), ancho_cm__gt=0, ancho_cm__lte=Decimal("999.99")), name="solicitud_medidas_validas"),
             models.CheckConstraint(condition=models.Q(precio_final__isnull=True) | models.Q(precio_final__gt=0, precio_final__lte=100000000), name="solicitud_precio_valido"),
             models.CheckConstraint(condition=models.Q(monto_abono__isnull=True) | models.Q(monto_abono__gte=0, monto_abono__lte=100000000), name="solicitud_abono_valido"),
@@ -134,12 +169,24 @@ class ContactoSolicitud(models.Model):
     """Datos declarados en un envío: no acreditan la identidad de Cliente."""
     postulacion = models.OneToOneField(Postulacion, primary_key=True, on_delete=models.RESTRICT, related_name="contacto")
     nombres = models.CharField(max_length=80, validators=[nombre_contacto])
-    apellidos = models.CharField(max_length=160, blank=True)
+    primer_apellido = models.CharField(max_length=160, blank=True)
+    segundo_apellido = models.CharField(max_length=80, blank=True, validators=[nombre_contacto])
+    canal_preferido = models.CharField(max_length=12, choices=[("correo", "Correo"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram"), ("tiktok", "TikTok")], default="correo")
+    usuario_social = models.CharField(max_length=80, blank=True, validators=[nombre_contacto])
     correo = models.EmailField(max_length=254, null=True, blank=True)
     telefono = models.CharField(max_length=25, null=True, blank=True, validators=[telefono_contacto])
 
     def __str__(self):
-        return f"{self.nombres} {self.apellidos}".strip()
+        return f"{self.nombres} {self.primer_apellido} {self.segundo_apellido}".strip()
+
+    @property
+    def apellidos(self):
+        """Compatibilidad de lectura para vistas anteriores; no es otra columna."""
+        return self.primer_apellido
+
+    @apellidos.setter
+    def apellidos(self, valor):
+        self.primer_apellido = valor
 
 
 class Sesion(models.Model):
@@ -177,6 +224,9 @@ class Estilo(models.Model):
     nombre = models.CharField(max_length=80)
     descripcion = models.TextField(null=True, blank=True)
     es_catalogo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre
 
 class Prediccion(models.Model):
     imagen = models.ForeignKey(Imagen, on_delete=models.RESTRICT)
@@ -218,11 +268,42 @@ class TatuadoraEstilo(models.Model):
 
 class TrabajoPortafolio(models.Model):
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
-    estilo = models.ForeignKey(Estilo, on_delete=models.RESTRICT)
+    estilo = models.ForeignKey(Estilo, on_delete=models.RESTRICT, null=True, blank=True)
+    referencia = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    postulacion = models.ForeignKey(Postulacion, on_delete=models.RESTRICT, null=True, blank=True)
+    visible = models.BooleanField(default=False)
+    en_carrusel = models.BooleanField(default=False)
+    autorizacion_publicacion = models.BooleanField(default=False)
+    tipo = models.CharField(max_length=10, choices=[("TATUAJE", "Tatuaje realizado"), ("ESTUDIO", "Estudio")], default="TATUAJE")
+    actualizada_en = models.DateTimeField(auto_now=True)
     titulo = models.CharField(max_length=120)
     url = models.TextField()
     publicado_en = models.DateField()
     apto_entrenamiento = models.BooleanField(default=False)
+
+    def clean(self):
+        if self.postulacion_id and self.postulacion.tatuadora_id != self.tatuadora_id:
+            raise ValidationError("La solicitud debe pertenecer a tu cuenta.")
+        if self.visible and not self.autorizacion_publicacion:
+            raise ValidationError("Confirma que tienes autorización para publicar esta fotografía.")
+        if self.tipo == "TATUAJE" and not self.estilo_id:
+            raise ValidationError("Selecciona el estilo del tatuaje.")
+
+
+class MovimientoCobro(models.Model):
+    class Tipo(models.TextChoices):
+        PAGO = "PAGO", "Pago adicional recibido (no repetir el abono)"
+        DEVOLUCION = "DEVOLUCION", "Devolución efectivamente realizada"
+    postulacion = models.ForeignKey(Postulacion, on_delete=models.RESTRICT, related_name="movimientos")
+    tipo = models.CharField(max_length=10, choices=Tipo.choices)
+    monto = models.PositiveIntegerField()
+    detalle = models.CharField(max_length=300, validators=[texto_sin_controles])
+    verificado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en", "-pk"]
+        constraints = [models.CheckConstraint(condition=models.Q(monto__gt=0, monto__lte=100000000), name="cobro_monto_valido"), models.CheckConstraint(condition=models.Q(tipo__in=["PAGO", "DEVOLUCION"]), name="cobro_tipo_valido")]
 
 
 from django.db.models.signals import post_save

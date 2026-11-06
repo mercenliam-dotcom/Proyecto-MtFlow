@@ -47,6 +47,9 @@ class GestionForm(forms.Form):
     version = forms.CharField(required=False, widget=forms.HiddenInput)
     accion = forms.ChoiceField(label="Acción", choices=[("revisar", "Marcar en revisión"), ("aceptar", "Registrar acuerdo y aceptar"), ("abono", "Registrar abono verificado"), ("rechazar", "Rechazar solicitud")])
     precio_final = forms.IntegerField(label="Precio total acordado (CLP)", min_value=1, max_value=100000000, required=False)
+    abono_solicitado = forms.IntegerField(label="Abono que se solicita (CLP)", min_value=1, max_value=100000000, required=False)
+    alto_final_cm = forms.DecimalField(label="Alto final acordado (cm)", min_value=1, max_digits=5, decimal_places=2, required=False)
+    ancho_final_cm = forms.DecimalField(label="Ancho final acordado (cm)", min_value=1, max_digits=5, decimal_places=2, required=False)
     monto_abono = forms.IntegerField(label="Abono recibido acumulado (CLP)", min_value=1, max_value=100000000, required=False)
     verificado = forms.BooleanField(label="Verifiqué el pago recibido fuera de la plataforma", required=False)
     motivo = forms.CharField(label="Observación / motivo de rechazo", max_length=500, required=False, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"rows": 2}))
@@ -66,7 +69,7 @@ class GestionForm(forms.Form):
             if solicitud.estado in ("ACEPTADA", "RESERVADA"):
                 permitidas.append("abono")
             self.fields["accion"].choices = [(k, v) for k, v in self.fields["accion"].choices if k in permitidas]
-            self.initial.update(precio_final=solicitud.precio_final, monto_abono=solicitud.monto_abono)
+            self.initial.update(precio_final=solicitud.precio_final, monto_abono=solicitud.monto_abono, abono_solicitado=solicitud.abono_solicitado, alto_final_cm=solicitud.alto_final_cm, ancho_final_cm=solicitud.ancho_final_cm)
 
     def clean(self):
         d = super().clean()

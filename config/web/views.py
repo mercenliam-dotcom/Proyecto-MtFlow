@@ -46,10 +46,12 @@ def analizar_referencia(request):
 
 
 def portafolio(request):
+    from .models import TrabajoPortafolio
     descripciones = ["La fuerza del negro y el espacio", "Historias que se vuelven tinta", "Trazos orgánicos y digitales", "Palabras con identidad", "Sutileza en cada línea", "Ritmo, simetría y composición", "Formas que siguen el cuerpo"]
     trabajos = [{"estilo": nombre, "descripcion": descripcion} for nombre, descripcion in zip(
         (nombre for codigo, nombre in ESTILOS.items() if codigo != "E-99"), descripciones)]
-    return render(request, "web/portafolio.html", {"trabajos": trabajos})
+    publicados = TrabajoPortafolio.objects.filter(visible=True, autorizacion_publicacion=True, tatuadora__activa=True, tatuadora__usuario__is_active=True, tatuadora__usuario__es_tatuadora=True).select_related("estilo", "tatuadora__usuario").order_by("-publicado_en", "-pk")
+    return render(request, "web/portafolio.html", {"trabajos": trabajos, "publicados": publicados[:60], "destacados": publicados.filter(en_carrusel=True)[:12]})
 
 
 def horarios(request):

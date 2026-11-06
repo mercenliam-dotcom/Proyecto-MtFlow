@@ -1,5 +1,7 @@
 # Aclaraciones de alcance para la presentación local
 
+> Registro histórico. La implementación del 6 de noviembre y las decisiones posteriores están en [flujo-completo-2026-11-06.md](flujo-completo-2026-11-06.md). Ese documento actualiza los pendientes de esta lista, incluida la preferencia de fecha y hora del cliente.
+
 Decisiones indicadas por el usuario después de la revisión de normalización:
 
 - No implementar reentrenamiento automático en producción. La confirmación/corrección del estilo prevista por RF-02.3 es revisión profesional, no una pantalla de entrenamiento. Su interfaz sigue pendiente.

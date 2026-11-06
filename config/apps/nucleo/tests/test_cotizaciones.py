@@ -109,7 +109,7 @@ class MisCotizaciones(TestCase):
 
     def test_ml_simulado_y_confianzas_se_identifican_sin_inferencia_nueva(self):
         imagen = self.imagen()
-        estilo = Estilo.objects.create(codigo="E-05", nombre="Línea fina")
+        estilo = Estilo.objects.get_or_create(codigo="E-05", defaults={"nombre": "Línea fina"})[0]
         prediccion = Prediccion.objects.create(imagen=imagen, estilo_sugerido=estilo, version_modelo="simulado-0.2", confianza_maxima="0.92", tiempo_inferencia_ms=100)
         ConfianzaEstilo.objects.create(prediccion=prediccion, estilo=estilo, confianza="0.92")
         with patch("web.views.clasificar") as ml:
@@ -128,8 +128,8 @@ class MisCotizaciones(TestCase):
 
     def test_fuera_de_catalogo_no_muestra_porcentaje_como_estilo(self):
         imagen = self.imagen()
-        estilo = Estilo.objects.create(codigo="E-99", nombre="Fuera de catálogo", es_catalogo=False)
-        fina = Estilo.objects.create(codigo="E-05", nombre="Línea fina")
+        estilo = Estilo.objects.get_or_create(codigo="E-99", defaults={"nombre": "Fuera de catálogo", "es_catalogo": False})[0]
+        fina = Estilo.objects.get_or_create(codigo="E-05", defaults={"nombre": "Línea fina"})[0]
         prediccion = Prediccion.objects.create(imagen=imagen, estilo_sugerido=estilo, version_modelo="roboflow-workflow:prueba", confianza_maxima=1, tiempo_inferencia_ms=100)
         ConfianzaEstilo.objects.create(prediccion=prediccion, estilo=estilo, confianza=1)
         ConfianzaEstilo.objects.create(prediccion=prediccion, estilo=fina, confianza=0)
