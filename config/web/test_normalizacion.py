@@ -37,13 +37,14 @@ class NormalizacionYValidaciones(TestCase):
         self.assertEqual(self.p.area_cm2, 32)
         self.assertEqual(self.p.categoria_tamano, "mediano")
 
-    def test_nuevo_envio_guarda_contacto_sin_inventar_identidad(self):
+    def test_nuevo_envio_guarda_cliente_y_contacto_historico(self):
         identidades = Cliente.objects.count()
         r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, nombre="Persona nueva", color="color", detalle="alto", cobertura="on"))
         self.assertContains(r, "Propuesta recibida")
         p = Postulacion.objects.latest("pk")
-        self.assertIsNone(p.cliente_id)
-        self.assertEqual(Cliente.objects.count(), identidades)
+        self.assertIsNotNone(p.cliente_id)
+        self.assertIsNone(p.cliente.usuario_id)
+        self.assertEqual(Cliente.objects.count(), identidades + 1)
         self.assertEqual(p.contacto.nombres, "Persona nueva")
         self.assertEqual((p.descripcion, p.color, p.nivel_detalle, p.cobertura), ("Una flor", "color", "alto", True))
 

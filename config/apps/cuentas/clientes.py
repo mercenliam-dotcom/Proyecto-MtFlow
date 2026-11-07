@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_GET, require_http_methods
-from web.models import Postulacion, Imagen
+from web.models import Cliente, Postulacion, Imagen
 from web.limites import _admitir
 from .models import Rol, PerfilCliente
 from .permisos import rol_requerido
@@ -51,7 +51,7 @@ def registro(request):
 
 
 def propias(user):
-    return Postulacion.objects.filter(cuenta_cliente=user).select_related("tatuadora__usuario", "contacto")
+    return Postulacion.objects.filter(cliente__usuario=user).select_related("cliente__usuario", "tatuadora__usuario", "contacto")
 
 
 @solo_cliente
@@ -103,6 +103,8 @@ def perfil(request):
                     # Solo editar datos personales: nunca guardar roles de una instancia desactualizada.
                     usuario.save(update_fields=["nombre", "apellido", "email"])
                     preferencias.save()
+                    Cliente.objects.filter(usuario=usuario).update(nombres=usuario.nombre, primer_apellido=usuario.apellido,
+                        segundo_apellido=preferencias.instance.segundo_apellido, correo=usuario.email, telefono=preferencias.instance.telefono)
             except IntegrityError:
                 datos.add_error(None, "No se guardaron los cambios. El correo puede estar ocupado; revisa los datos.")
                 status = 409

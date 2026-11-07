@@ -59,11 +59,13 @@ Table cuentas_perfilcliente {
 }
 
 Table web_cliente {
-  Note: 'Entidad heredada de identidad opcional. No equivale a una cuenta de acceso. No se fusiona por coincidencia de correo. Se conserva sin borrar registros históricos. Tabla física Django: web_cliente.'
+  Note: 'Registro de cliente con nombres y apellidos separados. Una cuenta opcional y única vincula sus solicitudes. Los invitados permanecen sin cuenta; no se fusionan por coincidencia de correo. Los registros antiguos se conservan. Tabla física Django: web_cliente.'
   id bigint [pk, not null, increment]
+  usuario_id bigint [null, unique, note: 'Al eliminar referente: RESTRICT en Django']
   rut varchar(12) [null, unique]
   nombres varchar(80) [not null]
-  apellidos varchar(160) [not null]
+  primer_apellido varchar(160) [not null]
+  segundo_apellido varchar(80) [not null]
   correo varchar(254) [null]
   telefono varchar(25) [null]
   creado_en timestamptz [not null, note: 'Fecha asignada por Django']
@@ -101,9 +103,8 @@ Table web_bloquehorario {
 }
 
 Table web_postulacion {
-  Note: 'Solicitud única: las bandejas son filtros, no tablas duplicadas. cuenta_cliente_id es opcional: envíos sin cuenta permanecen sin propietario de portal. Área, categoría de tamaño, cobro neto, saldo y estado comercial mostrado se calculan; no son columnas. Tabla física Django: web_postulacion.'
+  Note: 'Cada solicitud pertenece obligatoriamente a un cliente; un cliente admite varias solicitudes. La cuenta se resuelve a través de cliente.usuario_id, sin FK redundante. Área, categoría de tamaño, cobro neto, saldo y estado comercial mostrado se calculan; no son columnas. Tabla física Django: web_postulacion.'
   id bigint [pk, not null, increment]
-  cuenta_cliente_id bigint [null, note: 'Al eliminar referente: RESTRICT en Django']
   fecha_propuesta date [null]
   hora_propuesta time [null]
   abono_solicitado integer [null]
@@ -114,7 +115,7 @@ Table web_postulacion {
   abono_verificado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
   referencia uuid [not null, unique, note: 'Valor inicial en Django: generado por aplicación']
   estado_ml varchar(20) [not null, note: 'Valores de aplicación: LEGADO, NO_SOLICITADO, COMPLETADO, NO_DISPONIBLE; Valor inicial en Django: LEGADO']
-  cliente_id bigint [null, note: 'Al eliminar referente: RESTRICT en Django']
+  cliente_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
   tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
   zona_cuerpo varchar(100) [not null]
   alto_cm numeric(5,2) [not null]
@@ -300,9 +301,9 @@ Table web_eventosolicitud {
 Ref: web_horariotrabajo.tatuadora_id > web_tatuadora.id
 Ref: usuario.creado_por_id > usuario.id
 Ref: usuario.id - cuentas_perfilcliente.usuario_id
+Ref: usuario.id - web_cliente.usuario_id
 Ref: usuario.id - web_tatuadora.usuario_id
 Ref: web_bloquehorario.tatuadora_id > web_tatuadora.id
-Ref: web_postulacion.cuenta_cliente_id > usuario.id
 Ref: web_postulacion.abono_verificado_por_id > usuario.id
 Ref: web_postulacion.cliente_id > web_cliente.id
 Ref: web_postulacion.tatuadora_id > web_tatuadora.id

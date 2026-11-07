@@ -1,6 +1,6 @@
 # DER actualizado de MTFlow
 
-Fecha: 6 de noviembre de 2026. Referencia: DER del informe existente (imagen14.jpg). Este documento describe la implementación actual, no funcionalidades futuras.
+Fecha: 7 de noviembre de 2026. Referencia: DER del informe existente (imagen14.jpg). Este documento describe la implementación actual, no funcionalidades futuras.
 
 ## Usar en dbdiagram.io
 
@@ -13,8 +13,8 @@ Los archivos contienen 18 tablas de negocio. Se omiten tablas internas de Django
 | Área | Representación actual |
 | --- | --- |
 | Cuentas | Nueva tabla `usuario`: credenciales y permisos antes asociados a tatuadora. Solo ADMIN (Administradora) y USUARIO (Usuario/cliente). `tatuadora` es un perfil profesional 1:1; toda tatuadora debe ser ADMIN. |
-| Cliente con cuenta | Nueva `perfil_cliente`, vinculada 1:1 a usuario. La solicitud tiene `cuenta_cliente_id` opcional para consultar exclusivamente las propias solicitudes. No se vinculan solicitudes ajenas por coincidencia de correo. |
-| Contacto | Nueva `contacto_solicitud`: datos declarados al enviar, con nombres y ambos apellidos separados. Editar el perfil no cambia el contacto histórico. `cliente` se conserva como entidad heredada opcional; no es otro rol. Sus campos históricos no se inventan ni se eliminan. |
+| Cliente con cuenta | `cliente.usuario_id` es opcional y único: una cuenta puede vincular su registro de cliente y todas sus solicitudes. `postulacion.cliente_id` es obligatorio. Se retiró la FK redundante `postulacion.cuenta_cliente_id`; el acceso al portal se resuelve a través del cliente. `perfil_cliente` conserva las preferencias de cuenta. |
+| Contacto | `cliente` guarda el registro de la persona; `contacto_solicitud` conserva los datos declarados en cada envío, con ambos apellidos separados. Cambiar el perfil no reescribe el contacto histórico. Los invitados no se fusionan ni se vinculan a cuentas por coincidencia de correo. |
 | Agenda | Nueva `sesion`: cada cita pertenece a una solicitud, que puede tener varias sesiones. Sustituye el bloque único de la solicitud. Fecha y hora propuestas son referenciales; no reservan. |
 | Jornada semanal | Nueva `horario_trabajo`: día de semana, activo, inicio y fin por tatuadora. Los bloques DISPONIBILIDAD sustituyen la jornada de una fecha; citas y bloqueos descuentan disponibilidad. |
 | Cotización y pagos | Precio acordado, abono solicitado, abono recibido y verificación. Nueva `movimiento_cobro` para pagos adicionales y devoluciones, sin duplicar el abono. Pagos fuera de la plataforma. |
@@ -25,7 +25,7 @@ Los archivos contienen 18 tablas de negocio. Se omiten tablas internas de Django
 | Datos derivados | Área, categoría de tamaño, saldo y total cobrado se calculan; no se dibujan como columnas almacenadas. |
 | Claves | tatuadora_estilo tiene una PK id y unicidad de la pareja tatuadora/estilo, en lugar de la PK compuesta del dibujo anterior. |
 
-El diagrama original contemplaba dirección y fecha de nacimiento en cliente; no se incluyen como si estuvieran implementadas. El nombre profesional se obtiene de la cuenta, con nombre artístico independiente. La tabla heredada cliente conserva su estructura previa, incluidos apellidos históricos sin división automática.
+El diagrama original contemplaba dirección y fecha de nacimiento en cliente; no se incluyen como si estuvieran implementadas. El nombre profesional se obtiene de la cuenta, con nombre artístico independiente. Los apellidos históricos del cliente se conservaron íntegros en primer_apellido; no se inventó una separación automática. Las nuevas entradas guardan primer y segundo apellido por separado.
 
 ## Roles y acceso
 

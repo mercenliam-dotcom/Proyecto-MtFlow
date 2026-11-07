@@ -11,7 +11,7 @@ from django.db import IntegrityError, transaction
 
 from apps.clasificacion.catalogo import ESTILOS, recomendar
 from apps.clasificacion.cliente_ml import ServicioMLNoDisponible
-from .models import ContactoSolicitud, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
+from .models import Cliente, ContactoSolicitud, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
 from .precios import estimar
 
 log = logging.getLogger("mtflow.seguridad")
@@ -89,8 +89,18 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
             ).first()
             if tatuadora is None:
                 raise TatuadoraNoDisponible
+            if cuenta_cliente is not None:
+                perfil = getattr(cuenta_cliente, "perfil_cliente", None)
+                cliente, _ = Cliente.objects.get_or_create(usuario=cuenta_cliente, defaults={
+                    "nombres": cuenta_cliente.nombre, "primer_apellido": cuenta_cliente.apellido,
+                    "segundo_apellido": getattr(perfil, "segundo_apellido", ""),
+                    "correo": cuenta_cliente.email, "telefono": getattr(perfil, "telefono", ""),
+                })
+            else:
+                cliente = Cliente.objects.create(nombres=datos["nombre"], primer_apellido=datos.get("primer_apellido", ""),
+                    segundo_apellido=datos.get("segundo_apellido", ""), correo=datos["email"], telefono=datos["telefono"])
             postulacion = Postulacion.objects.create(
-                cuenta_cliente=cuenta_cliente,
+                cliente=cliente,
                 referencia=referencia, tatuadora=tatuadora,
                 zona_cuerpo=datos["zona"], alto_cm=alto, ancho_cm=ancho,
                 descripcion=datos["idea"], color=datos["color"], nivel_detalle=datos["detalle"], cobertura=datos["cobertura"],

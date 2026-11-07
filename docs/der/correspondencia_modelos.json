@@ -62,15 +62,19 @@
     "tabla_fisica": "web_cliente",
     "columnas": [
       "id",
+      "usuario_id",
       "rut",
       "nombres",
-      "apellidos",
+      "primer_apellido",
+      "segundo_apellido",
       "correo",
       "telefono",
       "creado_en",
       "actualizado_en"
     ],
-    "fk": []
+    "fk": [
+      "usuario_id"
+    ]
   },
   {
     "modelo": "web.Tatuadora",
@@ -113,7 +117,6 @@
     "tabla_fisica": "web_postulacion",
     "columnas": [
       "id",
-      "cuenta_cliente_id",
       "fecha_propuesta",
       "hora_propuesta",
       "abono_solicitado",
@@ -146,7 +149,6 @@
       "realizada_en"
     ],
     "fk": [
-      "cuenta_cliente_id",
       "abono_verificado_por_id",
       "cliente_id",
       "tatuadora_id"

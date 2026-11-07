@@ -19,6 +19,35 @@ def cliente(nombre="cliente1", **extra):
 
 
 class PortalClientes(TestCase):
+    def test_tres_solicitudes_de_cuenta_comparten_cliente_y_conservan_contactos(self):
+        from web.models import Cliente
+        otra_artista = profesional("terceraartista")
+        primera = self.envio(nombre="Nombre primero", primer_apellido="Pérez", segundo_apellido="Soto")
+        segunda = self.envio(nombre="Nombre segundo", tatuadora=str(otra_artista.pk))
+        tercera = self.envio(nombre="Nombre tercero")
+        self.assertEqual({primera.cliente_id, segunda.cliente_id, tercera.cliente_id}, {primera.cliente_id})
+        self.assertEqual(Cliente.objects.filter(usuario=self.u).count(), 1)
+        self.assertEqual(primera.cliente.solicitudes.count(), 3)
+        self.assertEqual(primera.contacto.nombres, "Nombre primero")
+        self.assertEqual(segunda.contacto.nombres, "Nombre segundo")
+        self.assertEqual(sum(p.imagen_set.count() for p in (primera, segunda, tercera)), 3)
+        self.assertNotIn("cuenta_cliente", {f.name for f in Postulacion._meta.fields})
+        self.assertEqual(self.client.get(reverse("clientes:inicio")).context["pagina"].paginator.count, 3)
+        self.client.force_login(self.otro)
+        for p in (primera, segunda, tercera):
+            self.assertEqual(self.client.get(reverse("clientes:detalle", args=[p.referencia])).status_code, 404)
+
+    def test_anonimos_con_mismo_correo_no_se_unen_ni_ganan_acceso_por_cuenta(self):
+        anonimo = Client()
+        ids = []
+        for _ in range(2):
+            self.assertEqual(anonimo.post(reverse("web:cotizacion"), propuesta(self.a, email=self.u.email)).status_code, 200)
+            p = Postulacion.objects.latest("pk")
+            ids.append(p.cliente_id)
+            self.assertIsNone(p.cliente.usuario_id)
+        propia = self.envio()
+        self.assertEqual(len(set(ids + [propia.cliente_id])), 3)
+
     def test_solo_dos_roles_y_usuario_no_puede_ser_tatuadora(self):
         from apps.cuentas.forms import CrearCuentaForm
         self.assertEqual(set(Rol.values), {"ADMIN", "USUARIO"})

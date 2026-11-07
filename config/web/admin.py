@@ -24,6 +24,9 @@ class TatuadoraAdmin(admin.ModelAdmin):
 for modelo in (Postulacion, ContactoSolicitud, Imagen, Prediccion, BloqueHorario,
                Sesion, EventoSolicitud, ConfianzaEstilo, MovimientoCobro, TrabajoPortafolio, EtiquetaConsolidada):
     admin.site.register(modelo, RegistroOperativoAdmin)
-admin.site.register(Cliente)
+@admin.register(Cliente)
+class ClienteAdmin(RegistroOperativoAdmin):
+    list_display = ("id", "nombres", "primer_apellido", "segundo_apellido", "usuario")
+    search_fields = ("nombres", "primer_apellido", "correo")
 admin.site.register(Tatuadora, TatuadoraAdmin)
 admin.site.register(Estilo)

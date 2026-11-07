@@ -8,16 +8,26 @@ from django.db import models
 from django.conf import settings
 
 class Cliente(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.RESTRICT, related_name="cliente_registro")
     rut = models.CharField(max_length=12, unique=True, null=True, blank=True)
     nombres = models.CharField(max_length=80)
-    apellidos = models.CharField(max_length=160)
+    primer_apellido = models.CharField(max_length=160, blank=True)
+    segundo_apellido = models.CharField(max_length=80, blank=True)
     correo = models.EmailField(max_length=254, null=True, blank=True)
     telefono = models.CharField(max_length=25, null=True, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.nombres} {self.apellidos}"
+        return f"{self.nombres} {self.primer_apellido} {self.segundo_apellido}".strip()
+
+    @property
+    def apellidos(self):
+        return self.primer_apellido
+
+    @apellidos.setter
+    def apellidos(self, valor):
+        self.primer_apellido = valor
 
 class Tatuadora(models.Model):
     # Conectamos con el sistema de usuarios de Django como sugería el mer.txt
@@ -89,7 +99,13 @@ class BloqueHorario(models.Model):
         return f"{self.fecha} {self.hora_inicio:%H:%M}–{self.hora_fin:%H:%M} · {self.get_tipo_display()}"
 
 class Postulacion(models.Model):
-    cuenta_cliente = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.RESTRICT, related_name="solicitudes_cliente")
+    @property
+    def cuenta_cliente(self):
+        return self.cliente.usuario
+
+    @property
+    def cuenta_cliente_id(self):
+        return self.cliente.usuario_id
     class DestinoAbono(models.TextChoices):
         PENDIENTE = "PENDIENTE", "Pendiente de acuerdo"
         REAGENDAR = "REAGENDAR", "Conservar para reagendar"
@@ -112,7 +128,7 @@ class Postulacion(models.Model):
     abono_verificado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="abonos_verificados")
     referencia = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     estado_ml = models.CharField(max_length=20, choices=EstadoML.choices, default=EstadoML.LEGADO)
-    cliente = models.ForeignKey(Cliente, null=True, blank=True, on_delete=models.RESTRICT)
+    cliente = models.ForeignKey(Cliente, on_delete=models.RESTRICT, related_name="solicitudes")
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
     zona_cuerpo = models.CharField(max_length=100)
     alto_cm = models.DecimalField(max_digits=5, decimal_places=2)
