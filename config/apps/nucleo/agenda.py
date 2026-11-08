@@ -47,9 +47,19 @@ def paso_gestion(request, referencia, accion):
                     form.add_error(None,"No se guardó el cambio. Recarga y vuelve a intentar.")
                 else:
                     messages.success(request,"Pago externo confirmado. Ya puedes revisar la reserva." if accion=="abono" else "Solicitud actualizada.")
+                    if request.POST.get("continuar") == "1":
+                        if accion == "aceptar":
+                            return redirect(reverse("nucleo:gestion_paso", args=[referencia, "abono"]) + "?guiado=1")
+                        if accion == "abono":
+                            propuesta.refresh_from_db()
+                            if propuesta.total_cobrado >= (propuesta.abono_solicitado or 0) and propuesta.total_cobrado > 0 and propuesta.destino_abono not in ("RETENIDO", "DEVOLVER"):
+                                return redirect(reverse("nucleo:agenda_nuevo") + "?solicitud=" + str(referencia))
+                        if accion == "rechazar":
+                            return redirect(reverse("nucleo:registro") + "?bandeja=rechazadas")
                     return redirect("nucleo:cotizacion_detalle",referencia=referencia)
     titulo,ayuda,boton=pasos[accion]
-    return render(request,"agenda/gestion.html",{"propuesta":propuesta,"form":form,"accion":accion,"titulo":titulo,"ayuda":ayuda,"boton":boton},status=status)
+    guiado = request.GET.get("guiado") == "1" or request.POST.get("continuar") == "1"
+    return render(request,"agenda/gestion.html",{"propuesta":propuesta,"form":form,"accion":accion,"titulo":titulo,"ayuda":ayuda,"boton":boton,"guiado":guiado},status=status)
 
 
 def profesional(request):

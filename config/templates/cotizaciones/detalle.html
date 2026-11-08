@@ -1,10 +1,19 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block titulo %}Detalle de cotización{% endblock %}
 {% block contenido %}
-<p class="miga">{% if es_equipo %}<a href="{% url 'nucleo:equipo_cotizaciones' %}">← Cotizaciones del equipo</a>{% else %}<a href="{% url 'nucleo:cotizaciones' %}">← Solicitudes</a>{% endif %}</p>
+<p class="miga">{% if es_equipo %}<a href="{% url 'nucleo:equipo_cotizaciones' %}">← Cotizaciones del equipo</a>{% elif pendiente_decision %}<a href="{% url 'nucleo:cotizaciones' %}">← Solicitudes pendientes</a>{% else %}<a href="{% url 'nucleo:registro' %}">← Registro</a>{% endif %}</p>
 <div class="encabezado"><h1>La propuesta de {{ propuesta.contacto.nombres }}</h1><span class="chip">{{ estado_legible }}</span></div>
 <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }}</p>
 <p class="bajada">Esta propuesta está dirigida a {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
+{% if puede_gestionar and pendiente_decision %}
+<button type="button" class="boton" id="abrir-decision" hidden>Evaluar solicitud</button>
+<dialog id="decision-solicitud" class="decision-solicitud" aria-labelledby="decision-titulo" aria-describedby="decision-ayuda">
+  <button type="button" class="boton secundario" id="cerrar-decision" autofocus>Cerrar y revisar detalles</button>
+  <h2 id="decision-titulo">¿Cómo quieres continuar?</h2>
+  <p id="decision-ayuda">Solicitud de {{ propuesta.contacto.nombres }}. Revisa la referencia antes de decidir. Aceptar permite registrar el acuerdo; no confirma un pago ni reserva una hora.</p>
+  <div class="acciones"><a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'aceptar' %}?guiado=1">Aceptar y continuar</a><a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'rechazar' %}?guiado=1">Rechazar y registrar motivo</a></div>
+</dialog>
+{% endif %}
 <div class="rejilla dos">
   <section class="tarjeta">
     <h2>Contacto y propuesta</h2>
@@ -69,3 +78,4 @@
   <ul>{% for evento in eventos %}<li>{{ evento.creado_en|date:"d/m/Y H:i" }} · {{ evento.tipo|capfirst }} · {{ evento.detalle }}</li>{% empty %}<li>Sin cambios posteriores a la recepción.</li>{% endfor %}</ul>
 </section>
 {% endblock %}
+{% block page_scripts %}<script src="{% static 'js/decision-solicitud.js' %}" defer></script>{% endblock %}

@@ -174,7 +174,7 @@ class MisCotizaciones(TestCase):
         ContactoSolicitud.objects.filter(postulacion=self.externa).delete()
         Postulacion.objects.filter(pk=self.externa.pk).delete()
         Tatuadora.objects.filter(pk=self.otra.pk).delete()
-        self.assertContains(self.client.get(self.url), "Aún no tienes cotizaciones")
+        self.assertContains(self.client.get(self.url), "No hay solicitudes pendientes")
 
     def test_solo_consulta_no_acepta_post(self):
         for url in (self.url, self.detalle):

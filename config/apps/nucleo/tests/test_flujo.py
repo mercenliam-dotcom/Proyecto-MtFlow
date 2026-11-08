@@ -138,7 +138,7 @@ class FlujoCompleto(TestCase):
     def test_paginas_y_bandejas_renderizan(self):
         for nombre in ("nucleo:metricas", "nucleo:portafolio", "nucleo:portafolio_nuevo"):
             self.assertEqual(self.client.get(reverse(nombre)).status_code, 200)
-        r = self.client.get(reverse("nucleo:cotizaciones"), {"bandeja": "rechazadas"})
+        r = self.client.get(reverse("nucleo:cotizaciones"), {"bandeja": "rechazadas"}, follow=True)
         self.assertEqual(r.context["pagina"].paginator.count, 0)
         self.assertContains(self.client.get(reverse("nucleo:metricas")), "js/metricas.js")
 

@@ -6,6 +6,7 @@ from . import horario_trabajo
 app_name = "nucleo"
 
 urlpatterns = [
+    path("registro/", cotizaciones.registro, name="registro"),
     path("agenda/horario-trabajo/", horario_trabajo.editar, name="horario_trabajo"),
     path("cotizaciones/<uuid:referencia>/gestion/<str:accion>/", agenda.paso_gestion, name="gestion_paso"),
     path("metricas/", metricas.inicio, name="metricas"),

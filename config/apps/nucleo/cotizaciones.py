@@ -5,7 +5,8 @@ from pathlib import Path
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, OuterRef, Subquery, F
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
@@ -37,7 +38,16 @@ def precio_legible(propuesta):
 @never_cache
 @require_GET
 def lista(request):
+    if request.GET.get("bandeja") in ("aceptadas", "rechazadas", "terminadas", "agendadas"):
+        return redirect(reverse("nucleo:registro") + "?bandeja=" + request.GET["bandeja"])
     return _lista(request, propias(request.user))
+
+
+@rol_requerido(Rol.ADMIN)
+@never_cache
+@require_GET
+def registro(request):
+    return _lista(request, propias(request.user), es_registro=True)
 
 
 @solo_admin
@@ -48,15 +58,23 @@ def equipo(request):
     return _lista(request, propuestas, es_equipo=True)
 
 
-def _lista(request, propuestas, es_equipo=False):
+def _lista(request, propuestas, es_equipo=False, es_registro=False):
+    resumen = None
+    bandeja = request.GET.get("bandeja", "")
+    if not es_equipo:
+        if es_registro:
+            propuestas = propuestas.filter(estado__in=["ACEPTADA", "RESERVADA", "REALIZADA", "RECHAZADA"])
+            resumen = {"aceptadas": propuestas.exclude(estado="RECHAZADA").count(), "rechazadas": propuestas.filter(estado="RECHAZADA").count()}
+        else:
+            propuestas = propuestas.filter(estado__in=["RECIBIDA", "EN_REVISION"])
     estados = [(estado, nombre_estado(estado)) for estado in propuestas.order_by("estado").values_list("estado", flat=True).distinct()]
     estado = request.GET.get("estado", "")
     if estado not in {valor for valor, _ in estados}:
         estado = ""
     total = propuestas.count()
-    grupos = {"pendientes": ["RECIBIDA", "EN_REVISION"], "aceptadas": ["ACEPTADA", "RESERVADA"], "rechazadas": ["RECHAZADA"], "terminadas": ["REALIZADA"]}
-    if not es_equipo and request.GET.get("bandeja") in grupos:
-        propuestas = propuestas.filter(estado__in=grupos[request.GET["bandeja"]])
+    grupos = {"aceptadas": ["ACEPTADA", "RESERVADA", "REALIZADA"], "por_agendar": ["ACEPTADA"], "agendadas": ["RESERVADA"], "rechazadas": ["RECHAZADA"], "terminadas": ["REALIZADA"]}
+    if es_registro and bandeja in grupos:
+        propuestas = propuestas.filter(estado__in=grupos[bandeja])
     form = None
     status = 200
     if es_equipo:
@@ -89,7 +107,8 @@ def _lista(request, propuestas, es_equipo=False):
     return render(request, "cotizaciones/lista.html", {
         "pagina": pagina, "total": total, "estados": estados, "estado": estado,
         "es_equipo": es_equipo, "form_filtros": form, "filtros_query": filtros.urlencode(),
-        "titulo": "Cotizaciones del equipo" if es_equipo else "Solicitudes",
+        "titulo": "Cotizaciones del equipo" if es_equipo else "Registro" if es_registro else "Solicitudes pendientes",
+        "es_registro": es_registro, "resumen_registro": resumen, "bandeja": bandeja,
         "detalle_nombre": "nucleo:equipo_cotizacion_detalle" if es_equipo else "nucleo:cotizacion_detalle",
     }, status=status)
 
@@ -154,6 +173,7 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
     return render(request, "cotizaciones/detalle.html", {
         "propuesta": propuesta, "referencias": referencias, "revision": propuesta.imagen_set.filter(es_principal=True).select_related("etiquetaconsolidada__estilo").first(),
         "estado_legible": propuesta.estado_comercial,
+        "pendiente_decision": propuesta.estado in ("RECIBIDA", "EN_REVISION"),
         "puede_agendar": propuesta.estado in ("ACEPTADA", "RESERVADA") and propuesta.total_cobrado > 0 and propuesta.total_cobrado >= (propuesta.abono_solicitado or 0) and propuesta.destino_abono not in ("RETENIDO", "DEVOLVER"),
         "opciones": opciones, "es_equipo": es_equipo,
         "gestion_form": gestion_form if gestion_form is not None else GestionForm(solicitud=propuesta),

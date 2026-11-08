@@ -5,10 +5,12 @@
   <div><p class="eyebrow">{% if es_equipo %}PROPUESTAS DEL ESTUDIO{% else %}PROPUESTAS PARA TI{% endif %}</p><h1>{{ titulo }}</h1></div>
   <span class="chip">{{ total }} propuesta{{ total|pluralize:"s" }}</span>
 </div>
-<p class="bajada">{% if es_equipo %}Consulta las propuestas de todas las tatuadoras del estudio.{% else %}Revisa las ideas que te enviaron.{% endif %} Recibir una propuesta no confirma un horario ni el precio final.</p>
+<p class="bajada">{% if es_equipo %}Consulta las propuestas de todas las tatuadoras del estudio.{% elif es_registro %}Historial de tus decisiones, acuerdos y sesiones. Aquí permanecen las solicitudes aceptadas y rechazadas.{% else %}Solo solicitudes recibidas o en revisión. Al aceptar o rechazar, pasan al Registro.{% endif %}</p>
+{% if es_registro %}<p><strong>{{ resumen_registro.aceptadas }} aceptadas</strong> (incluye agendadas y finalizadas) · <strong>{{ resumen_registro.rechazadas }} rechazadas</strong></p>{% endif %}
 {% if es_equipo %}
 {% if form_filtros.errors %}<div class="alerta alerta-error" role="alert">Revisa los filtros indicados.{{ form_filtros.non_field_errors }}</div>{% endif %}
 <form class="cotizaciones-filtros" method="get">
+  {% if es_registro and bandeja %}<input type="hidden" name="bandeja" value="{{ bandeja }}">{% endif %}
 {% for campo in form_filtros %}{% include "_campo.html" %}{% endfor %}
 <button class="boton secundario" type="submit">Filtrar</button>
 <a href="{% url 'nucleo:equipo_cotizaciones' %}">Limpiar filtros</a>
@@ -16,6 +18,7 @@
 <p class="nota">{{ pagina.paginator.count }} de {{ total }} propuestas</p>
 {% elif total %}
 <form class="cotizaciones-filtros" method="get">
+  {% if es_registro and bandeja %}<input type="hidden" name="bandeja" value="{{ bandeja }}">{% endif %}
   <div class="campo"><label for="estado">Estado de la propuesta</label>
     <select name="estado" id="estado"><option value="">Todos los estados</option>
       {% for valor, etiqueta in estados %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
@@ -25,7 +28,7 @@
   <button class="boton secundario" type="submit">Filtrar</button>
 </form>
 {% endif %}
-{% if not es_equipo %}<nav class="acciones" aria-label="Bandejas de solicitudes"><a class="boton secundario" href="?bandeja=pendientes">Pendientes</a><a class="boton secundario" href="?bandeja=aceptadas">Aceptadas</a><a class="boton secundario" href="?bandeja=rechazadas">Rechazadas</a><a class="boton secundario" href="?bandeja=terminadas">Terminadas</a><a href="?">Todas</a></nav>{% endif %}
+{% if not es_equipo %}<nav class="acciones" aria-label="Solicitudes y registro"><a class="boton secundario" href="{% url 'nucleo:cotizaciones' %}">Pendientes</a><a class="boton secundario" href="{% url 'nucleo:registro' %}">Registro completo</a>{% if es_registro %}<a href="?bandeja=aceptadas">Aceptadas</a><a href="?bandeja=por_agendar">Por agendar</a><a href="?bandeja=agendadas">Agendadas</a><a href="?bandeja=terminadas">Finalizadas</a><a href="?bandeja=rechazadas">Rechazadas</a>{% endif %}</nav>{% endif %}
 <div class="cotizaciones-lista">
 {% for propuesta in pagina %}
   <article class="tarjeta">
@@ -40,10 +43,11 @@
       <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
     </dl>
     <a class="boton" href="{% url detalle_nombre propuesta.referencia %}">Ver propuesta de {{ propuesta.contacto.nombres }}</a>
+    {% if not es_equipo and not es_registro %}<a class="boton secundario" href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}?guiado=1">Evaluar solicitud</a>{% endif %}
     <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }}</p>
   </article>
 {% empty %}
-  <section class="tarjeta">{% if es_equipo %}<h2>No hay cotizaciones para mostrar</h2><p>Revisa los filtros o espera a que lleguen propuestas al estudio.</p>{% else %}<h2>Aún no tienes cotizaciones</h2><p>Las propuestas aparecerán aquí cuando un cliente te elija al enviar su idea.</p>{% endif %}</section>
+  <section class="tarjeta">{% if es_equipo %}<h2>No hay cotizaciones para mostrar</h2><p>Revisa los filtros o espera a que lleguen propuestas al estudio.</p>{% elif es_registro %}<h2>No hay registros con estos filtros</h2><p>Las solicitudes aparecerán aquí cuando las aceptes o rechaces.</p>{% else %}<h2>No hay solicitudes pendientes</h2><p>Las que ya decidiste están en <a href="{% url 'nucleo:registro' %}">Registro</a>. Las nuevas aparecerán aquí.</p>{% endif %}</section>
 {% endfor %}
 </div>
 {% if pagina.has_other_pages %}
