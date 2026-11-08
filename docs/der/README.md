@@ -1,6 +1,6 @@
 # DER actualizado de MTFlow
 
-Fecha: 7 de noviembre de 2026. Referencia: DER del informe existente (imagen14.jpg). Este documento describe la implementación actual, no funcionalidades futuras.
+Fecha: 8 de noviembre de 2026. Referencia: DER del informe existente (imagen14.jpg). Este documento describe la implementación actual, no funcionalidades futuras. Se incorpora el teléfono privado de contacto en `tatuadora`; nombre, apellido y correo siguen en su cuenta `usuario`.
 
 ## Usar en dbdiagram.io
 

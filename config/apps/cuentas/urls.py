@@ -1,11 +1,13 @@
 from django.urls import path
 
 from . import views
+from . import perfil
 
 app_name = "cuentas"
 
 # El registro público de clientes está separado en /mi-cuenta/registro/.
 urlpatterns = [
+    path("perfil/", perfil.propio, name="perfil"),
     path("ingresar/", views.ingresar, name="login"),
     path("salir/", views.salir, name="logout"),
     path("mi-contrasena/", views.mi_contrasena, name="mi_contrasena"),

@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block titulo %}Mi perfil{% endblock %}
 {% block contenido %}
-<h1>Mi perfil</h1><p class="bajada">Estos datos completarán tus próximas solicitudes. No modifican las que ya enviaste.</p>
-<form method="post" class="tarjeta">{% csrf_token %}{{ datos.non_field_errors }}{{ preferencias.non_field_errors }}{% for campo in datos %}{% include "_campo.html" %}{% endfor %}{% for campo in preferencias %}{% include "_campo.html" %}{% endfor %}<button class="boton" type="submit">Guardar mi perfil</button></form>
+<div class="perfil-contenedor"><p class="eyebrow">TU ESPACIO PERSONAL</p><h1>Mi perfil</h1>
+<section class="perfil-tarjeta" aria-label="Datos de mi cuenta">
+<div class="perfil-identidad"><span class="perfil-avatar" aria-hidden="true">{{ user.nombre|first|upper }}{{ user.apellido|first|upper }}</span><div><h2>{{ user.get_full_name }}</h2><p>@{{ user.nombre_usuario }} · {% if user.es_tatuadora %}Tatuadora{% elif user.es_cliente %}Cliente{% else %}Administradora{% endif %}</p></div></div>
+<dl class="perfil-datos"><div><dt>Correo electrónico</dt><dd>{{ user.email }}</dd></div><div><dt>Teléfono</dt><dd>{{ preferencias.instance.telefono|default:"Sin registrar" }}</dd></div></dl>
+<div class="perfil-atajos"><a href="{% url 'cuentas:mi_contrasena' %}">Cambiar contraseña ↗</a>{% if user.es_tatuadora %}<a href="{% url 'nucleo:portafolio' %}">Editar mi portafolio ↗</a>{% elif user.es_cliente %}<a href="{% url 'clientes:inicio' %}">Ver mis solicitudes ↗</a>{% endif %}</div>
+</section>
+<details class="perfil-editor" {% if datos.errors or preferencias.errors %}open{% endif %}><summary>Editar mis datos <span aria-hidden="true">＋</span></summary>
+{% if user.es_cliente %}<p class="nota">Estos datos completarán tus próximas solicitudes. No modifican las que ya enviaste.</p>{% else %}<p class="nota">Tu teléfono queda en tu cuenta; no se publica en el portafolio.</p>{% endif %}
+<form method="post">{% csrf_token %}{{ datos.non_field_errors }}{{ preferencias.non_field_errors }}<div class="perfil-campos">{% for campo in datos %}{% include "_campo.html" %}{% endfor %}{% for campo in preferencias %}{% include "_campo.html" %}{% endfor %}</div><button class="boton" type="submit">Guardar mi perfil</button></form></details></div>
 {% endblock %}

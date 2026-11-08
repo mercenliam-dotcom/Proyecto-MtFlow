@@ -77,6 +77,7 @@ Table tatuadora {
   id bigint [pk, not null, increment]
   usuario_id bigint [not null, unique, note: 'Al eliminar referente: CASCADE en Django']
   nombre_artistico varchar(120) [null]
+  telefono varchar(25) [not null]
   activa boolean [not null, note: 'Valor inicial en Django: True']
   creado_en timestamptz [not null, note: 'Fecha asignada por Django']
 }

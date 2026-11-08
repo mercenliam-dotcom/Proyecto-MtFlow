@@ -33,10 +33,10 @@ class BuzonLectura(TestCase):
 
     def test_bandeja_conserva_enlaces_completos_y_avisos(self):
         r = self.client.get(reverse('nucleo:cotizaciones'))
-        self.assertContains(r, 'data-resumen-url=')
+        self.assertContains(r, 'class="correo-fila"')
         self.assertContains(r, reverse('nucleo:cotizacion_detalle', args=[self.p.referencia]))
         self.assertContains(r, 'id="avisos-temporales"')
-        self.assertContains(r, 'id="buzon-error"')
+        self.assertNotContains(r, 'id="buzon-lectura"')
 
 
 class PaginasError(TestCase):

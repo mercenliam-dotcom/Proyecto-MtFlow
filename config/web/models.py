@@ -33,6 +33,7 @@ class Tatuadora(models.Model):
     # Conectamos con el sistema de usuarios de Django como sugería el mer.txt
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     nombre_artistico = models.CharField(max_length=120, null=True, blank=True)
+    telefono = models.CharField(max_length=25, blank=True, validators=[telefono_contacto])
     activa = models.BooleanField(default=True)
     creado_en = models.DateTimeField(auto_now_add=True)
 

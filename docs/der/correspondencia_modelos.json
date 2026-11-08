@@ -84,6 +84,7 @@
       "id",
       "usuario_id",
       "nombre_artistico",
+      "telefono",
       "activa",
       "creado_en"
     ],
