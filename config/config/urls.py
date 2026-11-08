@@ -1,11 +1,13 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from apps.nucleo.errores import vista_previa
 
 admin.site.site_header = "MTFlow · administración interna"
 admin.site.site_title = "MTFlow"
 
 urlpatterns = [
+    path("vista-previa/error/<int:codigo>/", vista_previa, name="error_preview"),
     path("mi-cuenta/", include("apps.cuentas.urls_cliente")),
     path(settings.DJANGO_ADMIN_URL, admin.site.urls),
     path("cuentas/", include("apps.cuentas.urls")),

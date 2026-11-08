@@ -1,0 +1,10 @@
+<article class="lectura-solicitud" data-resumen-solicitud>
+  <p class="eyebrow">{{ estado_legible }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }}</p>
+  <h2 tabindex="-1">{{ propuesta.contacto }}</h2>
+  <p class="nota">Para {{ propuesta.tatuadora.nombre_publico }}</p>
+  <div class="acciones"><a class="boton" href="{% url detalle_nombre propuesta.referencia %}">Abrir detalle completo</a>{% if puede_evaluar %}<a class="boton secundario" href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}?guiado=1">Evaluar solicitud</a>{% endif %}</div>
+  {% if imagen_url %}<img class="lectura-imagen" src="{{ imagen_url }}" alt="Referencia enviada por el cliente" loading="lazy">{% endif %}
+  <dl class="cotizacion-datos"><div><dt>Zona y medidas</dt><dd>{{ propuesta.zona_cuerpo|capfirst }} · {{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div><div><dt>Precio sugerido</dt><dd>{{ precio_legible }}</dd></div><div><dt>Precio acordado</dt><dd>{% if propuesta.precio_final != None %}{{ propuesta.precio_final }} CLP{% else %}Pendiente{% endif %}</dd></div><div><dt>Contacto</dt><dd>{{ propuesta.contacto.correo|default:"Sin correo" }}<br>{{ propuesta.contacto.telefono|default:"Sin teléfono" }}</dd></div></dl>
+  <h3>La idea del cliente</h3><p class="cotizacion-descripcion">{{ propuesta.descripcion }}</p>
+  <p class="nota">El detalle completo conserva el análisis, los pagos, las sesiones y el historial.</p>
+</article>

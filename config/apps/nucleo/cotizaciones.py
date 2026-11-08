@@ -110,6 +110,7 @@ def _lista(request, propuestas, es_equipo=False, es_registro=False):
         "titulo": "Cotizaciones del equipo" if es_equipo else "Registro" if es_registro else "Solicitudes pendientes",
         "es_registro": es_registro, "resumen_registro": resumen, "bandeja": bandeja,
         "detalle_nombre": "nucleo:equipo_cotizacion_detalle" if es_equipo else "nucleo:cotizacion_detalle",
+        "resumen_nombre": "nucleo:equipo_resumen" if es_equipo else "nucleo:cotizacion_resumen",
     }, status=status)
 
 
@@ -125,6 +126,38 @@ def detalle(request, referencia):
 @require_GET
 def equipo_detalle(request, referencia):
     return _detalle(request, referencia, Postulacion.objects.select_related("contacto", "tatuadora__usuario"), es_equipo=True)
+
+
+@rol_requerido(Rol.ADMIN)
+@never_cache
+@require_GET
+def resumen(request, referencia):
+    return _resumen(request, referencia, propias(request.user))
+
+
+@solo_admin
+@never_cache
+@require_GET
+def equipo_resumen(request, referencia):
+    return _resumen(request, referencia, Postulacion.objects.select_related("contacto", "tatuadora__usuario"), es_equipo=True)
+
+
+def _resumen(request, referencia, propuestas, es_equipo=False):
+    p=get_object_or_404(propuestas,referencia=referencia)
+    im=p.imagen_set.filter(es_principal=True).first()
+    url=None
+    if im:
+        raiz=Path(settings.MEDIA_ROOT).resolve()
+        ruta=(raiz/im.url).resolve()
+        if raiz in ruta.parents and ruta.is_file() and ruta.suffix.lower() in (".jpg",".jpeg",".png"):
+            url=url_archivo(im.url)
+    respuesta=render(request,"cotizaciones/resumen.html",{
+        "propuesta":p,"estado_legible":p.estado_comercial,"precio_legible":precio_legible(p),"imagen_url":url,
+        "detalle_nombre":"nucleo:equipo_cotizacion_detalle" if es_equipo else "nucleo:cotizacion_detalle",
+        "puede_evaluar":p.tatuadora.usuario_id==request.user.pk and request.user.es_tatuadora and p.tatuadora.activa and p.estado in ("RECIBIDA","EN_REVISION"),
+    })
+    respuesta["X-MTFlow-Fragment"]="resumen-solicitud"
+    return respuesta
 
 
 def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None, status=200):

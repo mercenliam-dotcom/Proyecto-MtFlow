@@ -340,3 +340,5 @@ ANALISIS_VENTANA_SEGUNDOS = int(env("ANALISIS_VENTANA_SEGUNDOS", "600"))
 
 # Cuenta demo admin/admin únicamente mediante activación explícita local.
 ADMIN_DESARROLLO_HABILITADO = env_bool("ADMIN_DESARROLLO_HABILITADO", False)
+
+CSRF_FAILURE_VIEW = 'apps.nucleo.errores.csrf_failure'

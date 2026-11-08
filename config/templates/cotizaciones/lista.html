@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block contenido %}
 <div class="encabezado">
@@ -29,26 +29,27 @@
 </form>
 {% endif %}
 {% if not es_equipo %}<nav class="acciones" aria-label="Solicitudes y registro"><a class="boton secundario" href="{% url 'nucleo:cotizaciones' %}">Pendientes</a><a class="boton secundario" href="{% url 'nucleo:registro' %}">Registro completo</a>{% if es_registro %}<a href="?bandeja=aceptadas">Aceptadas</a><a href="?bandeja=por_agendar">Por agendar</a><a href="?bandeja=agendadas">Agendadas</a><a href="?bandeja=terminadas">Finalizadas</a><a href="?bandeja=rechazadas">Rechazadas</a>{% endif %}</nav>{% endif %}
-<div class="cotizaciones-lista">
+<div class="buzon">
+<section class="buzon-lista" aria-label="Lista de solicitudes">
+<div class="buzon-cabecera"><strong>{{ pagina.paginator.count }} solicitudes</strong><span>Selecciona una para leerla</span></div>
 {% for propuesta in pagina %}
-  <article class="tarjeta">
-    <div class="encabezado">
-      <h2>{{ propuesta.contacto }}</h2>
-      <span class="chip">{{ propuesta.estado_legible }}</span>
-    </div>
-    <p class="nota">Recibida el {{ propuesta.creada_en|date:"d/m/Y" }} a las {{ propuesta.creada_en|date:"H:i" }}</p>
-    <dl class="cotizacion-datos">
-      {% if es_equipo %}<div><dt>Tatuadora</dt><dd>{{ propuesta.tatuadora.nombre_publico }}</dd></div>{% endif %}<div><dt>Zona</dt><dd>{{ propuesta.zona_cuerpo|capfirst }}</dd></div>
-      <div><dt>Confianza del modelo</dt><dd>{{ propuesta.confianza_legible }}</dd></div><div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
-      <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
-    </dl>
-    <a class="boton" href="{% url detalle_nombre propuesta.referencia %}">Ver propuesta de {{ propuesta.contacto.nombres }}</a>
-    {% if not es_equipo and not es_registro %}<a class="boton secundario" href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}?guiado=1">Evaluar solicitud</a>{% endif %}
-    <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }}</p>
-  </article>
+<article class="buzon-fila">
+  <a class="buzon-enlace" href="{% url detalle_nombre propuesta.referencia %}" data-resumen-url="{% url resumen_nombre propuesta.referencia %}" aria-label="Ver propuesta de {{ propuesta.contacto.nombres }}">
+    <div class="buzon-remitente"><strong>{{ propuesta.contacto }}</strong><time datetime="{{ propuesta.creada_en|date:'c' }}">{{ propuesta.creada_en|date:"d/m/Y" }}</time></div>
+    <div class="buzon-datos"><span class="chip">{{ propuesta.estado_legible }}</span><span>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm · {{ propuesta.zona_cuerpo|capfirst }}</span><span>Confianza: {{ propuesta.confianza_legible }}</span></div>
+    <p class="buzon-extracto">{{ propuesta.descripcion|truncatechars:110 }}</p>
+    <div class="buzon-pie"><span>{{ propuesta.precio_legible }}</span>{% if es_equipo %}<span>{{ propuesta.tatuadora.nombre_publico }}</span>{% endif %}</div>
+  </a>
+  {% if not es_equipo and not es_registro %}<a class="buzon-evaluar" href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}?guiado=1">Evaluar solicitud ↗</a>{% endif %}
+</article>
 {% empty %}
-  <section class="tarjeta">{% if es_equipo %}<h2>No hay cotizaciones para mostrar</h2><p>Revisa los filtros o espera a que lleguen propuestas al estudio.</p>{% elif es_registro %}<h2>No hay registros con estos filtros</h2><p>Las solicitudes aparecerán aquí cuando las aceptes o rechaces.</p>{% else %}<h2>No hay solicitudes pendientes</h2><p>Las que ya decidiste están en <a href="{% url 'nucleo:registro' %}">Registro</a>. Las nuevas aparecerán aquí.</p>{% endif %}</section>
+<div class="buzon-vacio">{% if es_equipo %}<h2>No hay cotizaciones para mostrar</h2><p>Revisa los filtros.</p>{% elif es_registro %}<h2>No hay registros con estos filtros</h2><p>Las solicitudes aparecerán aquí cuando las aceptes o rechaces.</p>{% else %}<h2>No hay solicitudes pendientes</h2><p>Las que ya decidiste están en <a href="{% url 'nucleo:registro' %}">Registro</a>.</p>{% endif %}</div>
 {% endfor %}
+</section>
+<section class="buzon-lectura" id="buzon-lectura" aria-label="Detalle de la solicitud" aria-busy="false">
+  <div id="buzon-error" class="alerta alerta-error" hidden><p></p><button type="button" class="boton secundario" id="buzon-reintentar">Reintentar</button> <a href="{% url 'nucleo:cotizaciones' %}">Abrir detalle completo</a></div>
+  <div id="buzon-contenido"><div class="buzon-vacio"><p class="eyebrow">PANEL DE LECTURA</p><h2>Una solicitud a la vez</h2><p>Selecciona una fila para consultar la referencia, los datos y las acciones sin perder de vista la bandeja.</p></div></div>
+</section>
 </div>
 {% if pagina.has_other_pages %}
 <nav class="acciones cotizaciones-paginacion" aria-label="Páginas de cotizaciones">
@@ -58,3 +59,5 @@
 </nav>
 {% endif %}
 {% endblock %}
+
+{% block page_scripts %}<script src="{% static 'js/buzon.js' %}" defer></script>{% endblock %}
