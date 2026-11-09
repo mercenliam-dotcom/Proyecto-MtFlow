@@ -9,7 +9,7 @@ from web.models import BloqueHorario, Postulacion
 
 class BloqueForm(forms.Form):
     tipo = forms.ChoiceField(label="Qué quieres agendar", choices=BloqueHorario.Tipo.choices)
-    fecha = forms.DateField(label="Fecha", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
+    fecha = forms.DateField(label="Fecha (DD/MM/AAAA)", input_formats=["%d/%m/%Y", "%Y-%m-%d"], widget=forms.DateInput(attrs={"placeholder": "DD/MM/AAAA", "inputmode": "numeric", "pattern": r"[0-9]{2}/[0-9]{2}/[0-9]{4}"}, format="%d/%m/%Y"))
     hora_inicio = forms.TimeField(label="Inicio", widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
     hora_fin = forms.TimeField(label="Término", widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
     postulacion = forms.ModelChoiceField(label="Solicitud (solo para sesiones)", queryset=Postulacion.objects.none(), required=False)

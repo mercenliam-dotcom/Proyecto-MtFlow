@@ -79,19 +79,14 @@
                 </div>
                 <p id="file-error" class="error-message" role="alert"></p>
                 
-                <div class="check-field">
-                    {{ form.analizar }}
-                    <label for="{{ form.analizar.id_for_label }}">{{ form.analizar.label }}</label>
-                </div>
-                <p class="field-help" id="{{ form.analizar.auto_id }}_helptext">{{ form.analizar.help_text }}</p>
+                <p class="field-help">Analizamos automáticamente tu referencia al seleccionarla y al enviar la solicitud. La tatuadora revisará la sugerencia.</p>
             </fieldset>
 
             <fieldset>
                 <legend><span class="step">03</span> Tu resumen</legend>
                 {% include "_campo.html" with campo=form.nombre %}
                 <div class="form-row">{% include "_campo.html" with campo=form.primer_apellido %}{% include "_campo.html" with campo=form.segundo_apellido %}</div>
-                <div class="form-row">{% include "_campo.html" with campo=form.canal_preferido %}{% include "_campo.html" with campo=form.usuario_social %}</div>
-                {% include "_campo.html" with campo=form.presupuesto %}
+                <div class="form-row">{% include "_campo.html" with campo=form.canal_preferido %}{% include "_campo.html" with campo=form.usuario_social %}</div><p class="field-help">Las redes son opcionales. Si no indicas un usuario, te contactaremos por correo.</p>
                 <div class="form-row">{% include "_campo.html" with campo=form.fecha_propuesta %}{% include "_campo.html" with campo=form.hora_propuesta %}</div>
                 <section aria-label="Disponibilidad de la tatuadora">
                     <h3>Elige una hora disponible</h3>

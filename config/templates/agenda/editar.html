@@ -1,5 +1,6 @@
 {% extends "base.html" %}{% load static %}
 {% block titulo %}{% if bloque %}Detalle del horario{% else %}Agregar horario{% endif %}{% endblock %}
+{% block styles %}{{ block.super }}<meta name="csp-nonce" content="{{ request.csp_nonce }}">{% endblock %}
 {% block contenido %}
 <p class="miga"><a href="{% url 'nucleo:agenda' %}">← Mi agenda</a></p>
 <h1>{% if bloque %}Detalle del horario{% else %}Agregar horario{% endif %}</h1>
@@ -7,8 +8,8 @@
 <p>«Sesión reservada» crea una cita para una solicitud con pago registrado. «Horario excepcional» cambia la jornada de esa fecha (por ejemplo, un domingo de 10:00 a 14:00). «Bloqueo personal» impide reservar ese intervalo.</p>
 {% if bloque %}<p class="chip">{{ bloque.estado }}</p>{% if bloque.postulacion_id %}<p><a href="{% url 'nucleo:cotizacion_detalle' bloque.postulacion.referencia %}">Ver solicitud de {{ bloque.postulacion.contacto }}</a></p>{% endif %}{% endif %}
 {% if bloque.estado != 'CANCELADA' and bloque.estado != 'REALIZADA' and bloque.estado != 'NO_ASISTIO' %}
-<form method="post" class="tarjeta">{% csrf_token %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button type="submit" class="boton">Guardar horario</button></form>
+<div class="reserva-con-agenda"><div><form method="post" class="tarjeta">{% csrf_token %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button type="submit" class="boton">Guardar horario</button></form>
 {% if bloque %}<form method="post" action="{% url 'nucleo:agenda_cerrar' bloque.referencia %}" class="tarjeta">{% csrf_token %}<input type="hidden" name="version" value="{{ form.initial.version }}"><div class="campo"><label for="motivo-cierre">Motivo de cancelación / observación</label><textarea id="motivo-cierre" name="motivo" maxlength="300"></textarea></div><button name="accion" value="cancelar" class="boton secundario">Cancelar horario</button>{% if bloque.tipo == 'CITA' %}<button name="accion" value="realizar" class="boton">Marcar sesión realizada</button><button name="accion" value="inasistencia" class="boton secundario">Registrar inasistencia</button>{% endif %}</form>{% endif %}
-{% else %}<p>Este horario está cerrado y se conserva como historial.</p>{% endif %}
+</div><section class="tarjeta reserva-calendario" aria-label="Agenda al reservar"><h2>Tu agenda</h2><p class="nota">Revisa tus citas y bloqueos antes de guardar. Selecciona un día para completar la fecha del formulario. Los horarios de trabajo aparecen al fondo.</p><div id="agenda-calendar" data-mode="reserva" data-today="{{ hoy }}" data-events="{% url 'nucleo:agenda_eventos' %}"></div><p id="agenda-error" role="status"></p></section></div>{% else %}<p>Este horario está cerrado y se conserva como historial.</p>{% endif %}
 {% endblock %}
-{% block page_scripts %}<script src="{% static 'js/fechas-agenda.js' %}" defer></script>{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/fechas-agenda.js' %}" defer></script><script src="{% static 'vendor/fullcalendar/index.global.min.js' %}" defer></script><script src="{% static 'js/agenda.js' %}" defer></script>{% endblock %}

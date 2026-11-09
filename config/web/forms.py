@@ -17,8 +17,7 @@ class CotizacionForm(forms.Form):
     primer_apellido = forms.CharField(label="Primer apellido", max_length=80, required=False, validators=[nombre_contacto])
     segundo_apellido = forms.CharField(label="Segundo apellido (opcional)", max_length=80, required=False, validators=[nombre_contacto])
     canal_preferido = forms.ChoiceField(label="Medio de contacto preferido", required=False, choices=[("correo", "Correo"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram"), ("tiktok", "TikTok")], initial="correo")
-    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok", max_length=61, required=False)
-    presupuesto = forms.IntegerField(label="Tu presupuesto en CLP (opcional)", min_value=1, max_value=100000000, required=False)
+    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok (opcional)", max_length=61, required=False)
     fecha_propuesta = forms.DateField(label="Fecha que propones (opcional)", required=False, widget=forms.DateInput(attrs={"type": "date"}))
     hora_propuesta = forms.TimeField(label="Hora que propones (opcional)", required=False, widget=forms.TimeInput(attrs={"type": "time"}))
     email = forms.EmailField(label="Correo electrónico", max_length=254, widget=forms.EmailInput(attrs={"id": "client-email", "autocomplete": "email"}))
@@ -44,8 +43,6 @@ class CotizacionForm(forms.Form):
     idea = forms.CharField(label="Cuéntanos tu idea", max_length=1500, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"id": "idea", "rows": 4, "placeholder": "Motivo, ubicación y detalles que imaginas…"}))
     cobertura = forms.BooleanField(label="Quiero cubrir un tatuaje existente", required=False)
     imagen = forms.FileField(label="Imagen de referencia", help_text="JPG o PNG · máximo 10 MB · mínimo 224 píxeles por lado.", widget=forms.FileInput(attrs={"id": "reference", "accept": TIPOS_ACEPTADOS_HTML}))
-    analizar = forms.BooleanField(label="Analizar el estilo al seleccionar la imagen", required=False, initial=True,
-                                 help_text="La imagen se procesa con el servicio de análisis configurado por el estudio. La tatuadora revisará la sugerencia antes de acordar tu sesión.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,6 +60,7 @@ class CotizacionForm(forms.Form):
 
     def clean(self):
         datos = super().clean()
+        datos["analizar"] = True  # Obligatorio: nunca confiar en un interruptor del navegador.
         if not self.fields["tatuadora"].queryset.exists():
             raise ValidationError("No hay tatuadoras habilitadas para recibir propuestas en este momento. Inténtalo más tarde.")
         from datetime import datetime
@@ -80,7 +78,7 @@ class CotizacionForm(forms.Form):
         if datos.get("canal_preferido") == "whatsapp" and not datos.get("telefono"):
             self.add_error("telefono", "Indica el teléfono en el que quieres recibir contacto.")
         if datos.get("canal_preferido") in ("instagram", "tiktok") and not datos.get("usuario_social"):
-            self.add_error("usuario_social", "Indica tu usuario para este medio de contacto.")
+            datos["canal_preferido"] = "correo"  # Sin usuario social, el correo obligatorio permite contactar.
         return datos
 
     def clean_imagen(self):

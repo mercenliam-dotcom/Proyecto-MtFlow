@@ -71,11 +71,11 @@ class AnalisisPrevio(TestCase):
         self.assertNotIn("contacto@example.test", repr(ml.call_args))
         self.assert_sin_guardado()
 
-    def test_sin_activar_analisis_no_llama_al_modelo(self):
-        with patch("web.views.clasificar") as ml:
+    def test_analisis_automatico_no_requiere_interruptor(self):
+        with patch("web.views.clasificar", return_value=ResultadoClasificacion({"E-01": .8}, "E-01", .8, "local:test")) as ml:
             r = self.analizar(analizar="")
-        self.assertEqual(r.status_code, 400)
-        ml.assert_not_called()
+        self.assertEqual(r.status_code, 200)
+        ml.assert_called_once()
 
     def test_archivo_disfrazado_no_llega_al_servicio(self):
         with patch("web.views.clasificar") as ml:
@@ -112,6 +112,7 @@ class AnalisisPrevio(TestCase):
 
     def test_formulario_ofrece_analisis_automatico_y_url_del_endpoint(self):
         r = self.client.get(reverse("web:cotizacion"))
-        self.assertTrue(r.context["form"].fields["analizar"].initial)
+        self.assertNotIn("analizar", r.context["form"].fields)
+        self.assertNotContains(r, 'id="id_analizar"')
         self.assertContains(r, 'id="live-analysis"')
         self.assertContains(r, self.url)

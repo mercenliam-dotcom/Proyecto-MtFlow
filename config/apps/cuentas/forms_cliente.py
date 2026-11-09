@@ -51,7 +51,7 @@ class DatosClienteForm(_NormalizarTextoMixin, forms.ModelForm):
 class ContactoClienteForm(forms.ModelForm):
     segundo_apellido = forms.CharField(label="Segundo apellido", max_length=80, required=False, validators=[nombre_contacto])
     telefono = forms.CharField(label="Teléfono", max_length=25, required=False, validators=[telefono_contacto])
-    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok", max_length=61, required=False)
+    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok (opcional)", max_length=61, required=False)
 
     class Meta:
         model = PerfilCliente
@@ -63,5 +63,5 @@ class ContactoClienteForm(forms.ModelForm):
         if datos.get("canal_preferido") == "whatsapp" and not datos.get("telefono"):
             self.add_error("telefono", "Indica tu teléfono para este medio de contacto.")
         if datos.get("canal_preferido") in ("instagram", "tiktok") and not datos.get("usuario_social"):
-            self.add_error("usuario_social", "Indica tu usuario para este medio de contacto.")
+            datos["canal_preferido"] = "correo"
         return datos

@@ -27,8 +27,6 @@ def analizar_referencia(request):
         respuesta = JsonResponse({"error": "Has analizado varias imágenes. Espera unos minutos antes de volver a intentarlo."}, status=429)
         respuesta["Retry-After"] = str(settings.ANALISIS_VENTANA_SEGUNDOS)
         return respuesta
-    if request.POST.get("analizar") != "on":
-        return JsonResponse({"error": "Activa el análisis de estilo para analizar la referencia."}, status=400)
     form = ImagenReferenciaForm(request.POST, request.FILES)
     if not form.is_valid():
         return JsonResponse({"error": " ".join(str(error) for errores in form.errors.values() for error in errores)}, status=400)
@@ -51,7 +49,10 @@ def portafolio(request):
     trabajos = [{"estilo": nombre, "descripcion": descripcion} for nombre, descripcion in zip(
         (nombre for codigo, nombre in ESTILOS.items() if codigo != "E-99"), descripciones)]
     publicados = TrabajoPortafolio.objects.filter(visible=True, autorizacion_publicacion=True, tatuadora__activa=True, tatuadora__usuario__is_active=True, tatuadora__usuario__es_tatuadora=True).select_related("estilo", "tatuadora__usuario").order_by("-publicado_en", "-pk")
-    return render(request, "web/portafolio.html", {"trabajos": trabajos, "publicados": publicados[:60], "destacados": publicados.filter(en_carrusel=True)[:12]})
+    fotos = list(publicados[:60])
+    presentes = {foto.estilo.nombre for foto in fotos if foto.estilo_id}
+    pendientes = [t for t in trabajos if t["estilo"] not in presentes]
+    return render(request, "web/portafolio.html", {"trabajos": trabajos, "pendientes": pendientes, "publicados": fotos, "destacados": publicados.filter(en_carrusel=True)[:12]})
 
 
 def horarios(request):

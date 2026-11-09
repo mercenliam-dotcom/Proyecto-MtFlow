@@ -58,21 +58,19 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
     validada.archivo.seek(0)
     contenido = validada.archivo.read()
     resultado = None
-    estado_ml = Postulacion.EstadoML.NO_SOLICITADO
     tiempo_ms = None
-    if datos["analizar"]:
-        inicio = perf_counter()
-        try:
-            resultado = clasificador(
-                contenido, validada.archivo.name,
-                "image/jpeg" if validada.formato == "JPEG" else "image/png",
-            )
-        except ServicioMLNoDisponible:
-            estado_ml = Postulacion.EstadoML.NO_DISPONIBLE
-        else:
-            estado_ml = Postulacion.EstadoML.COMPLETADO
-            # Tiempo de ida y vuelta Django→ML, no tiempo puro del modelo.
-            tiempo_ms = max(0, round((perf_counter() - inicio) * 1000))
+    inicio = perf_counter()
+    try:
+        resultado = clasificador(
+            contenido, validada.archivo.name,
+            "image/jpeg" if validada.formato == "JPEG" else "image/png",
+        )
+    except ServicioMLNoDisponible:
+        estado_ml = Postulacion.EstadoML.NO_DISPONIBLE
+    else:
+        estado_ml = Postulacion.EstadoML.COMPLETADO
+        # Tiempo de ida y vuelta Django→ML, no tiempo puro del modelo.
+        tiempo_ms = max(0, round((perf_counter() - inicio) * 1000))
 
     storage = FileSystemStorage(location=settings.MEDIA_ROOT)
     # Un directorio por intento evita colisiones y permite limpiar incluso una

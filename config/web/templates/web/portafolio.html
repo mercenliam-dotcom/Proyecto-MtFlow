@@ -30,7 +30,7 @@
   {% empty %}<article class="mt-diapositiva image-placeholder"><span class="placeholder-mark" aria-hidden="true">✧</span><h3>Arte, espacio e inspiración</h3><p>Próximamente: fotografías del estudio y trabajos terminados.</p></article><article class="mt-diapositiva image-placeholder"><span class="placeholder-mark" aria-hidden="true">✦</span><h3>Cada tatuaje, una historia</h3><p>Conoce nuestros estilos y envíanos tu idea.</p></article>{% endfor %}
   </div>
 </section>
-{% if publicados %}<section aria-label="Trabajos publicados"><h2>Portafolio del estudio</h2><div class="portfolio-grid">{% for foto in publicados %}<article class="portfolio-card"><img class="mt-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy"><div class="card-caption"><h3>{{ foto.titulo }}</h3><p>{{ foto.tatuadora.nombre_publico }} · {{ foto.estilo.nombre|default:"El estudio" }}</p></div></article>{% endfor %}</div></section>{% endif %}
+
 
 <section aria-label="Galería de estilos">
     <div class="filters" role="group" aria-label="Filtrar por estilo">
@@ -47,12 +47,11 @@
         {% endfor %}
     </div>
 
-    <p class="demo-note">
-        Vista preliminar · Las fotografías del estudio se agregarán próximamente.
-    </p>
+    <p class="demo-note">Filtra los trabajos publicados por estilo.</p>
 
     <div class="portfolio-grid">
-        {% for trabajo in trabajos %}
+        {% for foto in publicados %}<article class="portfolio-card" data-style="{{ foto.estilo.nombre|default:'El estudio' }}"><img class="mt-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy"><div class="card-caption"><h3>{{ foto.titulo }}</h3><p>{{ foto.tatuadora.nombre_publico }} · {{ foto.estilo.nombre|default:"El estudio" }}</p></div></article>{% endfor %}
+        {% for trabajo in pendientes %}
         <article class="portfolio-card" data-style="{{ trabajo.estilo }}">
             <div class="image-placeholder">
                 <span class="placeholder-mark" aria-hidden="true">✧</span>

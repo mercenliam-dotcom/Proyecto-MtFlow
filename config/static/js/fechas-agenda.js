@@ -7,8 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
     function actualizar() {
         const partes = Object.fromEntries(new Intl.DateTimeFormat("sv-SE", {timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(Date.now()+60000)).map(p=>[p.type,p.value]));
         const hoy = `${partes.year}-${partes.month}-${partes.day}`;
-        fecha.min = hoy;
-        inicio.min = fecha.value === hoy ? `${partes.hour}:${partes.minute}` : "00:00";
+        const m=fecha.value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        const iso=m?`${m[3]}-${m[2]}-${m[1]}`:"";
+        fecha.setCustomValidity(iso && iso < hoy ? "Elige una fecha futura o de hoy." : "");
+        inicio.min = iso === hoy ? `${partes.hour}:${partes.minute}` : "00:00";
         fin.min = inicio.value || inicio.min;
     }
     fecha.addEventListener("change",actualizar);

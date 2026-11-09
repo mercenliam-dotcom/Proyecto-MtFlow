@@ -127,6 +127,11 @@ def editar(request, referencia=None):
             raise Http404
         p = get_object_or_404(Postulacion, tatuadora=artista, referencia=solicitud_ref)
         inicial.update(tipo="CITA", postulacion=p)
+    if isinstance(inicial.get("fecha"), str):
+        try:
+            inicial["fecha"] = date.fromisoformat(inicial["fecha"])
+        except ValueError:
+            inicial["fecha"] = timezone.localdate()
     form = BloqueForm(request.POST if request.method == "POST" else None, initial=inicial, tatuadora=artista)
     status = 200
     if request.method == "POST":
@@ -143,7 +148,7 @@ def editar(request, referencia=None):
             else:
                 messages.success(request, "Agenda actualizada.")
                 return redirect("nucleo:agenda")
-    return render(request, "agenda/editar.html", {"form": form, "bloque": bloque}, status=status)
+    return render(request, "agenda/editar.html", {"form": form, "bloque": bloque, "hoy": timezone.localdate().isoformat()}, status=status)
 
 
 @transaction.non_atomic_requests

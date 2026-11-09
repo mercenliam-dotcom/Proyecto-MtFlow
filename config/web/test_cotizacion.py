@@ -34,14 +34,14 @@ class CotizacionPublica(TestCase):
     def datos(self, **extra):
         return datos(**{"tatuadora": str(self.artista.pk), **extra})
 
-    def test_precio_servidor_ignora_monto_inyectado_y_no_llama_ml_sin_permiso(self):
-        with patch("web.views.clasificar") as ml:
+    def test_precio_servidor_ignora_monto_inyectado_y_analiza_automaticamente(self):
+        with patch("web.views.clasificar", side_effect=ServicioMLNoDisponible) as ml:
             r = self.client.post(self.url, self.datos(minimo="1", maximo="1", precio="1"))
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "$35.000")
         self.assertContains(r, "$60.000")
         self.assertFalse(r.context["estimacion"]["manual"])
-        ml.assert_not_called()
+        ml.assert_called_once()
         self.assertIn("no-store", r["Cache-Control"])
 
     def test_ml_solo_recibe_imagen_limpia_y_no_contacto(self):

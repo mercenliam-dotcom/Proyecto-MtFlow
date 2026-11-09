@@ -42,12 +42,12 @@ class FlujoCompleto(TestCase):
         Sesion.objects.create(bloque=b, postulacion=self.p)
         return b
 
-    def test_propuesta_guarda_contacto_presupuesto_preferencia_sin_reservar(self):
+    def test_propuesta_guarda_contacto_preferencia_ignora_presupuesto_sin_reservar(self):
         r = Client().post(reverse("web:cotizacion"), propuesta(self.a, primer_apellido="Pérez", segundo_apellido="Soto", canal_preferido="instagram", usuario_social="@cliente", presupuesto=90000, fecha_propuesta=(timezone.localdate()+timedelta(days=5)).isoformat(), hora_propuesta="11:00"))
         self.assertEqual(r.status_code, 200)
         p = Postulacion.objects.latest("pk")
         self.assertEqual((p.contacto.apellidos, p.contacto.segundo_apellido), ("Pérez", "Soto"))
-        self.assertEqual(p.presupuesto_estimado, 90000)
+        self.assertIsNone(p.presupuesto_estimado)
         self.assertEqual(p.hora_propuesta, time(11))
         self.assertFalse(p.sesiones.exists())
 

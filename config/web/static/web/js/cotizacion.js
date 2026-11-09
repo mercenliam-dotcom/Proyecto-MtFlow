@@ -5,7 +5,6 @@ const placeholder = document.getElementById("preview-placeholder");
 const fileDetails = document.getElementById("file-details");
 const fileError = document.getElementById("file-error");
 const summary = document.getElementById("quote-summary");
-const analyzeInput = document.getElementById("id_analizar");
 const analysisPanel = document.getElementById("live-analysis");
 const analysisStatus = document.getElementById("analysis-status");
 const analysisResult = document.getElementById("analysis-result");
@@ -27,15 +26,13 @@ function clearAnalysis() {
     analysisPanel.removeAttribute("aria-busy");
     analysisResult.hidden = true;
     retryAnalysis.hidden = true;
-    analysisStatus.textContent = analyzeInput.checked
-        ? "Selecciona una imagen para ver su estilo antes de enviar."
-        : "Análisis desactivado. Puedes activarlo cuando quieras.";
+    analysisStatus.textContent = "Selecciona una imagen para ver su estilo antes de enviar.";
 }
 
 async function analyzeReference() {
     clearAnalysis();
     const file = fileInput.files[0];
-    if (!analyzeInput.checked || !imageReady || !file) return;
+    if (!imageReady || !file) return;
 
     const currentVersion = analysisVersion;
     const currentSelection = selectionVersion;
@@ -59,7 +56,7 @@ async function analyzeReference() {
             headers: { "X-CSRFToken": csrf }, signal: controller.signal,
         });
         const data = await response.json();
-        if (currentVersion !== analysisVersion || currentSelection !== selectionVersion || !analyzeInput.checked) return;
+        if (currentVersion !== analysisVersion || currentSelection !== selectionVersion) return;
         if (!response.ok) throw new Error(data.error || "No pudimos analizar la imagen.");
         analysisStyle.textContent = data.nombre;
         analysisNote.textContent = data.estilo_sugerido === "E-99"
@@ -87,7 +84,6 @@ async function analyzeReference() {
     }
 }
 
-analyzeInput.addEventListener("change", analyzeReference);
 retryAnalysis.addEventListener("click", analyzeReference);
 
 function clearPreview() {
@@ -189,7 +185,7 @@ form.addEventListener("submit", (event) => {
     clearAnalysis();
     submitButton.disabled = true;
     form.setAttribute("aria-busy", "true");
-    submitStatus.textContent = "Guardando tu propuesta. El análisis opcional de la imagen puede tardar unos segundos…";
+    submitStatus.textContent = "Guardando tu propuesta. El análisis automático de la imagen puede tardar unos segundos…";
 });
 window.addEventListener("pageshow", () => {
     delete form.dataset.submitting;
