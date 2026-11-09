@@ -1,5 +1,20 @@
 [
   {
+    "modelo": "cuentas.IdentidadSocial",
+    "tabla_der": "identidad_social",
+    "tabla_fisica": "cuentas_identidadsocial",
+    "columnas": [
+      "id",
+      "usuario_id",
+      "proveedor",
+      "identificador",
+      "creada_en"
+    ],
+    "fk": [
+      "usuario_id"
+    ]
+  },
+  {
     "modelo": "web.HorarioTrabajo",
     "tabla_der": "horario_trabajo",
     "tabla_fisica": "web_horariotrabajo",

@@ -342,3 +342,12 @@ ANALISIS_VENTANA_SEGUNDOS = int(env("ANALISIS_VENTANA_SEGUNDOS", "600"))
 ADMIN_DESARROLLO_HABILITADO = env_bool("ADMIN_DESARROLLO_HABILITADO", False)
 
 CSRF_FAILURE_VIEW = 'apps.nucleo.errores.csrf_failure'
+
+# Acceso externo: sin credenciales no se muestran ni habilitan los proveedores.
+SOCIAL_AUTH_BASE_URL = env("SOCIAL_AUTH_BASE_URL", "http://127.0.0.1:8000" if DEBUG else "").rstrip("/")
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")
+FACEBOOK_CLIENT_ID = env("FACEBOOK_CLIENT_ID")
+FACEBOOK_CLIENT_SECRET = env("FACEBOOK_CLIENT_SECRET")
+FACEBOOK_API_VERSION = env("FACEBOOK_API_VERSION")
+TEMPLATES[0]["OPTIONS"]["context_processors"].append("apps.cuentas.social.contexto")

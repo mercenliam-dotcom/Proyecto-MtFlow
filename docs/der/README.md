@@ -6,12 +6,13 @@ Fecha: 8 de noviembre de 2026. Referencia: DER del informe existente (imagen14.j
 
 Crear un diagrama y pegar el contenido completo de `MTFlow_DER_actualizado.dbml`. Usa los nombres del DER original. `MTFlow_esquema_fisico.dbml` representa lo mismo con los nombres reales de las tablas de Django. No se deben pegar ambos juntos. La correspondencia exacta está en `correspondencia_modelos.json`.
 
-Los archivos contienen 18 tablas de negocio. Se omiten tablas internas de Django (migraciones, sesiones de acceso, grupos, permisos y registros del administrador). Los tipos se expresan para PostgreSQL, pero este cambio mantiene SQLite local y no despliega una base nueva. DBML documenta el esquema; no reemplaza las migraciones Django ni debe ejecutarse como migración SQL. Sintaxis: https://dbml.dbdiagram.io/docs/
+Los archivos contienen 19 tablas de negocio. Se omiten tablas internas de Django (migraciones, sesiones de acceso, grupos, permisos y registros del administrador). Los tipos se expresan para PostgreSQL, pero este cambio mantiene SQLite local y no despliega una base nueva. DBML documenta el esquema; no reemplaza las migraciones Django ni debe ejecutarse como migración SQL. Sintaxis: https://dbml.dbdiagram.io/docs/
 
 ## Cambios respecto del DER original
 
 | Área | Representación actual |
 | --- | --- |
+| Acceso externo | Nueva tabla `identidad_social` con proveedor e identificador estable, vinculada a usuario. No guarda tokens ni contraseñas externas. |
 | Cuentas | Nueva tabla `usuario`: credenciales y permisos antes asociados a tatuadora. Solo ADMIN (Administradora) y USUARIO (Usuario/cliente). `tatuadora` es un perfil profesional 1:1; toda tatuadora debe ser ADMIN. |
 | Cliente con cuenta | `cliente.usuario_id` es opcional y único: una cuenta puede vincular su registro de cliente y todas sus solicitudes. `postulacion.cliente_id` es obligatorio. Se retiró la FK redundante `postulacion.cuenta_cliente_id`; el acceso al portal se resuelve a través del cliente. `perfil_cliente` conserva las preferencias de cuenta. |
 | Contacto | `cliente` guarda el registro de la persona; `contacto_solicitud` conserva los datos declarados en cada envío, con ambos apellidos separados. Cambiar el perfil no reescribe el contacto histórico. Los invitados no se fusionan ni se vinculan a cuentas por coincidencia de correo. |

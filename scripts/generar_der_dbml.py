@@ -11,6 +11,7 @@ from django.apps import apps
 from django.db import models
 
 NOMBRES = {
+    'cuentas.IdentidadSocial': 'identidad_social',
     'web.HorarioTrabajo': 'horario_trabajo',
     'cuentas.Usuario': 'usuario', 'cuentas.PerfilCliente': 'perfil_cliente',
     'web.Cliente': 'cliente', 'web.Tatuadora': 'tatuadora', 'web.BloqueHorario': 'bloque_horario',
@@ -21,6 +22,7 @@ NOMBRES = {
     'web.MovimientoCobro': 'movimiento_cobro', 'web.EventoSolicitud': 'evento_solicitud',
 }
 NOTAS = {
+    'identidad_social': 'Vinculo OAuth/OIDC por proveedor e identificador estable. Una identidad pertenece a una sola cuenta y cada cuenta vincula como maximo una identidad por proveedor. No almacena tokens, contrasenas externas ni copias del perfil.',
     'horario_trabajo': 'Jornada semanal editable por tatuadora, lunes=0 a domingo=6. Un registro por día. Los bloques DISPONIBILIDAD sustituyen la jornada de una fecha; citas y bloqueos descuentan tiempo libre. La preferencia del cliente no reserva.',
     'usuario': 'Cuenta de acceso. ADMIN: administradora; USUARIO: cliente. Una tatuadora debe ser ADMIN. Password contiene hash, nunca texto plano. is_staff es calculado y no es una columna.',
     'perfil_cliente': 'Preferencias actuales del usuario cliente. Nombre, primer apellido y correo están en usuario; no se duplican aquí.',
@@ -64,7 +66,7 @@ CHECKS = {
     'confianza_estilo': [("confianza >= 0 AND confianza <= 1", 'confianza_estilo_valida')],
     'movimiento_cobro': [("monto > 0 AND monto <= 100000000", 'cobro_monto_valido'), ("tipo IN ('PAGO','DEVOLUCION')", 'cobro_tipo_valido')],
 }
-GRUPOS = {'Acceso_y_profesionales': ['usuario','perfil_cliente','cliente','tatuadora','tatuadora_estilo'], 'Solicitudes_y_agenda':['postulacion','contacto_solicitud','sesion','horario_trabajo','bloque_horario','movimiento_cobro','evento_solicitud'], 'Imagenes_estilos_y_portafolio':['imagen','estilo','prediccion','confianza_estilo','etiqueta_consolidada','trabajo_portafolio']}
+GRUPOS = {'Acceso_y_profesionales': ['usuario','identidad_social','perfil_cliente','cliente','tatuadora','tatuadora_estilo'], 'Solicitudes_y_agenda':['postulacion','contacto_solicitud','sesion','horario_trabajo','bloque_horario','movimiento_cobro','evento_solicitud'], 'Imagenes_estilos_y_portafolio':['imagen','estilo','prediccion','confianza_estilo','etiqueta_consolidada','trabajo_portafolio']}
 
 def texto(s):
     return "'"+str(s).replace('\\','\\\\').replace("'","\\'").replace('\n',' ') + "'"

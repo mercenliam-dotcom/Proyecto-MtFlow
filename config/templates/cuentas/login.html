@@ -14,6 +14,7 @@
     {% for campo in form %}{% include "_campo.html" %}{% endfor %}
     <button type="submit" class="boton ancho">Ingresar</button>
   </form>
+  {% include "cuentas/_acceso_social.html" %}
   <p class="nota">¿Eres cliente y no tienes cuenta? <a href="{% url 'clientes:registro' %}">Crear mi cuenta</a>.</p>
   <p class="nota">Las cuentas del equipo las crea la administración del estudio.</p>
 </section>

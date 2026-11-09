@@ -7,6 +7,19 @@ Project MTFlow {
   Note: 'Dos roles: ADMIN (administradora) y USUARIO (cliente). Campos, PK, nulabilidad y FK derivados de los modelos vigentes. No incluye datos personales.'
 }
 
+Table identidad_social {
+  Note: 'Vinculo OAuth/OIDC por proveedor e identificador estable. Una identidad pertenece a una sola cuenta y cada cuenta vincula como maximo una identidad por proveedor. No almacena tokens, contrasenas externas ni copias del perfil. Tabla física Django: cuentas_identidadsocial.'
+  id bigint [pk, not null, increment]
+  usuario_id bigint [not null, note: 'Al eliminar referente: CASCADE en Django']
+  proveedor varchar(10) [not null, note: 'Valores de aplicación: google, facebook']
+  identificador varchar(255) [not null]
+  creada_en timestamptz [not null, note: 'Fecha asignada por Django']
+  indexes {
+    (proveedor, identificador) [unique]
+    (usuario_id, proveedor) [unique]
+  }
+}
+
 Table horario_trabajo {
   Note: 'Jornada semanal editable por tatuadora, lunes=0 a domingo=6. Un registro por día. Los bloques DISPONIBILIDAD sustituyen la jornada de una fecha; citas y bloqueos descuentan tiempo libre. La preferencia del cliente no reserva. Tabla física Django: web_horariotrabajo.'
   id bigint [pk, not null, increment]
@@ -299,6 +312,7 @@ Table evento_solicitud {
   creado_en timestamptz [not null, note: 'Fecha asignada por Django']
 }
 
+Ref: identidad_social.usuario_id > usuario.id
 Ref: horario_trabajo.tatuadora_id > tatuadora.id
 Ref: usuario.creado_por_id > usuario.id
 Ref: usuario.id - perfil_cliente.usuario_id
@@ -331,6 +345,7 @@ Ref: evento_solicitud.actor_id > usuario.id
 
 TableGroup Acceso_y_profesionales {
   usuario
+  identidad_social
   perfil_cliente
   cliente
   tatuadora

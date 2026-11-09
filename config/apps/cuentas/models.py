@@ -145,3 +145,14 @@ class PerfilCliente(models.Model):
     telefono = models.CharField(max_length=25, blank=True)
     canal_preferido = models.CharField(max_length=12, default="correo", choices=[("correo", "Correo"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram"), ("tiktok", "TikTok")])
     usuario_social = models.CharField(max_length=61, blank=True)
+
+
+class IdentidadSocial(models.Model):
+    """Vínculo por identificador estable del proveedor; no almacena tokens."""
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="identidades_sociales")
+    proveedor = models.CharField(max_length=10, choices=[("google", "Google"), ("facebook", "Facebook")])
+    identificador = models.CharField(max_length=255)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("proveedor", "identificador"), ("usuario", "proveedor")]
