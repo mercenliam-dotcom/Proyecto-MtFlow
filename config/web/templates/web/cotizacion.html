@@ -90,6 +90,7 @@
                 <div class="form-row">{% include "_campo.html" with campo=form.fecha_propuesta %}{% include "_campo.html" with campo=form.hora_propuesta %}</div>
                 <section aria-label="Disponibilidad de la tatuadora">
                     <h3>Elige una hora disponible</h3>
+                    <div class="campo" id="selector-calendario" hidden><label for="artista-calendario">Consultar horarios de</label><select id="artista-calendario" aria-describedby="disponibilidad-estado"></select></div>
                     <p>Verde: disponible · Gris: ocupado o bloqueado. Solo se muestran horas de trabajo. No se muestran datos de otros clientes.</p>
                     <p id="disponibilidad-estado" role="status" aria-live="polite">Selecciona una tatuadora para consultar su calendario.</p>
                     <div id="disponibilidad-calendario" data-url="{% url 'web:disponibilidad' %}"></div>

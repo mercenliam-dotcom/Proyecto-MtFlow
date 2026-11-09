@@ -2,6 +2,11 @@
 document.addEventListener("DOMContentLoaded", () => {
     const root=document.getElementById("disponibilidad-calendario"), artista=document.getElementById("quote-artist"), fecha=document.getElementById("id_fecha_propuesta"), original=document.getElementById("id_hora_propuesta"), estado=document.getElementById("disponibilidad-estado");
     if (!root || !window.FullCalendar || !artista || !original) return;
+    const selector=document.getElementById("artista-calendario");
+    selector.replaceChildren(...[...artista.options].map(o=>o.cloneNode(true)));
+    selector.value=artista.value;
+    document.getElementById("selector-calendario").hidden=false;
+    root.hidden=!artista.value;
     const hora=document.createElement("select");
     hora.name=original.name; hora.id=original.id; hora.className=original.className;
     let inicial=original.value.slice(0,5); original.replaceWith(hora);
@@ -49,12 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
         events:async(info,ok,fallo)=>{
             const turno=++peticionCalendario;
             if(!artista.value) { ok([]); return; }
+            estado.textContent="Cargando horarios disponibles…";
             try {
                 const datos=await consultar(info.startStr.slice(0,10),info.endStr.slice(0,10));
                 if(turno!==peticionCalendario) { ok([]); return; }
                 calendario.setOption("slotMinTime",datos.inicio); calendario.setOption("slotMaxTime",datos.fin);
                 ok(datos.eventos);
-            } catch(e) { estado.textContent=e.message; fallo(e); }
+                estado.textContent=datos.eventos.some(e=>e.extendedProps.disponible) ? "Las franjas verdes están disponibles. Selecciona un día y luego una hora como preferencia." : "No hay horas disponibles en este período. Avanza a otra fecha o envía sin proponer horario.";
+            } catch(e) { if(turno===peticionCalendario) estado.textContent=e.message; fallo(e); }
         },
         dateClick:info=>{ if(info.dateStr.slice(0,10)<hoy()) return; fecha.value=info.dateStr.slice(0,10); cargarDia(info.dateStr.slice(11,16)); },
         eventClick:info=>{
@@ -63,7 +70,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
     calendario.render();
-    artista.addEventListener("change",()=>{ ++peticionDia; fecha.value=""; vaciar("Selecciona una fecha"); calendario.refetchEvents(); estado.textContent="Consulta el calendario de la tatuadora seleccionada."; });
+    artista.addEventListener("change",()=>{
+        ++peticionDia; selector.value=artista.value; fecha.value=""; hora.disabled=false;
+        vaciar(artista.value ? "Selecciona una fecha" : "Selecciona una tatuadora");
+        root.hidden=!artista.value;
+        if(artista.value) calendario.updateSize();
+        calendario.refetchEvents();
+        if(!artista.value) estado.textContent="Selecciona una tatuadora aquí para ver sus horas disponibles y ocupadas.";
+    });
+    selector.addEventListener("change",()=>{artista.value=selector.value;artista.dispatchEvent(new Event("change",{bubbles:true}));});
     fecha.addEventListener("change",()=>{ if(fecha.value) calendario.gotoDate(fecha.value); cargarDia(); });
     document.getElementById("sin-horario").addEventListener("click",()=>{ ++peticionDia; fecha.value=""; vaciar("Sin preferencia de horario"); hora.disabled=false; });
     if(fecha.value) { calendario.gotoDate(fecha.value); cargarDia(inicial); }
