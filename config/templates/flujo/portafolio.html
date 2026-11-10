@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% block titulo %}Mi portafolio{% endblock %}
 {% block contenido %}
-<div class="encabezado"><h1>Mi portafolio</h1><a class="boton" href="{% url 'nucleo:portafolio_nuevo' %}">Agregar fotografía</a></div>
-<p class="bajada">Elige qué fotografías mostrar al público y cuáles destacar en el carrusel. Publicar no entrena el modelo.</p>
-<div class="rejilla dos">{% for trabajo in trabajos %}<article class="tarjeta"><figure class="vista-previa"><img src="{% url 'web:imagen_portafolio' trabajo.referencia %}" alt="{{ trabajo.titulo }}" loading="lazy"></figure><h2>{{ trabajo.titulo }}</h2><p>{{ trabajo.get_tipo_display }} · {% if trabajo.visible %}Publicado{% else %}Borrador privado{% endif %}{% if trabajo.en_carrusel %} · Carrusel{% endif %}</p><a class="boton secundario" href="{% url 'nucleo:portafolio_editar' trabajo.referencia %}">Editar / cambiar publicación</a></article>{% empty %}<section class="tarjeta"><h2>Tu primera fotografía</h2><p>Agrega un trabajo terminado o una vista del estudio para presentarlo en la página pública.</p></section>{% endfor %}</div>
+<div class="encabezado"><div><h1>Mi portafolio</h1><p class="bajada">Elige qué fotografías mostrar al público y cuáles destacar en el carrusel. Publicar no entrena el modelo.</p></div><div class="acciones"><a class="boton secundario" href="{% url 'web:portafolio' %}" target="_blank" rel="noopener">Ver página pública ↗</a><a class="boton" href="{% url 'nucleo:portafolio_nuevo' %}">Agregar fotografía</a></div></div>
+<div class="galeria-propia">{% for trabajo in trabajos %}<article class="tarjeta foto-propia">
+  <figure><img src="{% url 'web:imagen_portafolio' trabajo.referencia %}" alt="{{ trabajo.titulo }}" loading="lazy">
+    {% if trabajo.visible and trabajo.autorizacion_publicacion %}<span class="sello sello-publica">Pública</span>{% elif trabajo.visible %}<span class="sello sello-aviso">Falta autorización</span>{% else %}<span class="sello">Borrador</span>{% endif %}
+    {% if trabajo.en_carrusel %}<span class="sello sello-carrusel">Carrusel</span>{% endif %}
+  </figure>
+  <div class="foto-propia-texto"><h2>{{ trabajo.titulo }}</h2><p>{{ trabajo.get_tipo_display }}{% if trabajo.estilo %} · {{ trabajo.estilo.nombre }}{% endif %} · {{ trabajo.publicado_en|date:"d/m/Y" }}</p>
+  <a class="boton secundario" href="{% url 'nucleo:portafolio_editar' trabajo.referencia %}">Editar / cambiar publicación</a></div>
+</article>{% empty %}<section class="tarjeta portafolio-vacio"><h2>Tu primera fotografía</h2><p>Agrega un trabajo terminado o una vista del estudio para presentarlo en la página pública.</p><a class="boton" href="{% url 'nucleo:portafolio_nuevo' %}">Agregar fotografía</a></section>{% endfor %}</div>
 {% endblock %}

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from .firmas import leer_ruta_firmada
@@ -17,7 +18,25 @@ from apps.cuentas.models import Rol
 def inicio(request):
     if request.user.es_cliente:
         return redirect("clientes:inicio")
-    return render(request, "nucleo/inicio.html")
+    contexto = {"hoy": timezone.localdate()}
+    if request.user.es_tatuadora:
+        # Resumen de trabajo pendiente: solo lectura de las propias solicitudes.
+        from .cotizaciones import propias
+        from web.models import BloqueHorario
+        mias = propias(request.user)
+        por_decidir = mias.filter(estado__in=["RECIBIDA", "EN_REVISION"])
+        contexto.update({
+            "cuenta": {
+                "por_decidir": por_decidir.count(),
+                "aceptadas": mias.filter(estado="ACEPTADA").count(),
+                "agendadas": mias.filter(estado="RESERVADA").count(),
+            },
+            "por_decidir": por_decidir.order_by("creada_en", "pk")[:5],
+            "proximas": BloqueHorario.objects.filter(
+                tatuadora__usuario=request.user, tipo="CITA", estado="RESERVADA", fecha__gte=contexto["hoy"],
+            ).select_related("sesion__postulacion__contacto")[:5],
+        })
+    return render(request, "nucleo/inicio.html", contexto)
 
 
 @rol_requerido(Rol.ADMIN)

@@ -1,15 +1,69 @@
 {% extends "base.html" %}{% load static %}
 {% block titulo %}Mis métricas{% endblock %}
 {% block contenido %}
-<h1>Mis métricas</h1><p class="bajada">Solo tus solicitudes y trabajos. Actualiza automáticamente cada minuto mientras esta página esté visible.</p>
-<nav class="acciones"><a class="boton secundario" href="?periodo=semana">Esta semana</a><a class="boton secundario" href="?periodo=mes">Este mes</a></nav>
+<div class="encabezado metricas-encabezado">
+  <div>
+    <h1>Mis métricas</h1>
+    <p class="bajada">Solo tus solicitudes y trabajos. Se actualiza sola cada minuto mientras la página esté abierta.</p>
+  </div>
+  <nav class="acciones filtros-bandeja" aria-label="Período">
+    <a href="?periodo=semana" {% if periodo == "semana" %}aria-current="page"{% endif %}>Esta semana</a>
+    <a href="?periodo=mes" {% if periodo == "mes" %}aria-current="page"{% endif %}>Este mes</a>
+  </nav>
+</div>
+
 <div id="metricas-vivas" aria-live="polite">
-<h2>Actividad: {{ desde|date:"d/m/Y" }} — {{ hasta|date:"d/m/Y" }}</h2>
-<div class="rejilla dos"><section class="tarjeta"><h3>{{ recibidas }} solicitudes recibidas</h3><p>Estado actual de las solicitudes ingresadas en este período.</p><ul>{% for nombre, cantidad in estados %}<li>{{ nombre }}: <strong>{{ cantidad }}</strong></li>{% empty %}<li>Sin solicitudes en este período.</li>{% endfor %}</ul></section><section class="tarjeta"><h3>{{ ausencias }} sesiones sin asistencia</h3><p>La inasistencia no implica automáticamente retener el abono.</p></section></div>
-<div class="rejilla dos"><section class="tarjeta"><h3>Trabajos terminados por estilo</h3>{% for nombre, cantidad in estilos %}<p>{{ nombre }} <strong>{{ cantidad }}</strong> <meter min="0" max="{{ recibidas|add:'10' }}" value="{{ cantidad }}">{{ cantidad }}</meter></p>{% empty %}<p>Sin trabajos terminados en el período.</p>{% endfor %}</section><section class="tarjeta"><h3>Zonas de los trabajos terminados</h3><ul>{% for nombre, cantidad in zonas %}<li>{{ nombre|capfirst }}: {{ cantidad }}</li>{% empty %}<li>Sin datos.</li>{% endfor %}</ul></section><section class="tarjeta"><h3>Solicitudes rechazadas por estilo</h3><ul>{% for nombre, cantidad in rechazados %}<li>{{ nombre }}: {{ cantidad }}</li>{% empty %}<li>Sin rechazos.</li>{% endfor %}</ul></section></div>
-<h2>Dinero registrado · acumulado histórico</h2><p class="nota">Importes en CLP. Son cobros registrados, no ganancias: no se descuentan costos. Estos totales abarcan todo el historial, independientemente del período de actividad seleccionado.</p>
-<div class="rejilla dos"><section class="tarjeta"><h3>Total recibido neto</h3><p class="price">{{ totales.recibido }} CLP</p><p>Incluye abonos y pagos adicionales, menos devoluciones.</p></section><section class="tarjeta"><h3>Abonos recibidos</h3><p class="price">{{ totales.abonos }} CLP</p><p>Depósitos acumulados antes de devoluciones.</p></section><section class="tarjeta"><h3>Saldo de trabajos por cobrar</h3><p class="price">{{ totales.saldo }} CLP</p></section><section class="tarjeta"><h3>Abonos retenidos por acuerdo</h3><p class="price">{{ totales.retencion }} CLP</p><p>Ya incluidos en el total recibido: no se suman nuevamente.</p></section></div>
-<section class="tarjeta"><h3>Cobros netos por estilo confirmado · histórico</h3><ul>{% for nombre, monto in ingresos %}<li>{{ nombre }}: <strong>{{ monto }} CLP</strong></li>{% empty %}<li>Sin cobros registrados.</li>{% endfor %}</ul><p class="nota">Las predicciones sin revisión humana permanecen en «Sin revisión humana».</p></section>
+  <p class="metricas-periodo">Actividad del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}</p>
+
+  <div class="kpis">
+    <section class="kpi"><span>Solicitudes recibidas</span><strong>{{ recibidas }}</strong><small>en el período</small></section>
+    <section class="kpi"><span>Trabajos terminados</span><strong>{{ terminados }}</strong><small>en el período</small></section>
+    <section class="kpi"><span>Rechazadas</span><strong>{{ rechazadas }}</strong><small>de las recibidas</small></section>
+    <section class="kpi"><span>Sesiones sin asistencia</span><strong>{{ ausencias }}</strong><small>no retiene el abono por sí sola</small></section>
+  </div>
+
+  <section class="tarjeta">
+    <h2>¿En qué etapa están las solicitudes del período?</h2>
+    {% if recibidas %}
+    <ul class="barras">
+      {% for etapa in etapas %}<li class="etapa-{{ etapa.codigo|lower }}"><span class="barras-nombre">{{ etapa.nombre }}</span><progress max="{{ etapas_max }}" value="{{ etapa.cantidad }}">{{ etapa.cantidad }}</progress><strong>{{ etapa.cantidad }}</strong></li>{% endfor %}
+    </ul>
+    {% else %}<p class="nota metricas-vacio">Sin solicitudes en este período.</p>{% endif %}
+  </section>
+
+  <div class="rejilla metricas-tres">
+    <section class="tarjeta">
+      <h2>Terminados por estilo</h2>
+      {% if estilos %}<ul class="barras barras-compactas">{% for nombre, cantidad in estilos %}<li><span class="barras-nombre">{{ nombre }}</span><progress max="{{ estilos_max }}" value="{{ cantidad }}">{{ cantidad }}</progress><strong>{{ cantidad }}</strong></li>{% endfor %}</ul>
+      {% else %}<p class="nota metricas-vacio">Sin trabajos terminados en el período.</p>{% endif %}
+    </section>
+    <section class="tarjeta">
+      <h2>Zonas del cuerpo</h2>
+      {% if zonas %}<ul class="barras barras-compactas">{% for nombre, cantidad in zonas %}<li><span class="barras-nombre">{{ nombre|capfirst }}</span><progress max="{{ zonas_max }}" value="{{ cantidad }}">{{ cantidad }}</progress><strong>{{ cantidad }}</strong></li>{% endfor %}</ul>
+      {% else %}<p class="nota metricas-vacio">Sin datos.</p>{% endif %}
+    </section>
+    <section class="tarjeta">
+      <h2>Rechazadas por estilo</h2>
+      {% if rechazados %}<ul class="barras barras-compactas barras-rechazo">{% for nombre, cantidad in rechazados %}<li><span class="barras-nombre">{{ nombre }}</span><progress max="{{ rechazados_max }}" value="{{ cantidad }}">{{ cantidad }}</progress><strong>{{ cantidad }}</strong></li>{% endfor %}</ul>
+      {% else %}<p class="nota metricas-vacio">Sin rechazos.</p>{% endif %}
+    </section>
+  </div>
+
+  <h2 class="metricas-seccion">Dinero registrado · acumulado histórico</h2>
+  <p class="nota">Importes en CLP. Son cobros registrados, no ganancias: no se descuentan costos. Abarcan todo el historial, sin importar el período elegido.</p>
+  <div class="kpis kpis-dinero">
+    <section class="kpi kpi-principal"><span>Total recibido neto</span><strong>{{ totales.recibido }} <small>CLP</small></strong><small>Abonos y pagos adicionales, menos devoluciones.</small></section>
+    <section class="kpi"><span>Abonos recibidos</span><strong>{{ totales.abonos }} <small>CLP</small></strong><small>Depósitos antes de devoluciones.</small></section>
+    <section class="kpi"><span>Saldo por cobrar</span><strong>{{ totales.saldo }} <small>CLP</small></strong><small>De trabajos aceptados o agendados.</small></section>
+    <section class="kpi"><span>Abonos retenidos</span><strong>{{ totales.retencion }} <small>CLP</small></strong><small>Ya incluidos en el total recibido.</small></section>
+  </div>
+
+  <section class="tarjeta">
+    <h2>Cobros netos por estilo confirmado · histórico</h2>
+    {% if ingresos %}<ul class="barras">{% for nombre, monto in ingresos %}<li><span class="barras-nombre">{{ nombre }}</span><progress max="{{ ingresos_max }}" value="{{ monto }}">{{ monto }}</progress><strong>{{ monto }} CLP</strong></li>{% endfor %}</ul>
+    {% else %}<p class="nota metricas-vacio">Sin cobros registrados.</p>{% endif %}
+    <p class="nota">Las predicciones sin revisión humana permanecen en «Sin revisión humana».</p>
+  </section>
 </div>
 {% endblock %}
 {% block page_scripts %}<script src="{% static 'js/metricas.js' %}" defer></script>{% endblock %}

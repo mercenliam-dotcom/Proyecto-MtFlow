@@ -2,29 +2,32 @@
 {% load static %}
 
 {% block title %}Tu cotización{% endblock %}
-{% block styles %}<meta name="csp-nonce" content="{{ request.csp_nonce }}"><link rel="stylesheet" href="{% static 'web/css/disponibilidad.css' %}">{% endblock %}
+{% block styles %}<meta name="csp-nonce" content="{{ request.csp_nonce }}"><link rel="stylesheet" href="{% static 'web/css/disponibilidad.css' %}"><link rel="stylesheet" href="{% static 'web/css/solicitud.css' %}">{% endblock %}
 
 {% block content %}
 <header class="page-header">
     <div>
         <p class="eyebrow">DE LA IDEA A LA TINTA</p>
         <h1>Imagina tu próximo<br><em>tatuaje.</em></h1>
-        <p class="subtitle">Explora un valor de referencia y, si quieres, descubre el estilo de tu imagen.</p>
+        <p class="subtitle">Cinco pasos cortos. Al final verás un valor de referencia y la tatuadora revisará tu propuesta.</p>
     </div>
     <span class="edition">02 / COTIZACIÓN</span>
 </header>
 
-<div class="notice">
-    <strong>Estimación en CLP.</strong> Los valores son referenciales y sujetos a validación por el estudio.
-</div>
-{% if user.es_cliente %}<p class="notice">Esta solicitud quedará vinculada a tu cuenta. Podrás seguirla en <a href="{% url 'clientes:inicio' %}">Mis solicitudes</a>.</p>{% elif not user.is_authenticated %}<p class="notice">Puedes enviar sin cuenta. Si quieres seguir tu solicitud en línea, <a href="{% url 'clientes:registro' %}">crea una cuenta</a> o <a href="{% url 'cuentas:login' %}?next=/cotizacion/">ingresa antes de completar el formulario</a>. Las solicitudes enviadas sin sesión no se vinculan automáticamente después.</p>{% endif %}
+<details class="notice solicitud-aviso">
+    <summary><strong>Estimación en CLP, referencial.</strong>
+        {% if user.es_cliente %}Esta solicitud quedará vinculada a tu cuenta.{% elif not user.is_authenticated %}Puedes enviar sin cuenta.{% endif %}
+        <span class="solicitud-aviso-mas">Más información</span></summary>
+    <p>Los valores son referenciales y sujetos a validación por el estudio.</p>
+    {% if user.es_cliente %}<p>Podrás seguirla en <a href="{% url 'clientes:inicio' %}">Mis solicitudes</a>.</p>{% elif not user.is_authenticated %}<p>Si quieres seguir tu solicitud en línea, <a href="{% url 'clientes:registro' %}">crea una cuenta</a> o <a href="{% url 'cuentas:login' %}?next=/cotizacion/">ingresa antes de completar el formulario</a>. Las solicitudes enviadas sin sesión no se vinculan automáticamente después.</p>{% endif %}
+</details>
 
 {% if limite %}
 <div class="alerta alerta-error" role="alert">Has realizado varias consultas. Espera unos minutos antes de volver a intentarlo.</div>
 {% endif %}
 
 {% if referencia %}
-<div class="alerta alerta-info" role="status">
+<div class="alerta alerta-info" role="status" id="solicitud-recibida">
     <strong>{% if repetida %}Esta propuesta ya fue recibida.{% else %}Propuesta recibida.{% endif %}</strong>
     <p>Referencia: {{ referencia }}. La tatuadora seleccionada revisará tu propuesta y podrá confirmarla o rechazarla. Esto no confirma una reserva ni un precio final.</p>
     <a href="{% url 'web:cotizacion' %}">Enviar otra propuesta</a>
@@ -38,116 +41,121 @@
 </div>
 {% endif %}
 
+<nav class="pasos" id="pasos" aria-label="Pasos de la solicitud" hidden>
+    <p class="pasos-contador"><span>Paso <strong id="paso-numero">1</strong> de 5</span><span id="paso-nombre">Tu idea</span></p>
+    <div class="pasos-barra" aria-hidden="true"><span id="pasos-progreso"></span></div>
+    <ol class="pasos-lista">
+        <li><button type="button" data-ir="1"><span>1</span>Tu idea</button></li>
+        <li><button type="button" data-ir="2"><span>2</span>Referencia</button></li>
+        <li><button type="button" data-ir="3"><span>3</span>Fecha</button></li>
+        <li><button type="button" data-ir="4"><span>4</span>Tus datos</button></li>
+        <li><button type="button" data-ir="5"><span>5</span>Revisar</button></li>
+    </ol>
+</nav>
+
 <div class="quote-layout">
     <section class="surface">
         <form id="quote-form" method="post" enctype="multipart/form-data" action="{% url 'web:cotizacion' %}">
             {% csrf_token %}
             {{ form.envio }}
-            
-            <fieldset>
-                <legend><span class="step">01</span> Dale forma a tu idea</legend>
-                
-                <div class="form-row">
-                    {% include "_campo.html" with campo=form.tatuadora %}
-                    {% include "_campo.html" with campo=form.zona %}
-                </div>
-                
-                <!-- NUEVOS CAMPOS DE MEDIDA AGRUPADOS -->
+
+            <fieldset class="paso" data-paso="1" data-titulo="Tu idea">
+                <legend tabindex="-1"><span class="step">01</span> Dale forma a tu idea</legend>
+                {% include "_campo.html" with campo=form.tatuadora %}
+                {% include "_campo.html" with campo=form.zona %}
                 <div class="form-row">
                     {% include "_campo.html" with campo=form.alto_cm %}
                     {% include "_campo.html" with campo=form.ancho_cm %}
                 </div>
-                
-                <!-- COLOR Y DETALLE AGRUPADOS PARA NO APRETAR LA PANTALLA -->
-                <div class="form-row">
-                    {% include "_campo.html" with campo=form.color %}
-                    {% include "_campo.html" with campo=form.detalle %}
-                </div>
-                
+                {% include "_campo.html" with campo=form.color %}
+                {% include "_campo.html" with campo=form.detalle %}
                 {% include "_campo.html" with campo=form.idea %}
-                
                 <div class="check-field">
                     {{ form.cobertura }}
                     <label for="{{ form.cobertura.id_for_label }}">{{ form.cobertura.label }}</label>
                 </div>
             </fieldset>
 
-            <fieldset>
-                <legend><span class="step">02</span> Una imagen para inspirarnos</legend>
+            <fieldset class="paso" data-paso="2" data-titulo="Referencia">
+                <legend tabindex="-1"><span class="step">02</span> Una imagen para inspirarnos</legend>
                 <div class="upload-box">
                     {% include "_campo.html" with campo=form.imagen %}
                 </div>
                 <p id="file-error" class="error-message" role="alert"></p>
-                
+
+                <div class="reference-card">
+                    <div class="reference-preview">
+                        <p id="preview-placeholder" {% if miniatura %}hidden{% endif %}>
+                            Cada historia comienza<br>con una idea.<br>
+                            <small>Tu imagen aparecerá aquí.</small>
+                        </p>
+                        <img id="reference-preview" alt="Tu referencia de tatuaje" {% if miniatura %}src="{{ miniatura }}"{% else %}hidden{% endif %}>
+                    </div>
+                    <div class="file-details" id="file-details" hidden>
+                        <span id="file-name"></span>
+                        <button type="button" class="text-button" id="remove-image">Quitar imagen</button>
+                    </div>
+                </div>
+
                 <p class="field-help">Analizamos automáticamente tu referencia al seleccionarla y al enviar la solicitud. La tatuadora revisará la sugerencia.</p>
+
+                <section class="info-box" id="live-analysis" data-url="{% url 'web:analizar_referencia' %}" aria-labelledby="live-analysis-heading">
+                    <h3 id="live-analysis-heading">Identificación de estilo</h3>
+                    <p id="analysis-status" role="status" aria-live="polite">Selecciona una imagen para ver su estilo antes de enviar.</p>
+                    <div id="analysis-result" hidden>
+                        <p><strong id="analysis-style"></strong></p>
+                        <p id="analysis-note" class="field-help"></p>
+                    </div>
+                    <button type="button" class="text-button" id="retry-analysis" hidden>Reintentar análisis</button>
+                    <p class="field-help">Este análisis previo no guarda tu propuesta ni determina su precio.</p>
+                </section>
             </fieldset>
 
-            <fieldset>
-                <legend><span class="step">03</span> Tu resumen</legend>
+            <fieldset class="paso" data-paso="3" data-titulo="Fecha">
+                <legend tabindex="-1"><span class="step">03</span> ¿Cuándo te acomoda?</legend>
+                <p class="field-help paso-intro">Es opcional. Tu preferencia no reserva ni bloquea la agenda: la tatuadora acordará contigo el horario definitivo.</p>
+                <div class="fecha-acciones" hidden id="fecha-acciones">
+                    <button type="button" class="secondary-button" id="abrir-calendario">Ver horarios disponibles</button>
+                    <button type="button" class="text-button" id="quitar-horario" hidden>Quitar preferencia</button>
+                </div>
+                <p class="horario-elegido" id="horario-elegido" role="status" aria-live="polite"></p>
+                <div class="form-row">{% include "_campo.html" with campo=form.fecha_propuesta %}{% include "_campo.html" with campo=form.hora_propuesta %}</div>
+            </fieldset>
+
+            <fieldset class="paso" data-paso="4" data-titulo="Tus datos">
+                <legend tabindex="-1"><span class="step">04</span> ¿Cómo te contactamos?</legend>
                 {% include "_campo.html" with campo=form.nombre %}
                 <div class="form-row">{% include "_campo.html" with campo=form.primer_apellido %}{% include "_campo.html" with campo=form.segundo_apellido %}</div>
-                <div class="form-row">{% include "_campo.html" with campo=form.canal_preferido %}{% include "_campo.html" with campo=form.usuario_social %}</div><p class="field-help">Las redes son opcionales. Si no indicas un usuario, te contactaremos por correo.</p>
-                <div class="form-row">{% include "_campo.html" with campo=form.fecha_propuesta %}{% include "_campo.html" with campo=form.hora_propuesta %}</div>
-                <section aria-label="Disponibilidad de la tatuadora">
-                    <h3>Elige una hora disponible</h3>
-                    <div class="campo" id="selector-calendario" hidden><label for="artista-calendario">Consultar horarios de</label><select id="artista-calendario" aria-describedby="disponibilidad-estado"></select></div>
-                    <p>Verde: disponible · Gris: ocupado o bloqueado. Solo se muestran horas de trabajo. No se muestran datos de otros clientes.</p>
-                    <p id="disponibilidad-estado" role="status" aria-live="polite">Selecciona una tatuadora para consultar su calendario.</p>
-                    <div id="disponibilidad-calendario" data-url="{% url 'web:disponibilidad' %}"></div>
-                    <button type="button" id="sin-horario" class="text-button">Enviar sin proponer una hora</button>
-                </section>
-                <p class="field-help">El horario propuesto es una preferencia, no reserva ni bloquea la agenda. La tatuadora acordará contigo el horario definitivo.</p>
-                <div class="form-row">
-                    {% include "_campo.html" with campo=form.email %}
-                    {% include "_campo.html" with campo=form.telefono %}
-                </div>
-                <!-- TEXTO ACTUALIZADO (Ya que ahora sí guardamos en BD) -->
-                <p class="field-help">Al enviar guardaremos tus datos de contacto, propuesta e imagen de referencia para que la tatuadora elegida los revise. La imagen no se publica en el portafolio. El análisis de estilo es opcional.</p>
+                {% include "_campo.html" with campo=form.email %}
+                {% include "_campo.html" with campo=form.telefono %}
+                {% include "_campo.html" with campo=form.canal_preferido %}
+                {% include "_campo.html" with campo=form.usuario_social %}
+                <p class="field-help">Las redes son opcionales. Si no indicas un usuario, te contactaremos por correo.</p>
+                <p class="field-help">Guardaremos tus datos de contacto, propuesta e imagen de referencia para que la tatuadora elegida los revise. La imagen no se publica en el portafolio.</p>
             </fieldset>
 
-            <button class="primary-button" type="submit" id="estimate-button">Enviar propuesta y ver estimación ↗</button>
-            <p id="submit-status" role="status" class="field-help"></p>
-            
-            <noscript>
-                <p class="field-help">Puedes calcular sin JavaScript. La vista previa aparecerá después de enviar.</p>
-            </noscript>
+            <fieldset class="paso" data-paso="5" data-titulo="Revisar">
+                <legend tabindex="-1"><span class="step">05</span> Revisa y envía</legend>
+                <div id="resumen-revision" class="resumen-revision" hidden></div>
+                <button class="primary-button" type="submit" id="estimate-button">Enviar propuesta y ver estimación ↗</button>
+                <p id="submit-status" role="status" class="field-help"></p>
+                <noscript>
+                    <p class="field-help">Puedes calcular sin JavaScript. La vista previa aparecerá después de enviar.</p>
+                </noscript>
+            </fieldset>
+
+            <div class="pasos-acciones" id="pasos-acciones" hidden>
+                <button type="button" class="secondary-button" id="paso-atras">Atrás</button>
+                <button type="button" class="primary-button" id="paso-siguiente">Siguiente</button>
+            </div>
         </form>
     </section>
 
     <div class="quote-side">
-        <section class="surface reference-card">
-            <p class="eyebrow">TU PUNTO DE PARTIDA</p>
-            <h2>La referencia</h2>
-            
-            <div class="reference-preview">
-                <p id="preview-placeholder" {% if miniatura %}hidden{% endif %}>
-                    Cada historia comienza<br>con una idea.<br>
-                    <small>Tu imagen aparecerá aquí.</small>
-                </p>
-                <img id="reference-preview" alt="Tu referencia de tatuaje" {% if miniatura %}src="{{ miniatura }}"{% else %}hidden{% endif %}>
-            </div>
-            
-            <div class="file-details" id="file-details" hidden>
-                <span id="file-name"></span>
-                <button type="button" class="text-button" id="remove-image">Quitar imagen</button>
-            </div>
-            <section class="info-box" id="live-analysis" data-url="{% url 'web:analizar_referencia' %}" aria-labelledby="live-analysis-heading">
-                <h3 id="live-analysis-heading">Identificación de estilo</h3>
-                <p id="analysis-status" role="status" aria-live="polite">Selecciona una imagen para ver su estilo antes de enviar.</p>
-                <div id="analysis-result" hidden>
-                    <p><strong id="analysis-style"></strong></p>
-                    <p id="analysis-note" class="field-help"></p>
-
-                </div>
-                <button type="button" class="text-button" id="retry-analysis" hidden>Reintentar análisis</button>
-                <p class="field-help">Este análisis previo no guarda tu propuesta ni determina su precio.</p>
-            </section>
-        </section>
-
         <section class="surface estimate-card" id="quote-summary" {% if not estimacion %}hidden{% endif %} aria-labelledby="summary-heading">
             <p class="eyebrow">UN PRIMER ACERCAMIENTO</p>
             <h2 id="summary-heading" tabindex="-1">Tu estimación referencial</h2>
-            
+
             {% if estimacion.manual %}
                 <p class="price manual">Revisión personalizada</p>
                 <p>{{ estimacion.motivo }}</p>
@@ -159,9 +167,9 @@
                     {% endfor %}
                 </ul>
             {% endif %}
-            
+
             <p class="field-help">Valores referenciales. La profesional define el precio final tras revisar la complejidad.</p>
-            
+
             <div class="info-box">
                 <strong>Análisis de estilo</strong>
                 {% if error_ml %}
@@ -173,7 +181,7 @@
                 {% endif %}
                 <p>El estilo sugerido no cambia el precio: la complejidad se confirma con la tatuadora.</p>
             </div>
-            
+
             <details>
                 <summary>Ver los datos de mi resumen</summary>
                 <dl class="selection-details">
@@ -184,8 +192,13 @@
                     <dt>Idea</dt><dd>{{ resumen.idea }}</dd>
                 </dl>
             </details>
-            <!-- TEXTO ACTUALIZADO (Ya que ahora sí guardamos en BD) -->
             <p class="field-help">Tu propuesta y su imagen se guardaron para revisión. La estimación no confirma una reserva.</p>
+        </section>
+
+        <section class="surface resumen-vivo" id="resumen-vivo" hidden aria-labelledby="resumen-vivo-titulo">
+            <p class="eyebrow">TU SOLICITUD</p>
+            <h2 id="resumen-vivo-titulo">Lo que llevas</h2>
+            <div id="resumen-vivo-contenido"></div>
         </section>
 
         <section class="quote-note">
@@ -197,10 +210,44 @@
         </section>
     </div>
 </div>
+
+<dialog class="dialogo dialogo-calendario" id="dialogo-calendario" aria-labelledby="dialogo-calendario-titulo">
+    <header class="dialogo-cabecera">
+        <h2 id="dialogo-calendario-titulo">Elige un horario</h2>
+        <button type="button" class="dialogo-cerrar" data-cerrar aria-label="Cerrar">×</button>
+    </header>
+    <p class="leyenda-horarios"><span class="punto punto-libre"></span>Disponible <span class="punto punto-ocupado"></span>Ocupado · Toca un horario verde.</p>
+    <div class="campo" id="selector-calendario" hidden><label for="artista-calendario">Consultar horarios de</label><select id="artista-calendario" aria-describedby="disponibilidad-estado"></select></div>
+    <p id="disponibilidad-estado" role="status" aria-live="polite">Selecciona una tatuadora para consultar su calendario.</p>
+    <div id="disponibilidad-calendario" data-url="{% url 'web:disponibilidad' %}"></div>
+    <footer class="dialogo-pie">
+        <button type="button" id="sin-horario" class="text-button">Enviar sin proponer una hora</button>
+        <button type="button" class="primary-button" data-cerrar>Listo</button>
+    </footer>
+</dialog>
+
+<dialog class="dialogo dialogo-enviando" id="dialogo-enviando" aria-labelledby="dialogo-enviando-titulo">
+    <div class="cargando" aria-hidden="true"></div>
+    <h2 id="dialogo-enviando-titulo">Enviando tu propuesta…</h2>
+    <p>Guardamos tus datos y analizamos la imagen. Puede tardar unos segundos; no cierres esta página.</p>
+</dialog>
+
+{% if referencia %}
+<dialog class="dialogo dialogo-exito" id="dialogo-exito" aria-labelledby="dialogo-exito-titulo">
+    <p class="dialogo-icono" aria-hidden="true">✓</p>
+    <h2 id="dialogo-exito-titulo">{% if repetida %}Ya teníamos tu propuesta{% else %}¡Propuesta enviada!{% endif %}</h2>
+    <p>Referencia <strong>{{ referencia }}</strong>. La tatuadora la revisará y te contactará para confirmar el horario y el precio final.</p>
+    <footer class="dialogo-pie">
+        {% if estimacion %}<button type="button" class="primary-button" data-cerrar data-ver-estimacion>Ver mi estimación</button>{% else %}<button type="button" class="primary-button" data-cerrar>Entendido</button>{% endif %}
+        {% if user.es_cliente %}<a class="secondary-button" href="{% url 'clientes:detalle' referencia %}">Ver mi solicitud</a>{% endif %}
+    </footer>
+</dialog>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'web/js/cotizacion.js' %}" defer></script>
 <script src="{% static 'vendor/fullcalendar/index.global.min.js' %}" defer></script>
 <script src="{% static 'web/js/disponibilidad.js' %}" defer></script>
+<script src="{% static 'web/js/solicitud-pasos.js' %}" defer></script>
 {% endblock %}

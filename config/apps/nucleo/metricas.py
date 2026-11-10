@@ -44,6 +44,26 @@ def calcular(artista, inicio, fin):
     return {"totales": totales, "recibidas": recibidas, "estados": sorted(estados.items()), "zonas": zonas.most_common(), "estilos": estilos.most_common(), "rechazados": rechazados.most_common(), "ingresos": sorted(ingresos.items()), "ausencias": ausencias}
 
 
+ETAPAS = [("RECIBIDA", "Recibidas"), ("EN_REVISION", "En revisión"), ("ACEPTADA", "Aceptadas"),
+          ("RESERVADA", "Agendadas"), ("REALIZADA", "Terminadas"), ("RECHAZADA", "Rechazadas")]
+
+
+def presentar(c):
+    """Solo presentación: nombres legibles y escalas para las barras. No cambia los cálculos."""
+    por_estado = dict(c["estados"])
+    etapas = [{"codigo": cod, "nombre": nombre, "cantidad": por_estado.get(cod, 0)} for cod, nombre in ETAPAS]
+    return {
+        "etapas": etapas,
+        "etapas_max": max([e["cantidad"] for e in etapas] + [1]),
+        "terminados": sum(n for _, n in c["estilos"]),
+        "rechazadas": por_estado.get("RECHAZADA", 0),
+        "estilos_max": max([n for _, n in c["estilos"]] + [1]),
+        "zonas_max": max([n for _, n in c["zonas"]] + [1]),
+        "rechazados_max": max([n for _, n in c["rechazados"]] + [1]),
+        "ingresos_max": max([m for _, m in c["ingresos"]] + [1]),
+    }
+
+
 @rol_requerido(Rol.ADMIN)
 @never_cache
 @require_GET
@@ -54,4 +74,5 @@ def inicio(request):
     desde = hoy.replace(day=1) if periodo == "mes" else hoy - timedelta(days=hoy.weekday())
     contexto = calcular(artista, desde, hoy)
     contexto.update(desde=desde, hasta=hoy, periodo=periodo)
+    contexto.update(presentar(contexto))
     return render(request, "flujo/metricas.html", contexto)

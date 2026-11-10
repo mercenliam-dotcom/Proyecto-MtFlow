@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% load static %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<p class="miga"><a href="{% url 'nucleo:portafolio' %}">← Mi portafolio</a></p>
+<h1>{{ titulo }}</h1>
+<p class="bajada">Sube una fotografía de un trabajo terminado o del estudio. Las referencias privadas de las solicitudes nunca se publican automáticamente.</p>
+<form method="post" enctype="multipart/form-data" class="portafolio-form" id="portafolio-form">{% csrf_token %}
+  {{ form.non_field_errors }}{{ form.version }}{{ form.version.errors }}
+  <div class="portafolio-form-rejilla">
+    <section class="tarjeta">
+      <h2>La fotografía</h2>
+      <div class="portafolio-vista" id="portafolio-vista">
+        {% if form.instance.pk %}<img id="portafolio-preview" src="{% url 'web:imagen_portafolio' form.instance.referencia %}" alt="Fotografía actual">{% else %}<img id="portafolio-preview" alt="Vista previa" hidden><p id="portafolio-vacio">La vista previa aparecerá aquí.</p>{% endif %}
+      </div>
+      <div class="upload-box">{% include "_campo.html" with campo=form.imagen %}</div>
+      {% if form.instance.pk %}<p class="nota">Deja el archivo vacío para conservar la fotografía actual.</p>{% endif %}
+      {% include "_campo.html" with campo=form.titulo %}
+      <div class="form-row">{% include "_campo.html" with campo=form.tipo %}{% include "_campo.html" with campo=form.estilo %}</div>
+      {% include "_campo.html" with campo=form.postulacion %}
+    </section>
+    <section class="tarjeta publicacion">
+      <h2>Publicación</h2>
+      <p class="nota">Para que la foto aparezca en la página pública deben estar marcadas <strong>Publicar</strong> y <strong>Autorización</strong>.</p>
+      <label class="interruptor" for="{{ form.visible.id_for_label }}">{{ form.visible }}<span><strong>Publicar en el portafolio</strong><small>Se mostrará en la galería pública, filtrable por estilo.</small></span></label>
+      <label class="interruptor" for="{{ form.autorizacion_publicacion.id_for_label }}">{{ form.autorizacion_publicacion }}<span><strong>Tengo autorización para publicarla</strong><small>De la persona tatuada o del estudio, según corresponda.</small></span></label>
+      <label class="interruptor" for="{{ form.en_carrusel.id_for_label }}">{{ form.en_carrusel }}<span><strong>Destacar en el carrusel</strong><small>Aparece arriba en la portada. Opcional.</small></span></label>
+      {{ form.visible.errors }}{{ form.autorizacion_publicacion.errors }}{{ form.en_carrusel.errors }}
+      <p class="estado-publicacion" id="estado-publicacion" role="status" aria-live="polite"></p>
+      <button class="boton" type="submit">Guardar</button>
+    </section>
+  </div>
+</form>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/portafolio-form.js' %}" defer></script>{% endblock %}

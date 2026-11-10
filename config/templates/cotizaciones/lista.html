@@ -1,47 +1,62 @@
 {% extends "base.html" %}{% load static %}
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block contenido %}
-<div class="encabezado">
-  <div><p class="eyebrow">{% if es_equipo %}PROPUESTAS DEL ESTUDIO{% else %}PROPUESTAS PARA TI{% endif %}</p><h1>{{ titulo }}</h1></div>
+<div class="encabezado bandeja-encabezado">
+  <div><p class="eyebrow">{% if es_equipo %}PROPUESTAS DEL ESTUDIO{% else %}PROPUESTAS PARA TI{% endif %}</p><h1>{{ titulo }}</h1>
+  <p class="bajada">{% if es_equipo %}Consulta las propuestas de todas las tatuadoras del estudio.{% elif es_registro %}Historial de tus decisiones, acuerdos y sesiones. Aquí permanecen las solicitudes aceptadas y rechazadas.{% else %}Solo solicitudes recibidas o en revisión. Abre una y sigue el recuadro «Siguiente paso»; al aceptar o rechazar, pasa al Registro.{% endif %}</p></div>
   <span class="chip">{{ total }} propuesta{{ total|pluralize:"s" }}</span>
 </div>
-<p class="bajada">{% if es_equipo %}Consulta las propuestas de todas las tatuadoras del estudio.{% elif es_registro %}Historial de tus decisiones, acuerdos y sesiones. Aquí permanecen las solicitudes aceptadas y rechazadas.{% else %}Solo solicitudes recibidas o en revisión. Al aceptar o rechazar, pasan al Registro.{% endif %}</p>
-{% if es_registro %}<p><strong>{{ resumen_registro.aceptadas }} aceptadas</strong> (incluye agendadas y finalizadas) · <strong>{{ resumen_registro.rechazadas }} rechazadas</strong></p>{% endif %}
+
+{% if not es_equipo %}
+<nav class="acciones filtros-bandeja" aria-label="Solicitudes y registro">
+  <a href="{% url 'nucleo:cotizaciones' %}" {% if not es_registro %}aria-current="page"{% endif %}>Pendientes</a>
+  <a href="{% url 'nucleo:registro' %}" {% if es_registro and not bandeja %}aria-current="page"{% endif %}>Registro completo</a>
+  {% if es_registro %}<span class="filtros-separador" aria-hidden="true"></span>
+  <a href="?bandeja=aceptadas" {% if bandeja == "aceptadas" %}aria-current="page"{% endif %}>Aceptadas</a>
+  <a href="?bandeja=por_agendar" {% if bandeja == "por_agendar" %}aria-current="page"{% endif %}>Por agendar</a>
+  <a href="?bandeja=agendadas" {% if bandeja == "agendadas" %}aria-current="page"{% endif %}>Agendadas</a>
+  <a href="?bandeja=terminadas" {% if bandeja == "terminadas" %}aria-current="page"{% endif %}>Finalizadas</a>
+  <a href="?bandeja=rechazadas" {% if bandeja == "rechazadas" %}aria-current="page"{% endif %}>Rechazadas</a>{% endif %}
+</nav>
+{% if es_registro %}<p class="registro-resumen"><span><strong>{{ resumen_registro.aceptadas }}</strong> aceptadas <small>(incluye agendadas y finalizadas)</small></span><span><strong>{{ resumen_registro.rechazadas }}</strong> rechazadas</span></p>{% endif %}
+{% endif %}
+
 {% if es_equipo %}
 {% if form_filtros.errors %}<div class="alerta alerta-error" role="alert">Revisa los filtros indicados.{{ form_filtros.non_field_errors }}</div>{% endif %}
-<form class="cotizaciones-filtros" method="get">
+<form class="cotizaciones-filtros barra-filtros" method="get">
   {% if es_registro and bandeja %}<input type="hidden" name="bandeja" value="{{ bandeja }}">{% endif %}
-{% for campo in form_filtros %}{% include "_campo.html" %}{% endfor %}
-<button class="boton secundario" type="submit">Filtrar</button>
-<a href="{% url 'nucleo:equipo_cotizaciones' %}">Limpiar filtros</a>
+  {% for campo in form_filtros %}{% include "_campo.html" %}{% endfor %}
+  <div class="barra-filtros-acciones"><button class="boton secundario" type="submit">Filtrar</button><a href="{% url 'nucleo:equipo_cotizaciones' %}">Limpiar filtros</a></div>
 </form>
 <p class="nota">{{ pagina.paginator.count }} de {{ total }} propuestas</p>
 {% elif total %}
-<form class="cotizaciones-filtros" method="get">
+<form class="cotizaciones-filtros barra-filtros" method="get">
   {% if es_registro and bandeja %}<input type="hidden" name="bandeja" value="{{ bandeja }}">{% endif %}
-  <div class="campo"><label for="estado">Estado de la propuesta</label>
+  <div class="campo"><label for="estado">Estado</label>
     <select name="estado" id="estado"><option value="">Todos los estados</option>
       {% for valor, etiqueta in estados %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
     </select>
   </div>
-<div class="campo"><label for="orden">Ordenar</label><select id="orden" name="orden"><option value="fecha">Más recientes</option><option value="confianza" {% if request.GET.orden == "confianza" %}selected{% endif %}>Mayor confianza primero</option></select></div>
-  <button class="boton secundario" type="submit">Filtrar</button>
+  <div class="campo"><label for="orden">Ordenar</label><select id="orden" name="orden"><option value="fecha">Más recientes</option><option value="confianza" {% if request.GET.orden == "confianza" %}selected{% endif %}>Mayor confianza primero</option></select></div>
+  <div class="barra-filtros-acciones"><button class="boton secundario" type="submit">Aplicar</button>{% if estado or request.GET.orden %}<a href="?{% if bandeja %}bandeja={{ bandeja }}{% endif %}">Quitar filtros</a>{% endif %}</div>
 </form>
 {% endif %}
-{% if not es_equipo %}<nav class="acciones" aria-label="Solicitudes y registro"><a class="boton secundario" href="{% url 'nucleo:cotizaciones' %}">Pendientes</a><a class="boton secundario" href="{% url 'nucleo:registro' %}">Registro completo</a>{% if es_registro %}<a href="?bandeja=aceptadas">Aceptadas</a><a href="?bandeja=por_agendar">Por agendar</a><a href="?bandeja=agendadas">Agendadas</a><a href="?bandeja=terminadas">Finalizadas</a><a href="?bandeja=rechazadas">Rechazadas</a>{% endif %}</nav>{% endif %}
-<section class="correo-bandeja" aria-label="Lista de solicitudes">
-<div class="correo-cabecera"><strong>{{ pagina.paginator.count }} solicitudes</strong><span>Selecciona una solicitud para abrirla</span></div>
-{% for propuesta in pagina %}
-<a class="correo-fila" href="{% url detalle_nombre propuesta.referencia %}">
-<span class="correo-avatar" aria-hidden="true">{{ propuesta.contacto.nombres|first|upper }}</span>
-<span class="correo-persona"><strong>{{ propuesta.contacto }}</strong><small>{{ propuesta.estado_legible }}{% if es_equipo %} · {{ propuesta.tatuadora.nombre_publico }}{% endif %}</small></span>
-<span class="correo-idea"><strong>{{ propuesta.zona_cuerpo|capfirst }} · {{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</strong><span>{{ propuesta.descripcion|truncatechars:85 }}</span></span>
-<span class="correo-valores"><strong>{{ propuesta.confianza_legible }}</strong><small>Confianza · {{ propuesta.precio_legible }}</small></span>
-<time datetime="{{ propuesta.creada_en|date:'c' }}">{{ propuesta.creada_en|date:"d/m/Y" }}</time><span class="correo-flecha" aria-hidden="true">›</span>
-</a>
-{% empty %}
-<div class="buzon-vacio">{% if es_equipo %}<h2>No hay cotizaciones para mostrar</h2><p>Revisa los filtros.</p>{% elif es_registro %}<h2>No hay registros con estos filtros</h2><p>Las solicitudes aparecerán aquí cuando las aceptes o rechaces.</p>{% else %}<h2>No hay solicitudes pendientes</h2><p>Las que ya decidiste están en <a href="{% url 'nucleo:registro' %}">Registro</a>.</p>{% endif %}</div>
-{% endfor %}</section>
+
+<section class="bandeja" aria-label="Lista de solicitudes">
+  <div class="bandeja-cabecera"><strong>{{ pagina.paginator.count }} solicitud{{ pagina.paginator.count|pluralize:"es" }}</strong><span>Selecciona una para abrirla</span></div>
+  {% for propuesta in pagina %}
+  <a class="correo-fila" href="{% url detalle_nombre propuesta.referencia %}">
+    <span class="correo-avatar" aria-hidden="true">{{ propuesta.contacto.nombres|first|upper }}</span>
+    <span class="bandeja-persona"><strong>{{ propuesta.contacto }}</strong><span class="chip chip-estado chip-{{ propuesta.estado|lower }}">{{ propuesta.estado_legible }}</span>{% if es_equipo %}<small>{{ propuesta.tatuadora.nombre_publico }}</small>{% endif %}</span>
+    <span class="bandeja-idea"><strong>{{ propuesta.zona_cuerpo|capfirst }} · {{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</strong><span>{{ propuesta.descripcion|truncatechars:85 }}</span></span>
+    <span class="bandeja-valores"><strong>{{ propuesta.precio_legible }}</strong><small>Estilo: {{ propuesta.confianza_legible }}</small></span>
+    {% if not es_equipo %}<span class="bandeja-siguiente">{% if propuesta.estado == "RECIBIDA" or propuesta.estado == "EN_REVISION" %}Decidir{% elif propuesta.estado == "ACEPTADA" %}Abono y agenda{% elif propuesta.estado == "RESERVADA" %}Realizar sesión{% elif propuesta.estado == "REALIZADA" %}Terminado{% else %}Cerrada{% endif %}</span>{% endif %}
+    <time datetime="{{ propuesta.creada_en|date:'c' }}">{{ propuesta.creada_en|date:"d/m/Y" }}</time><span class="correo-flecha" aria-hidden="true">›</span>
+  </a>
+  {% empty %}
+  <div class="buzon-vacio">{% if es_equipo %}<h2>No hay cotizaciones para mostrar</h2><p>Revisa los filtros.</p>{% elif es_registro %}<h2>No hay registros con estos filtros</h2><p>Las solicitudes aparecerán aquí cuando las aceptes o rechaces.</p>{% else %}<h2>No hay solicitudes pendientes</h2><p>Las que ya decidiste están en <a href="{% url 'nucleo:registro' %}">Registro</a>.</p>{% endif %}</div>
+  {% endfor %}
+</section>
 {% if pagina.has_other_pages %}
 <nav class="acciones cotizaciones-paginacion" aria-label="Páginas de cotizaciones">
   {% if pagina.has_previous %}<a class="boton secundario" href="?pagina={{ pagina.previous_page_number }}&amp;{{ filtros_query }}">Anterior</a>{% endif %}

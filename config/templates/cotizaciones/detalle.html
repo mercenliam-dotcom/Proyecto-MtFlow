@@ -1,10 +1,59 @@
 {% extends "base.html" %}{% load static %}
 {% block titulo %}Detalle de cotización{% endblock %}
 {% block contenido %}
+{% with e=propuesta.estado %}
 <p class="miga">{% if es_equipo %}<a href="{% url 'nucleo:equipo_cotizaciones' %}">← Cotizaciones del equipo</a>{% elif pendiente_decision %}<a href="{% url 'nucleo:cotizaciones' %}">← Solicitudes pendientes</a>{% else %}<a href="{% url 'nucleo:registro' %}">← Registro</a>{% endif %}</p>
-<div class="encabezado"><h1>La propuesta de {{ propuesta.contacto.nombres }}</h1><span class="chip">{{ estado_legible }}</span></div>
-<p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }}</p>
-<p class="bajada">Esta propuesta está dirigida a {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
+<div class="encabezado detalle-encabezado">
+  <div>
+    <h1>La propuesta de {{ propuesta.contacto.nombres }}</h1>
+    <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }} · Para {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
+  </div>
+  <span class="chip chip-estado chip-{{ e|lower }}">{{ estado_legible }}</span>
+</div>
+
+{# ---------- Recorrido de la solicitud ---------- #}
+<ol class="recorrido" aria-label="Recorrido de la solicitud">
+  <li class="hecho"><span class="recorrido-punto" aria-hidden="true"></span><strong>Recibida</strong><small>{{ propuesta.creada_en|date:"d/m" }}</small></li>
+  <li class="{% if e == 'RECHAZADA' %}rechazado{% elif e == 'ACEPTADA' or e == 'RESERVADA' or e == 'REALIZADA' %}hecho{% else %}actual{% endif %}"><span class="recorrido-punto" aria-hidden="true"></span><strong>{% if e == 'RECHAZADA' %}Rechazada{% elif e == 'ACEPTADA' or e == 'RESERVADA' or e == 'REALIZADA' %}Aceptada{% else %}Decisión{% endif %}</strong><small>{% if e == 'EN_REVISION' %}En revisión{% elif e == 'RECIBIDA' %}Por decidir{% elif propuesta.precio_final %}{{ propuesta.precio_final }} CLP{% endif %}</small></li>
+  <li class="{% if e == 'RECHAZADA' %}omitido{% elif propuesta.abono_verificado_en or e == 'RESERVADA' or e == 'REALIZADA' %}hecho{% elif e == 'ACEPTADA' %}actual{% endif %}"><span class="recorrido-punto" aria-hidden="true"></span><strong>Abono</strong><small>{% if propuesta.abono_verificado_en %}Verificado{% elif e == 'ACEPTADA' %}Por confirmar{% endif %}</small></li>
+  <li class="{% if e == 'RECHAZADA' %}omitido{% elif e == 'RESERVADA' or e == 'REALIZADA' %}hecho{% elif puede_agendar %}actual{% endif %}"><span class="recorrido-punto" aria-hidden="true"></span><strong>Sesión</strong><small>{% if sesiones %}{{ sesiones|length }} registrada{{ sesiones|length|pluralize }}{% elif puede_agendar %}Por agendar{% endif %}</small></li>
+  <li class="{% if e == 'RECHAZADA' %}omitido{% elif e == 'REALIZADA' %}hecho{% elif e == 'RESERVADA' %}actual{% endif %}"><span class="recorrido-punto" aria-hidden="true"></span><strong>Terminado</strong><small>{% if e == 'REALIZADA' %}Listo{% endif %}</small></li>
+</ol>
+
+{# ---------- Siguiente paso ---------- #}
+{% if puede_gestionar %}
+<section class="siguiente-paso{% if e == 'RECHAZADA' or e == 'REALIZADA' %} siguiente-paso-cerrado{% endif %}" aria-labelledby="siguiente-paso-titulo">
+  <p class="eyebrow">SIGUIENTE PASO</p>
+  {% if e == 'RECIBIDA' or e == 'EN_REVISION' %}
+    <h2 id="siguiente-paso-titulo">Revisa la referencia y decide</h2>
+    <p>Mira la imagen y el estilo sugerido más abajo. Aceptar te permite registrar el precio acordado; no confirma pago ni reserva una hora.</p>
+    <div class="acciones">
+      <a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'aceptar' %}?guiado=1">Aceptar solicitud</a>
+      <a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'rechazar' %}?guiado=1">Rechazar y registrar motivo</a>
+    </div>
+  {% elif puede_agendar %}
+    <h2 id="siguiente-paso-titulo">Agenda la sesión</h2>
+    <p>El pago registrado habilita la reserva. Elige el inicio y el término en tu agenda.</p>
+    <div class="acciones"><a class="boton" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar una sesión</a></div>
+  {% elif e == 'ACEPTADA' %}
+    <h2 id="siguiente-paso-titulo">Confirma el abono</h2>
+    <p>Cuando verifiques el pago fuera de MTFlow, regístralo aquí. El total recibido debe cubrir el abono solicitado. Si ya registraste un pago en «Registrar pago / devolución», también cuenta: no lo registres dos veces.</p>
+    <div class="acciones"><a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'abono' %}">Confirmar abono recibido</a>{% if propuesta.precio_final %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}</div>
+  {% elif e == 'RESERVADA' %}
+    <h2 id="siguiente-paso-titulo">Realiza la sesión y cierra el trabajo</h2>
+    <p>Después de la sesión, registra el pago final. Si el trabajo necesita más sesiones, agenda otra antes de terminarlo.</p>
+    <div class="acciones">{% if puede_terminar %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">Terminar trabajo</a>{% endif %}{% if propuesta.precio_final %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}</div>
+  {% elif e == 'REALIZADA' %}
+    <h2 id="siguiente-paso-titulo">Trabajo terminado</h2>
+    <p>Si tienes autorización, comparte una fotografía del resultado en tu portafolio.</p>
+    <div class="acciones"><a class="boton secundario" href="{% url 'nucleo:portafolio_nuevo' %}">Agregar al portafolio</a></div>
+  {% elif e == 'RECHAZADA' %}
+    <h2 id="siguiente-paso-titulo">Solicitud rechazada</h2>
+    <p>Queda en tu Registro con su motivo. No requiere más acciones.</p>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if puede_gestionar and pendiente_decision %}
 <button type="button" class="boton" id="abrir-decision" hidden>Evaluar solicitud</button>
 <dialog id="decision-solicitud" class="decision-solicitud" aria-labelledby="decision-titulo" aria-describedby="decision-ayuda">
@@ -14,68 +63,112 @@
   <div class="acciones"><a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'aceptar' %}?guiado=1">Aceptar y continuar</a><a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'rechazar' %}?guiado=1">Rechazar y registrar motivo</a></div>
 </dialog>
 {% endif %}
-<div class="rejilla dos">
-  <section class="tarjeta">
-    <h2>Contacto y propuesta</h2>
-    <dl class="cotizacion-datos">
-      <div><dt>Cliente</dt><dd>{{ propuesta.contacto }}</dd></div>
-      <div><dt>Correo</dt><dd>{{ propuesta.contacto.correo|default:"No indicado" }}</dd></div>
-      <div><dt>Teléfono</dt><dd>{{ propuesta.contacto.telefono|default:"No indicado" }}</dd></div>
-      <div><dt>Contacto preferido</dt><dd>{{ propuesta.contacto.get_canal_preferido_display }} {{ propuesta.contacto.usuario_social }}</dd></div>
-      <div><dt>Presupuesto del cliente</dt><dd>{{ propuesta.presupuesto_estimado|default_if_none:"No indicado" }} CLP</dd></div>
-      <div><dt>Horario propuesto (sin reserva)</dt><dd>{{ propuesta.fecha_propuesta|date:"d/m/Y"|default:"No indicado" }} {{ propuesta.hora_propuesta|time:"H:i" }}</dd></div>
-      <div><dt>Zona del cuerpo</dt><dd>{{ propuesta.zona_cuerpo|capfirst }}</dd></div>
-      <div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
-      <div><dt>Área declarada</dt><dd>{% if propuesta.area_cm2 != None %}{{ propuesta.area_cm2 }} cm²{% else %}No registrada{% endif %}</dd></div>
-      <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
-    </dl>
-    <p class="nota">El precio sugerido es referencial y no representa un precio final acordado.</p>
-    {% if opciones %}<dl class="cotizacion-datos"><div><dt>Color</dt><dd>{{ opciones.color }}</dd></div><div><dt>Detalle solicitado</dt><dd>{{ opciones.detalle }}</dd></div><div><dt>Cubrir un tatuaje existente</dt><dd>{{ opciones.cobertura }}</dd></div></dl>{% endif %}<h3>Descripción enviada</h3><p class="cotizacion-descripcion">{{ propuesta.idea_legible }}</p>
-  </section>
-  <section class="tarjeta">
-    <h2>Referencia y análisis de estilo</h2>
-    <p><strong>Revisión humana:</strong> {% if revision.etiquetaconsolidada %}{{ revision.etiquetaconsolidada.estilo.nombre }} · {{ revision.etiquetaconsolidada.confirmada_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</p>
-    {% if puede_gestionar and revision %}<p><a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'estilo' %}">Confirmar o corregir estilo</a></p>{% endif %}
-    {% for referencia in referencias %}
-    <article class="cotizacion-imagen">
-      <h3>Imagen {{ referencia.imagen.orden }}</h3>
-      {% if referencia.url %}
-      <figure class="vista-previa"><img src="{{ referencia.url }}" alt="Referencia enviada para esta propuesta" loading="lazy"><figcaption>{{ referencia.imagen.ancho_px }} × {{ referencia.imagen.alto_px }} px · {{ referencia.imagen.formato }}</figcaption></figure>
-      {% else %}<p class="alerta alerta-info">La imagen no está disponible en el almacenamiento de este equipo. El registro de la propuesta se conserva.</p>{% endif %}
-      {% if referencia.prediccion %}
-        {% if referencia.simulado %}<p class="alerta alerta-info">Resultado simulado: no proviene de un análisis real del modelo.</p>{% endif %}
-        <p><strong>Estilo sugerido:</strong> {{ referencia.prediccion.estilo_sugerido.nombre }}{% if referencia.confianza != None %} · {{ referencia.confianza }} %{% endif %}</p>
-        {% if referencia.umbral != None %}<p class="nota">Exigencia aplicada: {{ referencia.umbral }} %.{% if referencia.prediccion.estilo_sugerido.codigo == "E-99" %} Ningún estilo alcanzó el umbral. Mayor puntuación: {{ referencia.maxima }} %. «Fuera de catálogo» es una decisión del sistema y requiere revisión profesional.{% endif %}</p>{% endif %}
-        {% if referencia.filas %}<h3>Confianzas registradas</h3><ul>{% for fila in referencia.filas %}<li>{{ fila.nombre }}: {% if fila.omitida %}&lt; 40 %{% else %}{{ fila.porcentaje }} %{% endif %}</li>{% endfor %}</ul>{% else %}<p class="nota">No hay un desglose de confianzas registrado para esta predicción.</p>{% endif %}
-        <p class="nota cotizacion-referencia">Modelo: {{ referencia.prediccion.version_modelo }}</p>
-        <p class="nota">La clasificación orienta la revisión. No acepta ni rechaza la propuesta ni determina su precio.</p>
-      {% elif propuesta.estado_ml == "NO_SOLICITADO" %}<p>No se solicitó el análisis de estilo.</p>
-      {% elif propuesta.estado_ml == "NO_DISPONIBLE" %}<p>El análisis no estuvo disponible al recibir la propuesta. Puedes revisar la referencia igualmente.</p>
-      {% else %}<p>No hay una predicción registrada para esta imagen.</p>{% endif %}
-    </article>
-    {% empty %}<p>No hay imágenes registradas para esta propuesta.</p>{% endfor %}
-  </section>
+
+<div class="detalle-rejilla">
+  <div class="detalle-principal">
+    <section class="tarjeta">
+      <h2>La idea</h2>
+      <dl class="cotizacion-datos datos-destacados">
+        <div><dt>Zona</dt><dd>{{ propuesta.zona_cuerpo|capfirst }}</dd></div>
+        <div><dt>Medidas</dt><dd>{{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</dd></div>
+        <div><dt>Área</dt><dd>{% if propuesta.area_cm2 != None %}{{ propuesta.area_cm2|floatformat:"-1" }} cm²{% else %}No registrada{% endif %}</dd></div>
+        {% if opciones %}<div><dt>Color</dt><dd>{{ opciones.color }}</dd></div><div><dt>Detalle</dt><dd>{{ opciones.detalle }}</dd></div><div><dt>Cubrir un tatuaje</dt><dd>{{ opciones.cobertura }}</dd></div>{% endif %}
+      </dl>
+      <h3>Descripción enviada</h3>
+      <p class="cotizacion-descripcion">{{ propuesta.idea_legible }}</p>
+      <dl class="cotizacion-datos">
+        <div><dt>Precio sugerido registrado</dt><dd>{{ propuesta.precio_legible }}</dd></div>
+        <div><dt>Presupuesto del cliente</dt><dd>{% if propuesta.presupuesto_estimado != None %}{{ propuesta.presupuesto_estimado }} CLP{% else %}No indicado{% endif %}</dd></div>
+        <div><dt>Horario propuesto (sin reserva)</dt><dd>{% if propuesta.fecha_propuesta %}{{ propuesta.fecha_propuesta|date:"d/m/Y" }} {{ propuesta.hora_propuesta|time:"H:i" }}{% else %}Sin preferencia{% endif %}</dd></div>
+      </dl>
+      <p class="nota">El precio sugerido es referencial y no representa un precio final acordado.</p>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Acuerdo y cobros</h2>
+      <div class="cifras">
+        <div><span>Precio acordado</span><strong>{% if propuesta.precio_final != None %}{{ propuesta.precio_final }} CLP{% else %}Pendiente{% endif %}</strong></div>
+        <div><span>Abono solicitado</span><strong>{% if propuesta.abono_solicitado != None %}{{ propuesta.abono_solicitado }} CLP{% else %}Sin definir{% endif %}</strong></div>
+        <div><span>Total recibido neto</span><strong>{{ propuesta.total_cobrado }} CLP</strong></div>
+        <div><span>Saldo por cobrar</span><strong>{{ propuesta.saldo_pendiente }} CLP</strong></div>
+      </div>
+      <dl class="cotizacion-datos">
+        <div><dt>Abono verificado</dt><dd>{% if propuesta.abono_verificado_en %}{{ propuesta.monto_abono }} CLP · {{ propuesta.abono_verificado_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</dd></div>
+        <div><dt>Medidas finales</dt><dd>{% if propuesta.alto_final_cm != None %}{{ propuesta.alto_final_cm }} × {{ propuesta.ancho_final_cm }} cm{% else %}Se registran al terminar{% endif %}</dd></div>
+      </dl>
+      <p class="nota">Los pagos se realizan fuera de MTFlow. Registrar un abono significa que la tatuadora verificó su recepción. El total incluye el abono y descuenta devoluciones.</p>
+      {% if tiene_inasistencias %}<p>Acuerdo por inasistencia: {{ propuesta.get_destino_abono_display }}. Una devolución acordada solo reduce el total al registrarla como efectuada.</p>{% endif %}
+      <h3>Pagos adicionales y devoluciones</h3>
+      <ul class="lista-limpia">{% for movimiento in propuesta.movimientos.all %}<li>{{ movimiento.creado_en|date:"d/m/Y H:i" }} · {{ movimiento.get_tipo_display }}: {{ movimiento.monto }} CLP · {{ movimiento.detalle }}</li>{% empty %}<li class="nota">Sin pagos adicionales ni devoluciones.</li>{% endfor %}</ul>
+      {% if puede_gestionar %}
+      <details class="mas-acciones">
+        <summary>Todas las acciones de esta solicitud</summary>
+        {{ gestion_form.non_field_errors }}
+        <div class="acciones">{% for accion, etiqueta in gestion_form.fields.accion.choices %}<a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia accion %}">{% if accion == 'abono' %}Confirmar abono recibido{% elif accion == 'aceptar' %}{% if propuesta.precio_final %}Editar acuerdo{% else %}Aceptar solicitud{% endif %}{% else %}{{ etiqueta }}{% endif %}</a>{% endfor %}{% if propuesta.precio_final and propuesta.estado != 'RECHAZADA' %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}{% if puede_terminar %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">Terminar trabajo</a>{% endif %}{% if tiene_inasistencias %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'inasistencia' %}">Resolver abono por inasistencia</a>{% endif %}</div>
+        <p class="nota">Terminar una sesión no cierra automáticamente un trabajo de varias sesiones. No se procesan pagos en esta página.</p>
+      </details>
+      {% endif %}
+    </section>
+
+    <section class="tarjeta">
+      <h2>Sesiones e historial</h2>
+      <h3>Sesiones registradas</h3>
+      <ul class="lista-limpia">{% for sesion in sesiones %}<li>{{ sesion.fecha|date:"d/m/Y" }} · {{ sesion.hora_inicio|time:"H:i" }}–{{ sesion.hora_fin|time:"H:i" }} · {{ sesion.estado }}{% if puede_gestionar %} · <a href="{% url 'nucleo:agenda_editar' sesion.referencia %}">Ver horario</a>{% endif %}</li>{% empty %}<li class="nota">Aún no hay sesiones.</li>{% endfor %}</ul>
+      <h3>Historial de la solicitud</h3>
+      <ol class="linea-tiempo">{% for evento in eventos %}<li><time>{{ evento.creado_en|date:"d/m/Y H:i" }}</time><span>{{ evento.tipo|capfirst }} · {{ evento.detalle }}</span></li>{% empty %}<li><span class="nota">Sin cambios posteriores a la recepción.</span></li>{% endfor %}</ol>
+    </section>
+  </div>
+
+  <aside class="detalle-lateral">
+    <section class="tarjeta">
+      <h2>Referencia y estilo</h2>
+      <p class="revision-humana"><strong>Revisión humana:</strong> {% if revision.etiquetaconsolidada %}{{ revision.etiquetaconsolidada.estilo.nombre }} · {{ revision.etiquetaconsolidada.confirmada_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</p>
+      {% for referencia in referencias %}
+      <article class="cotizacion-imagen">
+        {% if referencias|length > 1 %}<h3>Imagen {{ referencia.imagen.orden }}</h3>{% endif %}
+        {% if referencia.url %}
+        <figure class="vista-previa detalle-imagen"><a href="{{ referencia.url }}" target="_blank" rel="noopener"><img src="{{ referencia.url }}" alt="Referencia enviada para esta propuesta" loading="lazy"></a><figcaption>{{ referencia.imagen.ancho_px }} × {{ referencia.imagen.alto_px }} px · {{ referencia.imagen.formato }} · toca para ampliar</figcaption></figure>
+        {% else %}<p class="alerta alerta-info">La imagen no está disponible en el almacenamiento de este equipo. El registro de la propuesta se conserva.</p>{% endif %}
+        {% if referencia.prediccion %}
+          {% if referencia.simulado %}<p class="alerta alerta-info">Resultado simulado: no proviene de un análisis real del modelo.</p>{% endif %}
+          <p class="estilo-sugerido"><span>Estilo sugerido</span><strong>{{ referencia.prediccion.estilo_sugerido.nombre }}</strong>{% if referencia.confianza != None %}<em>{{ referencia.confianza }} %</em>{% endif %}</p>
+          {% if referencia.umbral != None %}<p class="nota">Exigencia aplicada: {{ referencia.umbral }} %.{% if referencia.prediccion.estilo_sugerido.codigo == "E-99" %} Ningún estilo alcanzó el umbral. Mayor puntuación: {{ referencia.maxima }} %. «Fuera de catálogo» es una decisión del sistema y requiere revisión profesional.{% endif %}</p>{% endif %}
+          {% if referencia.filas %}<details class="confianzas-detalle"><summary>Confianzas registradas</summary><ul class="lista-limpia">{% for fila in referencia.filas %}<li><span>{{ fila.nombre }}</span><strong>{% if fila.omitida %}&lt; 40 %{% else %}{{ fila.porcentaje }} %{% endif %}</strong></li>{% endfor %}</ul></details>{% else %}<p class="nota">No hay un desglose de confianzas registrado para esta predicción.</p>{% endif %}
+          <p class="nota cotizacion-referencia">Modelo: {{ referencia.prediccion.version_modelo }}</p>
+          <p class="nota">La clasificación orienta la revisión. No acepta ni rechaza la propuesta ni determina su precio.</p>
+        {% elif propuesta.estado_ml == "NO_SOLICITADO" %}<p class="nota">No se solicitó el análisis de estilo.</p>
+        {% elif propuesta.estado_ml == "NO_DISPONIBLE" %}<p class="nota">El análisis no estuvo disponible al recibir la propuesta. Puedes revisar la referencia igualmente.</p>
+        {% else %}<p class="nota">No hay una predicción registrada para esta imagen.</p>{% endif %}
+      </article>
+      {% empty %}<p>No hay imágenes registradas para esta propuesta.</p>{% endfor %}
+      {% if puede_gestionar and revision %}
+      <div class="revision-estilo" id="revision-estilo">
+        <h3>{% if revision.etiquetaconsolidada %}Estilo confirmado: {{ revision.etiquetaconsolidada.estilo.nombre }}{% else %}¿El estilo es correcto?{% endif %}</h3>
+        <p class="nota">Tu revisión queda en el historial. No acepta la solicitud ni entrena el modelo.</p>
+        {% if estilo_sugerido and not revision.etiquetaconsolidada %}
+        <form method="post" action="{% url 'nucleo:flujo' propuesta.referencia 'estilo' %}">{% csrf_token %}<input type="hidden" name="version" value="{{ revision_form.initial.version }}"><input type="hidden" name="estilo" value="{{ estilo_sugerido.pk }}"><button class="boton" type="submit">Sí, es {{ estilo_sugerido.nombre }}</button></form>
+        {% endif %}
+        <details class="mas-acciones"{% if not estilo_sugerido and not revision.etiquetaconsolidada %} open{% endif %}><summary>{% if revision.etiquetaconsolidada %}Cambiar estilo{% elif estilo_sugerido %}No, elegir otro estilo{% else %}Elegir el estilo{% endif %}</summary>
+          <form method="post" action="{% url 'nucleo:flujo' propuesta.referencia 'estilo' %}" class="revision-estilo-form">{% csrf_token %}{{ revision_form.version }}
+            <div class="campo"><label for="{{ revision_form.estilo.id_for_label }}">Estilo</label>{{ revision_form.estilo }}</div>
+            <button class="boton secundario" type="submit">Guardar estilo</button>
+          </form>
+        </details>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="tarjeta">
+      <h2>Contacto</h2>
+      <dl class="cotizacion-datos datos-una-columna">
+        <div><dt>Cliente</dt><dd>{{ propuesta.contacto }}</dd></div>
+        <div><dt>Correo</dt><dd>{% if propuesta.contacto.correo %}<a href="mailto:{{ propuesta.contacto.correo }}">{{ propuesta.contacto.correo }}</a>{% else %}No indicado{% endif %}</dd></div>
+        <div><dt>Teléfono</dt><dd>{{ propuesta.contacto.telefono|default:"No indicado" }}</dd></div>
+        <div><dt>Contacto preferido</dt><dd>{{ propuesta.contacto.get_canal_preferido_display }} {{ propuesta.contacto.usuario_social }}</dd></div>
+      </dl>
+    </section>
+  </aside>
 </div>
-<section class="tarjeta">
-  <h2>Acuerdo y sesiones</h2>
-  <dl class="cotizacion-datos"><div><dt>Precio acordado</dt><dd>{{ propuesta.precio_final|default_if_none:"Pendiente" }} CLP</dd></div><div><dt>Abono verificado</dt><dd>{% if propuesta.abono_verificado_en %}{{ propuesta.monto_abono }} CLP · {{ propuesta.abono_verificado_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</dd></div></dl>
-  <p class="nota">Los pagos se realizan fuera de MTFlow. Registrar un abono significa que la tatuadora verificó su recepción.</p>
-  {% if puede_gestionar %}
-  <ol><li>Acepta la solicitud y registra el precio acordado.</li><li>Comprueba el pago fuera de la plataforma y confírmalo aquí.</li><li>Elige el inicio y término para crear la sesión.</li></ol>
-  {{ gestion_form.non_field_errors }}
-  <div class="acciones">{% for accion, etiqueta in gestion_form.fields.accion.choices %}<a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia accion %}">{% if accion == 'abono' %}Confirmar abono recibido{% elif accion == 'aceptar' %}{% if propuesta.precio_final %}Editar acuerdo{% else %}Aceptar solicitud{% endif %}{% else %}{{ etiqueta }}{% endif %}</a>{% endfor %}</div>
-  {% if puede_agendar %}<p><a class="boton" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar una sesión</a></p><p class="nota">El pago registrado habilita la reserva. No necesitas una sesión previa.</p>{% elif propuesta.estado == 'ACEPTADA' or propuesta.estado == 'RESERVADA' %}<p class="alerta alerta-info">Para agendar, confirma el pago externo. El total recibido debe cubrir el abono solicitado. Si ya registraste un pago en «Registrar pago / devolución», también se considera: no vuelvas a registrarlo.</p>{% endif %}
-  {% endif %}
-  <h3>Resultado económico</h3>
-  <dl class="cotizacion-datos"><div><dt>Abono solicitado</dt><dd>{{ propuesta.abono_solicitado|default_if_none:"Sin definir" }} CLP</dd></div><div><dt>Total recibido neto</dt><dd>{{ propuesta.total_cobrado }} CLP</dd></div><div><dt>Saldo por cobrar</dt><dd>{{ propuesta.saldo_pendiente }} CLP</dd></div><div><dt>Medidas finales</dt><dd>{{ propuesta.alto_final_cm|default_if_none:"Pendiente" }} × {{ propuesta.ancho_final_cm|default_if_none:"Pendiente" }} cm</dd></div></dl>
-  <p class="nota">El total incluye el abono y descuenta devoluciones. Terminar una sesión no cierra automáticamente un trabajo de varias sesiones. No se procesan pagos en esta página.</p>
-  {% if puede_gestionar %}<div class="acciones">{% if propuesta.precio_final and propuesta.estado != 'RECHAZADA' %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}{% if puede_terminar %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">Terminar trabajo</a>{% endif %}{% if tiene_inasistencias %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'inasistencia' %}">Resolver abono por inasistencia</a>{% endif %}</div>{% endif %}
-  {% if tiene_inasistencias %}<p>Acuerdo por inasistencia: {{ propuesta.get_destino_abono_display }}. Una devolución acordada solo reduce el total al registrarla como efectuada.</p>{% endif %}
-  <ul>{% for movimiento in propuesta.movimientos.all %}<li>{{ movimiento.creado_en|date:"d/m/Y H:i" }} · {{ movimiento.get_tipo_display }}: {{ movimiento.monto }} CLP · {{ movimiento.detalle }}</li>{% empty %}<li>Sin pagos adicionales ni devoluciones.</li>{% endfor %}</ul>
-  <h3>Sesiones registradas</h3>
-  <ul>{% for sesion in sesiones %}<li>{{ sesion.fecha|date:"d/m/Y" }} · {{ sesion.hora_inicio|time:"H:i" }}–{{ sesion.hora_fin|time:"H:i" }} · {{ sesion.estado }}{% if puede_gestionar %} · <a href="{% url 'nucleo:agenda_editar' sesion.referencia %}">Ver horario</a>{% endif %}</li>{% empty %}<li>Aún no hay sesiones.</li>{% endfor %}</ul>
-  <h3>Historial de la solicitud</h3>
-  <ul>{% for evento in eventos %}<li>{{ evento.creado_en|date:"d/m/Y H:i" }} · {{ evento.tipo|capfirst }} · {{ evento.detalle }}</li>{% empty %}<li>Sin cambios posteriores a la recepción.</li>{% endfor %}</ul>
-</section>
+{% endwith %}
 {% endblock %}
 {% block page_scripts %}<script src="{% static 'js/decision-solicitud.js' %}" defer></script>{% endblock %}

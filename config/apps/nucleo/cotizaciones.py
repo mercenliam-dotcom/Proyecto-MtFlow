@@ -203,7 +203,12 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
             "maxima": (prediccion.confianza_maxima * 100).quantize(Decimal(".1")) if prediccion else None,
             "umbral": (prediccion.umbral_confianza * 100).quantize(Decimal("1")) if prediccion and prediccion.umbral_confianza is not None else None,
         })
+    from .flujo import RevisionForm
+    principal = next((r for r in referencias if r["imagen"].es_principal and r["prediccion"]), None)
+    sugerido = principal["prediccion"].estilo_sugerido if principal else None
+    revision_form = RevisionForm(initial={"version": propuesta.actualizada_en.isoformat(), "estilo": sugerido.pk if sugerido and sugerido.codigo != "E-99" else None})
     return render(request, "cotizaciones/detalle.html", {
+        "revision_form": revision_form, "estilo_sugerido": sugerido if sugerido and sugerido.codigo != "E-99" else None,
         "propuesta": propuesta, "referencias": referencias, "revision": propuesta.imagen_set.filter(es_principal=True).select_related("etiquetaconsolidada__estilo").first(),
         "estado_legible": propuesta.estado_comercial,
         "pendiente_decision": propuesta.estado in ("RECIBIDA", "EN_REVISION"),

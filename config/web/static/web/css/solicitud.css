@@ -1,0 +1,148 @@
+/* Solicitud por pasos: tarjetas, progreso, ventanas emergentes y celular. */
+
+/* ---------- Aviso compacto ---------- */
+.solicitud-aviso { padding: 12px 18px; }
+.solicitud-aviso summary { cursor: pointer; list-style: none; }
+.solicitud-aviso summary::-webkit-details-marker { display: none; }
+.solicitud-aviso-mas { color: var(--purple); text-decoration: underline; text-underline-offset: 3px; margin-left: 6px; white-space: nowrap; }
+.solicitud-aviso[open] .solicitud-aviso-mas { display: none; }
+.solicitud-aviso p { margin: 8px 0 0; }
+
+/* ---------- Progreso ---------- */
+.pasos { margin: 0 0 18px; scroll-margin-top: 12px; }
+.pasos-contador { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+.pasos-contador #paso-nombre { color: var(--ink); font-weight: 600; }
+.pasos-barra { height: 4px; border-radius: 4px; background: #e6e1ea; overflow: hidden; }
+.pasos-barra span { display: block; height: 100%; width: 20%; background: var(--purple); border-radius: 4px; transition: width .35s ease; }
+.pasos-lista { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; list-style: none; padding: 0; margin: 12px 0 0; }
+.pasos-lista button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 8px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 12px; text-align: left; }
+.pasos-lista button span { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; border: 1px solid #d7c7e5; border-radius: 50%; font-size: 11px; color: var(--purple); background: var(--card); }
+.pasos-lista button:not(:disabled):hover { background: var(--accent-light); }
+.pasos-lista button[aria-current="step"] { color: var(--ink); font-weight: 600; }
+.pasos-lista button[aria-current="step"] span { background: var(--purple); border-color: var(--purple); color: white; }
+.pasos-lista button.hecho span { background: var(--accent-light); }
+.pasos-lista button.hecho span::before { content: "✓"; }
+.pasos-lista button.hecho span { font-size: 0; }
+.pasos-lista button.hecho span::before { font-size: 12px; }
+.pasos-lista button:disabled { opacity: .45; }
+
+/* ---------- Pasos ---------- */
+.con-pasos fieldset + fieldset { padding-top: 0; border-top: 0; }
+.con-pasos .paso { margin-bottom: 8px; }
+.con-pasos .paso.activo { animation: paso-entra .28s ease; }
+@keyframes paso-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.paso legend:focus { outline: none; }
+.paso legend:focus-visible { outline: 3px solid #885bb3; outline-offset: 4px; }
+.paso-intro { margin-top: -10px; }
+.reference-card { margin: 16px 0 6px; }
+.reference-card .reference-preview { min-height: 200px; }
+.reference-card .reference-preview img { max-height: 340px; object-fit: contain; }
+
+/* ---------- Tarjetas en lugar de listas ---------- */
+.select-reemplazado { position: absolute !important; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.campo { position: relative; }
+.opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.opciones-compactas { grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); }
+.opcion { position: relative; min-height: 48px; padding: 10px 14px 10px 36px; border: 1px solid #d6d1d9; border-radius: 9px; background: #fcfbf8; color: var(--ink); font-size: 13px; text-align: left; line-height: 1.3; transition: border-color .15s, background .15s; }
+.opcion::before { content: ""; position: absolute; left: 13px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border: 1.5px solid #b9a9c6; border-radius: 50%; background: white; }
+.opcion:hover { border-color: #b9a2c9; }
+.opcion[aria-checked="true"] { border-color: var(--purple); background: var(--accent-light); font-weight: 600; }
+.opcion[aria-checked="true"]::before { border-color: var(--purple); background: var(--purple); box-shadow: inset 0 0 0 3px white; }
+.con-error .opcion { border-color: var(--mal); }
+
+/* ---------- Acciones (fijas abajo en el celular) ---------- */
+.pasos-acciones { position: sticky; bottom: 0; z-index: 3; display: flex; justify-content: space-between; gap: 12px; margin: 22px -4px 0; padding: 14px 4px calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(to bottom, rgba(255,254,250,0), var(--card) 28%); }
+.pasos-acciones .primary-button, .pasos-acciones .secondary-button { width: auto; flex: 0 0 auto; }
+.pasos-acciones #paso-siguiente { margin-left: auto; min-width: 170px; }
+.paso[data-paso="5"] .primary-button { width: 100%; margin-top: 18px; }
+
+/* ---------- Fecha ---------- */
+.fecha-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; }
+.horario-elegido:empty { display: none; }
+.horario-elegido { margin: 6px 0 16px; padding: 12px 14px; border-radius: 8px; background: var(--ok-fondo); color: var(--ok); font-size: 13px; font-weight: 600; }
+
+/* ---------- Revisión ---------- */
+.resumen-revision { margin-bottom: 6px; }
+.resumen-cabecera { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.resumen-imagen { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+.resumen-lista { margin: 0; border-top: 1px solid var(--border); }
+.resumen-fila { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.resumen-fila dt { color: var(--muted); font-size: 12px; }
+.resumen-fila dd { margin: 0; overflow-wrap: anywhere; }
+.resumen-larga dd { white-space: pre-line; }
+.resumen-editar { padding: 4px; }
+
+/* Resumen en vivo (columna lateral, solo pantallas anchas) */
+.resumen-vivo h2 { margin-bottom: 10px; }
+.resumen-vivo .resumen-imagen { width: 100%; height: 160px; margin-bottom: 8px; }
+.resumen-vivo .resumen-fila { grid-template-columns: 110px minmax(0, 1fr); padding: 8px 0; font-size: 12px; }
+.resumen-vivo .resumen-larga dd { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Ventanas emergentes ---------- */
+body.con-dialogo { overflow: hidden; }
+.dialogo { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 24px; border: 0; border-radius: var(--radio); background: var(--card); color: var(--ink); box-shadow: 0 24px 60px rgba(30, 20, 45, .28); }
+.dialogo::backdrop { background: rgba(28, 22, 36, .55); }
+.dialogo[open] { animation: dialogo-entra .22s ease; }
+@keyframes dialogo-entra { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.dialogo h2 { margin: 0; font-size: 20px; }
+.dialogo-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.dialogo-cerrar { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--accent-light); color: var(--purple); font-size: 24px; line-height: 1; }
+.dialogo-pie { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 18px; }
+.dialogo-pie .text-button { margin-right: auto; }
+.leyenda-horarios { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 12px; color: var(--muted); }
+.punto { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-left: 6px; }
+.punto-libre { background: #d5eddf; border: 1px solid #38764e; }
+.punto-ocupado { background: #d2d2d2; border: 1px solid #777; }
+#disponibilidad-estado { font-size: 13px; margin: 4px 0 0; }
+.dialogo #disponibilidad-calendario { --fc-border-color: var(--border); --fc-button-bg-color: var(--purple); --fc-button-border-color: var(--purple); --fc-button-hover-bg-color: var(--acento-oscuro); --fc-button-hover-border-color: var(--acento-oscuro); --fc-button-active-bg-color: var(--acento-oscuro); --fc-button-active-border-color: var(--acento-oscuro); --fc-today-bg-color: #f6f0fb; font-size: 13px; }
+.dialogo #disponibilidad-calendario .fc-button { min-height: 40px; border-radius: 7px; text-transform: none; }
+.dialogo #disponibilidad-calendario .fc-col-header-cell-cushion { color: var(--purple); text-decoration: none; }
+.dialogo-enviando, .dialogo-exito { width: min(440px, calc(100vw - 32px)); text-align: center; }
+.dialogo-exito .dialogo-pie { justify-content: center; }
+.dialogo-icono { width: 56px; height: 56px; margin: 4px auto 12px; border-radius: 50%; background: var(--ok-fondo); color: var(--ok); font-size: 28px; line-height: 56px; }
+.cargando { width: 42px; height: 42px; margin: 6px auto 16px; border: 3px solid var(--accent-light); border-top-color: var(--purple); border-radius: 50%; animation: girar .9s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ---------- Pantallas medianas ---------- */
+@media (max-width: 899px) {
+  .resumen-vivo { display: none !important; }
+  .pasos-lista button { justify-content: center; font-size: 0; }
+  .pasos-lista button span { font-size: 11px; }
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 640px) {
+  /* 16 px evita que iOS haga zoom al tocar un campo */
+  #quote-form input:not([type="checkbox"]):not([type="file"]), #quote-form select, #quote-form textarea, .opcion { font-size: 16px; }
+  .page-header h1 { font-size: 34px; }
+  .pasos-lista { display: none; }
+  .quote-layout { gap: 16px; }
+  .surface { border-radius: 12px; }
+  .opciones { grid-template-columns: 1fr; }
+  .opciones-compactas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .form-row { grid-template-columns: 1fr; gap: 0; }
+  .form-row:has(input[type="number"]) { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pasos-acciones { margin: 18px -18px -22px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); border-radius: 0 0 12px 12px; }
+  .pasos-acciones .primary-button, .pasos-acciones .secondary-button { flex: 1; }
+  .pasos-acciones #paso-siguiente { min-width: 0; }
+  .fecha-acciones .secondary-button { width: 100%; }
+  .reference-card .reference-preview { min-height: 150px; padding: 12px; }
+  .reference-card .reference-preview img { max-height: 220px; }
+  .resumen-fila { grid-template-columns: minmax(0, 1fr) auto; }
+  .resumen-fila dt { grid-column: 1; }
+  .resumen-fila dd { grid-column: 1 / -1; grid-row: 2; }
+  .resumen-fila .resumen-editar { grid-column: 2; grid-row: 1; }
+  /* Ventanas emergentes como hoja que sube desde abajo */
+  .dialogo { width: 100vw; max-width: 100vw; max-height: 92vh; margin: auto 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; }
+  .dialogo[open] { animation: hoja-sube .26s ease; }
+  .dialogo-enviando, .dialogo-exito { width: 100vw; }
+  .dialogo-pie { position: sticky; bottom: 0; background: var(--card); padding-top: 10px; }
+  .dialogo-pie .primary-button, .dialogo-pie .secondary-button { flex: 1; }
+  .dialogo-pie .text-button { width: 100%; text-align: center; margin: 0; }
+}
+@keyframes hoja-sube { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .con-pasos .paso.activo, .dialogo[open], .cargando { animation: none; }
+  .pasos-barra span { transition: none; }
+}

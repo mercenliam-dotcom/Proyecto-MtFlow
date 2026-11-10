@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!r.ok) throw new Error("No se pudo consultar la disponibilidad. Reintenta o envía sin proponer horario.");
         return r.json();
     }
-    async function cargarDia(preferida) {
+    async function cargarDia(preferida, avisarAlTerminar) {
         const turno=++peticionDia;
         if (!artista.value || !fecha.value) { vaciar("Selecciona tatuadora y fecha"); return; }
         const elegida=fecha.value;
@@ -42,13 +42,16 @@ document.addEventListener("DOMContentLoaded", () => {
             for(const h of [...horas].sort()) hora.add(new Option(h,h));
             if(preferida && horas.has(preferida)) hora.value=preferida;
             estado.textContent=horas.size ? "Selecciona una hora como preferencia. No reserva ni bloquea la agenda." : "No hay horas disponibles ese día. Elige otra fecha o envía sin proponer horario.";
+            if(avisarAlTerminar && horas.size) document.dispatchEvent(new CustomEvent("mt:dia-elegido",{detail:{fecha:elegida,hora:hora.value}}));
         } catch(e) { if(turno===peticionDia) { vaciar("No disponible"); estado.textContent=e.message; } }
         finally { if(turno===peticionDia) hora.disabled=false; }
     }
+    const angosto=window.matchMedia("(max-width: 700px)").matches;
     const calendario=new FullCalendar.Calendar(root,{
-        initialView:window.innerWidth<700 ? "timeGridDay" : "timeGridWeek", locale:"es",firstDay:1,timeZone:"UTC",allDaySlot:false,height:480,
+        initialView:angosto ? "timeGridDay" : "timeGridWeek", locale:"es",firstDay:1,timeZone:"UTC",allDaySlot:false,height:"auto",
         now:hoy()+"T12:00:00",validRange:()=>({start:hoy()}),slotMinTime:"10:00:00",slotMaxTime:"19:00:00",slotDuration:"00:30:00",editable:false,
-        buttonIcons:false, headerToolbar:{left:"prev,next today",center:"title",right:"timeGridWeek,timeGridDay"},
+        buttonIcons:false, headerToolbar:angosto ? {left:"prev",center:"title",right:"next"} : {left:"prev,next today",center:"title",right:"timeGridWeek,timeGridDay"},
+        titleFormat:angosto ? {weekday:"short",day:"numeric",month:"short"} : undefined,
         buttonText:{prev:"‹",next:"›",today:"Hoy",week:"Semana",day:"Día"},
         slotLabelFormat:{hour:"2-digit",minute:"2-digit",hour12:false},eventTimeFormat:{hour:"2-digit",minute:"2-digit",hour12:false},
         events:async(info,ok,fallo)=>{
@@ -63,24 +66,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 estado.textContent=datos.eventos.some(e=>e.extendedProps.disponible) ? "Las franjas verdes están disponibles. Selecciona un día y luego una hora como preferencia." : "No hay horas disponibles en este período. Avanza a otra fecha o envía sin proponer horario.";
             } catch(e) { if(turno===peticionCalendario) estado.textContent=e.message; fallo(e); }
         },
-        dateClick:info=>{ if(info.dateStr.slice(0,10)<hoy()) return; fecha.value=info.dateStr.slice(0,10); cargarDia(info.dateStr.slice(11,16)); },
+        dateClick:info=>{ if(info.dateStr.slice(0,10)<hoy()) return; fecha.value=info.dateStr.slice(0,10); fecha.dispatchEvent(new Event("input",{bubbles:true})); cargarDia(info.dateStr.slice(11,16), true); },
         eventClick:info=>{
             if(!info.event.extendedProps.disponible) { estado.textContent="Ese intervalo está ocupado o bloqueado. Elige uno verde."; return; }
-            fecha.value=info.event.startStr.slice(0,10); cargarDia();
+            fecha.value=info.event.startStr.slice(0,10); fecha.dispatchEvent(new Event("input",{bubbles:true}));
+            cargarDia(info.event.startStr.slice(11,16), true);
         }
     });
-    calendario.render();
+    // Dentro de un <dialog> cerrado el calendario no tiene tamaño: se dibuja al abrirlo.
+    let renderizado=false;
+    function mostrar() {
+        if(!renderizado) { calendario.render(); renderizado=true; } else calendario.updateSize();
+        if(fecha.value) calendario.gotoDate(fecha.value);
+        if(artista.value) calendario.refetchEvents();  // la primera apertura no siempre consulta sola
+    }
+    if(root.closest("dialog")) document.addEventListener("mt:calendario-abierto", mostrar); else mostrar();
     artista.addEventListener("change",()=>{
         ++peticionDia; selector.value=artista.value; fecha.value=""; hora.disabled=false;
         vaciar(artista.value ? "Selecciona una fecha" : "Selecciona una tatuadora");
         root.hidden=!artista.value;
-        if(artista.value) calendario.updateSize();
-        calendario.refetchEvents();
+        if(artista.value && renderizado) calendario.updateSize();
+        if(renderizado) calendario.refetchEvents();
         if(!artista.value) estado.textContent="Selecciona una tatuadora aquí para ver sus horas disponibles y ocupadas.";
     });
     selector.addEventListener("change",()=>{artista.value=selector.value;artista.dispatchEvent(new Event("change",{bubbles:true}));});
-    fecha.addEventListener("change",()=>{ if(fecha.value) calendario.gotoDate(fecha.value); cargarDia(); });
+    fecha.addEventListener("change",()=>{ if(fecha.value && renderizado) calendario.gotoDate(fecha.value); cargarDia(); });
     document.getElementById("sin-horario").addEventListener("click",()=>{ ++peticionDia; fecha.value=""; vaciar("Sin preferencia de horario"); hora.disabled=false; });
-    if(fecha.value) { calendario.gotoDate(fecha.value); cargarDia(inicial); }
-    setInterval(()=>{fecha.min=hoy(); calendario.refetchEvents(); if(fecha.value) cargarDia(hora.value);},60000);
+    if(fecha.value) { if(renderizado) calendario.gotoDate(fecha.value); cargarDia(inicial); }
+    setInterval(()=>{fecha.min=hoy(); if(renderizado) calendario.refetchEvents(); if(fecha.value) cargarDia(hora.value);},60000);
 });

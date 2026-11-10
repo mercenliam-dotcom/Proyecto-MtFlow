@@ -2,13 +2,16 @@
 {% block titulo %}Mi agenda{% endblock %}
 {% block styles %}{{ block.super }}<meta name="csp-nonce" content="{{ request.csp_nonce }}">{% endblock %}
 {% block contenido %}
-<div class="encabezado"><div><p class="eyebrow">TU TIEMPO, ORGANIZADO</p><h1>Mi agenda</h1></div><a class="boton" href="{% url 'nucleo:agenda_nuevo' %}">Agregar horario</a></div>
-<p class="bajada">Define tu disponibilidad, reserva sesiones y bloquea tiempo personal. Horarios de Chile continental (Santiago).</p>
-<p><a class="boton secundario" href="{% url 'nucleo:horario_trabajo' %}">Editar horario de trabajo semanal</a> <a class="boton secundario" href="{% url 'web:cotizacion' %}">Ver disponibilidad pública</a></p>
-<p>El horario habitual se repite cada semana. Agrega un horario excepcional para abrir un domingo o cambiar las horas de una fecha; un bloqueo personal marca tiempo no disponible.</p>
-<p class="nota">Para reservar una sesión, primero acepta la solicitud y registra el abono que verificaste fuera de la plataforma.</p>
-<section class="tarjeta"><div id="agenda-calendar" data-today="{{ hoy }}" data-events="{% url 'nucleo:agenda_eventos' %}" data-create="{% url 'nucleo:agenda_nuevo' %}"></div><p id="agenda-error" role="status"></p></section>
-<h2>Próximos horarios</h2><div class="cotizaciones-lista">
-{% for bloque in bloques %}<article class="tarjeta"><h3>{{ bloque.fecha|date:"l d/m/Y" }} · {{ bloque.hora_inicio|time:"H:i" }}–{{ bloque.hora_fin|time:"H:i" }}</h3><p>{{ bloque.get_tipo_display }} · {{ bloque.estado|lower }}{% if bloque.postulacion_id %} · {{ bloque.postulacion.contacto }}{% endif %}</p><a href="{% url 'nucleo:agenda_editar' bloque.referencia %}">Ver horario</a></article>{% empty %}<p>No hay horarios futuros. Comienza agregando tu disponibilidad.</p>{% endfor %}</div>
+<div class="encabezado agenda-encabezado"><div><p class="eyebrow">TU TIEMPO, ORGANIZADO</p><h1>Mi agenda</h1>
+<p class="bajada">Define tu disponibilidad, reserva sesiones y bloquea tiempo personal. Horarios de Chile continental (Santiago).</p></div>
+<div class="acciones"><a class="boton secundario" href="{% url 'nucleo:horario_trabajo' %}">Horario semanal</a><a class="boton secundario" href="{% url 'web:cotizacion' %}">Ver disponibilidad pública ↗</a><a class="boton" href="{% url 'nucleo:agenda_nuevo' %}">Agregar horario</a></div></div>
+<div class="agenda-ayuda">
+<p><strong>Horario habitual:</strong> se repite cada semana. Agrega un horario excepcional para abrir un domingo o cambiar las horas de una fecha; un bloqueo personal marca tiempo no disponible.</p>
+<p><strong>Reservar una sesión:</strong> primero acepta la solicitud y registra el abono que verificaste fuera de la plataforma.</p>
+<ul class="agenda-leyenda" aria-label="Colores del calendario"><li class="ley-trabajo">Horario de trabajo</li><li class="ley-disponibilidad">Disponible</li><li class="ley-cita">Cita</li><li class="ley-bloqueo">Bloqueo</li></ul>
+</div>
+<section class="tarjeta agenda-calendario"><div id="agenda-calendar" data-today="{{ hoy }}" data-events="{% url 'nucleo:agenda_eventos' %}" data-create="{% url 'nucleo:agenda_nuevo' %}"></div><p id="agenda-error" role="status"></p></section>
+<section class="tarjeta agenda-proximos"><div class="tarjeta-titulo"><h2>Próximos horarios</h2><a href="{% url 'nucleo:agenda_nuevo' %}">Agregar</a></div>
+<ul class="lista-limpia lista-tareas">{% for bloque in bloques %}<li><a href="{% url 'nucleo:agenda_editar' bloque.referencia %}"><span class="fecha-bloque" aria-hidden="true"><strong>{{ bloque.fecha|date:"d" }}</strong>{{ bloque.fecha|date:"M" }}</span><span><strong>{{ bloque.fecha|date:"l d/m/Y" }} · {{ bloque.hora_inicio|time:"H:i" }}–{{ bloque.hora_fin|time:"H:i" }}</strong><small>{{ bloque.get_tipo_display }} · {{ bloque.estado|lower }}{% if bloque.postulacion_id %} · {{ bloque.postulacion.contacto }}{% endif %}</small></span><span class="chip agenda-tipo agenda-tipo-{{ bloque.tipo|lower }}">Ver horario</span></a></li>{% empty %}<li class="lista-tareas-vacia">No hay horarios futuros. Comienza agregando tu disponibilidad.</li>{% endfor %}</ul></section>
 <script src="{% static 'vendor/fullcalendar/index.global.min.js' %}" defer></script><script src="{% static 'js/agenda.js' %}" defer></script>
 {% endblock %}

@@ -90,7 +90,7 @@ def editar(request, referencia=None):
             else:
                 messages.success(request, "Portafolio actualizado.")
                 return redirect("nucleo:portafolio")
-    return render(request, "flujo/formulario.html", {"form": form, "titulo": "Editar fotografía" if referencia else "Agregar fotografía", "portafolio": True}, status=status)
+    return render(request, "flujo/portafolio_form.html", {"form": form, "titulo": "Editar fotografía" if referencia else "Agregar fotografía", "portafolio": True}, status=status)
 
 
 @never_cache
