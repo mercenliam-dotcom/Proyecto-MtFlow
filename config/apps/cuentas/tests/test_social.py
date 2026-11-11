@@ -11,7 +11,7 @@ from apps.cuentas.models import Usuario, IdentidadSocial
 from .test_clientes import cliente
 from web.test_recepcion import profesional
 
-CONFIG = dict(GOOGLE_CLIENT_ID='client-test', GOOGLE_CLIENT_SECRET='secret-test', FACEBOOK_CLIENT_ID='fb-test', FACEBOOK_CLIENT_SECRET='fb-secret-test', FACEBOOK_API_VERSION='v24.0', SOCIAL_AUTH_BASE_URL='https://estudio.example.test')
+CONFIG = dict(ACCESO_SOCIAL_VISIBLE=True, GOOGLE_CLIENT_ID='client-test', GOOGLE_CLIENT_SECRET='secret-test', FACEBOOK_CLIENT_ID='fb-test', FACEBOOK_CLIENT_SECRET='fb-secret-test', FACEBOOK_API_VERSION='v24.0', SOCIAL_AUTH_BASE_URL='https://estudio.example.test')
 
 
 @override_settings(**CONFIG)

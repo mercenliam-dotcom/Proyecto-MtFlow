@@ -11,10 +11,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // UTC evita que el navegador del visitante las convierta a otra zona.
         timeZone: "UTC", locale: "es-CL", firstDay: 1, allDaySlot: false,
         titleFormat:{day:"2-digit",month:"long",year:"numeric"},
-        dayHeaderContent:arg=>new Intl.DateTimeFormat("es-CL",{weekday:"short",day:"2-digit",month:"2-digit",timeZone:"UTC"}).format(arg.date),
+        // En «Mes» el encabezado es solo el día de la semana (la fecha va en cada casilla).
+        dayHeaderContent:arg=>new Intl.DateTimeFormat("es-CL",arg.view.type==="dayGridMonth"?{weekday:"short",timeZone:"UTC"}:{weekday:"short",day:"2-digit",month:"2-digit",timeZone:"UTC"}).format(arg.date),
         height: 650, scrollTime: "08:00:00", editable: false, nowIndicator: false,
         now: element.dataset.today + "T12:00:00", buttonIcons: false,
-        validRange: () => ({start: new Intl.DateTimeFormat("sv-SE", {timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}),
+        // Sin validRange: se puede revisar lo pasado; dateClick sigue sin crear horarios en el pasado.
         headerToolbar: { left: "prev,next today", center: "title", right: reserva ? "dayGridMonth,timeGridDay,listWeek" : "dayGridMonth,timeGridWeek,listWeek" },
         buttonText: { prev: "‹", next: "›", today: "Hoy", month: "Mes", week: "Semana", day:"Día", list: "Lista" },
         buttonHints: { prev: "Período anterior", next: "Período siguiente", today: "Ir a hoy" },

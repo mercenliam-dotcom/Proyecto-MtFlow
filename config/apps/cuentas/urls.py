@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from . import perfil
+from . import perfil, avatar
 from . import social
 
 app_name = "cuentas"
@@ -13,6 +13,9 @@ urlpatterns = [
     path("social/<str:proveedor>/iniciar/", social.iniciar, name="social_iniciar"),
     path("social/<str:proveedor>/callback/", social.callback, name="social_callback"),
     path("perfil/", perfil.propio, name="perfil"),
+    path("perfil/foto/", avatar.subir, name="avatar_subir"),
+    path("perfil/foto/quitar/", avatar.quitar, name="avatar_quitar"),
+    path("foto/<uuid:usuario>/", avatar.imagen, name="avatar_imagen"),
     path("ingresar/", views.ingresar, name="login"),
     path("salir/", views.salir, name="logout"),
     path("mi-contrasena/", views.mi_contrasena, name="mi_contrasena"),

@@ -56,6 +56,44 @@ class FlujoCompleto(TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(Postulacion.objects.count(), 1)
 
+    def test_cobro_con_comprobante_privado_y_validado(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from web.models import MovimientoCobro
+        self.aceptar()
+        url = reverse("nucleo:flujo", args=[self.p.referencia, "cobro"])
+        base = {"tipo": "PAGO", "monto": 5000, "verificado": "on", "detalle": "Transferencia"}
+        r = self.client.get(url)  # precio 100.000, abono 30.000: resta 70.000 y viene sugerido
+        self.assertContains(r, "Resta por cobrar")
+        self.assertContains(r, "$70.000")
+        self.assertContains(r, 'value="70000"')
+        # Un PDF o un archivo que solo dice ser imagen se rechazan y no se guarda nada.
+        for falso in (SimpleUploadedFile("comprobante.pdf", b"%PDF-1.4 falso", content_type="application/pdf"),
+                      SimpleUploadedFile("comprobante.jpg", b"no soy una imagen", content_type="image/jpeg")):
+            r = self.client.post(url, {**base, "version": self.p.actualizada_en.isoformat(), "comprobante": falso})
+            self.assertEqual(r.status_code, 400)
+        self.assertFalse(MovimientoCobro.objects.exists())
+        self.assertFalse((Path(self.tmp.name) / "comprobantes").exists())
+        r = self.client.post(url, {**base, "version": self.p.actualizada_en.isoformat(), "comprobante": jpg_valido()})
+        self.assertRedirects(r, reverse("nucleo:cotizacion_detalle", args=[self.p.referencia]))
+        m = MovimientoCobro.objects.get()
+        self.assertTrue(m.comprobante.startswith(f"comprobantes/{self.p.referencia.hex}/"), m.comprobante)
+        ver = reverse("nucleo:cobro_comprobante", args=[self.p.referencia, m.pk])
+        self.assertContains(self.client.get(reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])), ver)
+        r = self.client.get(ver)
+        self.assertEqual((r.status_code, r["Content-Type"], r["X-Content-Type-Options"]), (200, "image/jpeg", "nosniff"))
+        self.client.force_login(self.b.usuario)
+        self.assertEqual(self.client.get(ver).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(ver).status_code, 302)
+
+    def test_cobro_rechazado_no_deja_archivo_huerfano(self):
+        self.aceptar()
+        url = reverse("nucleo:flujo", args=[self.p.referencia, "cobro"])
+        r = self.client.post(url, {"tipo": "PAGO", "monto": 999999, "verificado": "on", "detalle": "Excede", "version": self.p.actualizada_en.isoformat(), "comprobante": jpg_valido()})
+        self.assertEqual(r.status_code, 409)
+        carpeta = Path(self.tmp.name) / "comprobantes"
+        self.assertFalse(carpeta.exists() and any(carpeta.rglob("*.*")))
+
     def test_cobro_total_no_duplica_abono_y_devolucion_reduce_total(self):
         self.aceptar()
         self.accion("cobro", tipo="PAGO", monto=70000, verificado=True, detalle="Transferencia saldo")
@@ -177,6 +215,35 @@ class FlujoCompleto(TestCase):
         self.assertFalse(TrabajoPortafolio.objects.exists())
         self.assertFalse(archivo.exists())
         self.assertNotContains(Client().get(reverse("web:portafolio")), "Rosa para quitar")
+
+    def test_portafolio_varias_fotografias_a_la_vez(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        estilo = Estilo.objects.exclude(codigo="E-99").first()
+        datos = {"titulo": "Rosa", "tipo": "TATUAJE", "estilo": estilo.pk, "visible": "on", "autorizacion_publicacion": "on"}
+        r = self.client.post(reverse("nucleo:portafolio_nuevo"), {**datos, "imagen": [jpg_valido(), jpg_valido(), jpg_valido()]})
+        self.assertRedirects(r, reverse("nucleo:portafolio"))
+        self.assertEqual(sorted(TrabajoPortafolio.objects.values_list("titulo", flat=True)), ["Rosa (1/3)", "Rosa (2/3)", "Rosa (3/3)"])
+        self.assertEqual(len(set(TrabajoPortafolio.objects.values_list("url", flat=True))), 3)
+        # Si una es inválida, no se guarda ninguna ni queda archivo suelto.
+        antes = TrabajoPortafolio.objects.count()
+        falsa = SimpleUploadedFile("falsa.jpg", b"no es imagen", content_type="image/jpeg")
+        r = self.client.post(reverse("nucleo:portafolio_nuevo"), {**datos, "imagen": [jpg_valido(), falsa]})
+        self.assertEqual(r.status_code, 400)
+        self.assertContains(r, "falsa.jpg", status_code=400)
+        self.assertEqual(TrabajoPortafolio.objects.count(), antes)
+        # Más de 10 archivos: Django rechaza el envío completo (DATA_UPLOAD_MAX_NUMBER_FILES).
+        r = self.client.post(reverse("nucleo:portafolio_nuevo"), {**datos, "imagen": [jpg_valido() for _ in range(11)]}, follow=True)
+        self.assertContains(r, "hasta 10 fotografías a la vez")
+        self.assertEqual(TrabajoPortafolio.objects.count(), antes)
+
+    def test_portafolio_relaciona_trabajos_con_sesion_realizada(self):
+        url = reverse("nucleo:portafolio_nuevo")
+        self.assertContains(self.client.get(url), "Aún no tienes trabajos con sesiones realizadas")
+        self.aceptar()
+        self.sesion("REALIZADA")  # sesión realizada, trabajo aún sin cerrar
+        r = self.client.get(url)
+        self.assertContains(r, f'value="{self.p.pk}"')
+        self.assertContains(r, "sesión realizada")
 
     def test_portafolio_publicar_requiere_autorizacion(self):
         r = self.client.post(reverse("nucleo:portafolio_nuevo"), {"titulo": "No autorizado", "tipo": "ESTUDIO", "imagen": jpg_valido(), "visible": "on"})

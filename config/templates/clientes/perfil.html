@@ -1,14 +1,47 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block titulo %}Mi perfil{% endblock %}
 {% block contenido %}
-<div class="perfil-contenedor"><p class="eyebrow">TU ESPACIO PERSONAL</p><h1>Mi perfil</h1>
-<section class="perfil-tarjeta" aria-label="Datos de mi cuenta">
-<p><a href="{% url 'cuentas:social_conexiones' %}">Gestionar accesos con Google y Facebook ↗</a></p>
-<div class="perfil-identidad"><span class="perfil-avatar" aria-hidden="true">{{ user.nombre|first|upper }}{{ user.apellido|first|upper }}</span><div><h2>{{ user.get_full_name }}</h2><p>@{{ user.nombre_usuario }} · {% if user.es_tatuadora %}Tatuadora{% elif user.es_cliente %}Cliente{% else %}Administradora{% endif %}</p></div></div>
-<dl class="perfil-datos"><div><dt>Correo electrónico</dt><dd>{{ user.email }}</dd></div><div><dt>Teléfono</dt><dd>{{ preferencias.instance.telefono|default:"Sin registrar" }}</dd></div></dl>
-<div class="perfil-atajos"><a href="{% url 'cuentas:mi_contrasena' %}">Cambiar contraseña ↗</a>{% if user.es_tatuadora %}<a href="{% url 'nucleo:portafolio' %}">Editar mi portafolio ↗</a>{% elif user.es_cliente %}<a href="{% url 'clientes:inicio' %}">Ver mis solicitudes ↗</a>{% endif %}</div>
+<div class="perfil-contenedor perfil-pro"><p class="eyebrow">TU ESPACIO PERSONAL</p><h1>Mi perfil</h1>
+
+<section class="perfil-hero" aria-label="Datos de mi cuenta">
+  <div class="perfil-foto">
+    {% if user.avatar %}<img class="perfil-avatar perfil-avatar-img" id="perfil-avatar-vista" src="{% url 'cuentas:avatar_imagen' user.uuid %}?v={{ user.avatar_version }}" alt="Tu foto de perfil" width="112" height="112">
+    {% else %}<span class="perfil-avatar" id="perfil-avatar-iniciales" aria-hidden="true">{{ user.nombre|first|upper }}{{ user.apellido|first|upper }}</span><img class="perfil-avatar perfil-avatar-img" id="perfil-avatar-vista" alt="Vista previa de tu foto" width="112" height="112" hidden>{% endif %}
+    <form method="post" action="{% url 'cuentas:avatar_subir' %}" enctype="multipart/form-data" class="perfil-foto-form" id="perfil-foto-form">{% csrf_token %}
+      <label class="boton secundario perfil-foto-boton" for="perfil-foto-archivo">{% if user.avatar %}Cambiar foto{% else %}Subir foto{% endif %}</label>
+      <input class="visualmente-oculto" type="file" id="perfil-foto-archivo" name="avatar" accept="image/jpeg,image/png">
+      <button class="boton perfil-foto-enviar" type="submit">Guardar foto</button>
+    </form>
+    {% if user.avatar %}<form method="post" action="{% url 'cuentas:avatar_quitar' %}" class="perfil-foto-quitar">{% csrf_token %}<button type="submit">Quitar foto</button></form>{% endif %}
+    <p class="perfil-foto-ayuda">JPG o PNG, máx. 10 MB. Se recorta en cuadrado.</p>
+  </div>
+  <div class="perfil-hero-texto">
+    <h2>{{ user.get_full_name }}</h2>
+    <p class="perfil-etiquetas"><span class="chip">@{{ user.nombre_usuario }}</span><span class="chip chip-rol">{% if user.es_tatuadora %}Tatuadora{% elif user.es_cliente %}Cliente{% else %}Administradora{% endif %}</span><span class="perfil-desde">Miembro desde {{ user.creado_en|date:"F Y" }}</span></p>
+    <dl class="perfil-datos">
+      <div><dt>Correo electrónico</dt><dd>{{ user.email }}</dd></div>
+      <div><dt>Teléfono</dt><dd>{{ preferencias.instance.telefono|default:"Sin registrar" }}</dd></div>
+      <div><dt>Último ingreso</dt><dd>{{ user.last_login|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    </dl>
+  </div>
 </section>
-<details class="perfil-editor" {% if datos.errors or preferencias.errors %}open{% endif %}><summary>Editar mis datos <span aria-hidden="true">＋</span></summary>
-{% if user.es_cliente %}<p class="nota">Estos datos completarán tus próximas solicitudes. No modifican las que ya enviaste.</p>{% else %}<p class="nota">Tu teléfono queda en tu cuenta; no se publica en el portafolio.</p>{% endif %}
-<form method="post">{% csrf_token %}{{ datos.non_field_errors }}{{ preferencias.non_field_errors }}<div class="perfil-campos">{% for campo in datos %}{% include "_campo.html" %}{% endfor %}{% for campo in preferencias %}{% include "_campo.html" %}{% endfor %}</div><button class="boton" type="submit">Guardar mi perfil</button></form></details></div>
+
+{% if resumen %}<div class="kpis perfil-kpis">{% for cifra in resumen %}<a class="kpi kpi-enlace" href="{{ cifra.url }}"><span>{{ cifra.etiqueta }}</span><strong>{{ cifra.valor }}</strong><small>{{ cifra.detalle }} →</small></a>{% endfor %}</div>{% endif %}
+
+<div class="perfil-rejilla">
+  <section class="tarjeta perfil-accesos">
+    <h2>Accesos rápidos</h2>
+    <ul class="lista-limpia">
+      <li><a href="{% url 'cuentas:mi_contrasena' %}"><span aria-hidden="true">✱</span><span><strong>Cambiar contraseña</strong><small>Usa una clave larga que no repitas en otros sitios.</small></span></a></li>
+      {% if user.es_tatuadora %}<li><a href="{% url 'nucleo:portafolio' %}"><span aria-hidden="true">◫</span><span><strong>Editar mi portafolio</strong><small>Fotos publicadas en la página del estudio.</small></span></a></li>
+      <li><a href="{% url 'nucleo:agenda' %}"><span aria-hidden="true">▦</span><span><strong>Mi agenda</strong><small>Disponibilidad y sesiones.</small></span></a></li>
+      {% elif user.es_cliente %}<li><a href="{% url 'clientes:inicio' %}"><span aria-hidden="true">✉</span><span><strong>Ver mis solicitudes</strong><small>Estado y sesiones de cada propuesta.</small></span></a></li>{% endif %}
+    </ul>
+  </section>
+  <details class="perfil-editor" {% if datos.errors or preferencias.errors %}open{% endif %}><summary>Editar mis datos <span aria-hidden="true">＋</span></summary>
+  {% if user.es_cliente %}<p class="nota">Estos datos completarán tus próximas solicitudes. No modifican las que ya enviaste.</p>{% else %}<p class="nota">Tu teléfono queda en tu cuenta; no se publica en el portafolio.</p>{% endif %}
+  <form method="post">{% csrf_token %}{{ datos.non_field_errors }}{{ preferencias.non_field_errors }}<div class="perfil-campos">{% for campo in datos %}{% include "_campo.html" %}{% endfor %}{% for campo in preferencias %}{% include "_campo.html" %}{% endfor %}</div><button class="boton" type="submit">Guardar mi perfil</button></form></details>
+</div>
+</div>
 {% endblock %}
+{% block page_scripts %}<script src="{% static 'js/perfil-avatar.js' %}" defer></script>{% endblock %}

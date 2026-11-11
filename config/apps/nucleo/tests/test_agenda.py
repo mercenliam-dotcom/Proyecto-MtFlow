@@ -71,6 +71,16 @@ class Agenda(TestCase):
         # Con una sesión ya reservada no se ofrece agendar otra.
         self.assertNotContains(self.client.get(reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])), "Agendar una sesión")
 
+    def test_historial_de_reprogramacion_es_legible(self):
+        from web.models import EventoSolicitud
+        b = self.reservar()
+        datos = self.datos("CITA", 12, 13)
+        datos["version"] = b.actualizada_en.isoformat()
+        guardar_bloque(self.a.usuario, datos, b.referencia)
+        evento = EventoSolicitud.objects.filter(postulacion=self.p, tipo="reprogramada").latest("pk")
+        self.assertNotIn("datetime", evento.detalle)
+        self.assertIn(f"Ahora: {datos['fecha']:%d/%m/%Y} 12:00–13:00", evento.detalle)
+
     def test_solicitud_con_sesion_reservada_no_agenda_otra(self):
         self.reservar()
         with self.assertRaisesMessage(ValidationError, "ya tiene una sesión reservada"):

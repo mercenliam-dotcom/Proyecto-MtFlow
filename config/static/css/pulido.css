@@ -274,8 +274,10 @@ table { border-collapse: collapse; }
 /* ---------- Portafolio: lista propia ---------- */
 .galeria-propia { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
 .foto-propia { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: hidden; }
-.foto-propia figure { position: relative; margin: 0; aspect-ratio: 4 / 3; background: #f3f0f5; }
-.foto-propia img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.foto-propia figure { position: relative; margin: 0; aspect-ratio: 4 / 3; overflow: hidden; background: #f3f0f5; }
+.foto-propia figure img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.foto-propia:hover figure img { transform: scale(1.04); }
+.foto-propia .sello { z-index: 1; }
 .foto-propia-texto { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 14px 16px 16px; }
 .foto-propia-texto h2 { margin: 0; font-size: 15px; }
 .foto-propia-texto p { margin: 0; font-size: 13px; color: #7a7282; }
@@ -484,8 +486,149 @@ table { border-collapse: collapse; }
 .boton.boton-peligro:hover { background: #7d2337; border-color: #7d2337; box-shadow: 0 6px 16px rgba(154, 48, 69, .25); }
 
 /* ---------- Portafolio público: fotografías reales ---------- */
-.portfolio-card .image-placeholder.con-foto { padding: 0; overflow: hidden; }
-.portfolio-card .mt-foto { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+
+/* ---------- Resumen de cobros ---------- */
+.resumen-cobro { margin: 0 0 18px; }
+.resumen-cobro .cifras { margin-bottom: 8px; }
+.resumen-cobro strong { font-variant-numeric: tabular-nums; }
+.resumen-cobro strong::after { content: " CLP"; font-size: 12px; font-weight: 500; color: #8a8292; }
+.resumen-cobro .cifra-destacada { background: linear-gradient(160deg, var(--purple), var(--acento-oscuro)); border-color: transparent; }
+.resumen-cobro .cifra-destacada span, .resumen-cobro .cifra-destacada strong, .resumen-cobro .cifra-destacada strong::after { color: #fff; }
+.resumen-cobro .cifra-al-dia { background: #e6f3e6; }
+.resumen-cobro .cifra-al-dia span, .resumen-cobro .cifra-al-dia strong, .resumen-cobro .cifra-al-dia strong::after { color: #2f6b2f; }
+.resumen-cobro .nota { margin: 0; font-size: 13px; }
+
+/* ---------- Abono sugerido ---------- */
+.abono-sugerencias { margin: -6px 0 16px; }
+.abono-opciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.abono-opcion { min-height: 36px; padding: 6px 14px; border: 1px solid #d9cde4; border-radius: 999px; background: #faf7fc; color: var(--purple); font: 600 13px var(--fuente); cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.abono-opcion:hover { border-color: var(--purple); background: #f3edf8; }
+.abono-opcion[aria-pressed="true"] { background: var(--purple); border-color: var(--purple); color: #fff; }
+.abono-opcion:focus-visible { outline: 3px solid #8e6ba4; outline-offset: 2px; }
+.abono-aviso { margin: 0; font-size: 12px; color: #7a7282; }
+.abono-aviso.abono-ok { color: #2f6b2f; }
+.abono-aviso.abono-fuera { color: #9a3045; font-weight: 600; }
+
+/* ---------- Mi perfil ---------- */
+.visualmente-oculto { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.perfil-pro { max-width: 1040px; }
+.perfil-hero { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 28px; margin-top: 22px; padding: 28px; background: var(--card); border: 1px solid #e6e1e9; border-radius: 18px; box-shadow: 0 1px 2px rgba(41, 38, 49, .04), 0 10px 28px rgba(41, 38, 49, .06); position: relative; overflow: hidden; }
+.perfil-hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 84px; background: linear-gradient(120deg, #3a2a4c, var(--purple) 55%, #8e6ba4); }
+.perfil-foto { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.perfil-pro .perfil-avatar { width: 112px; height: 112px; font-size: 36px; border: 4px solid #fff; box-shadow: 0 6px 18px rgba(41, 38, 49, .18); }
+.perfil-avatar-img { display: block; object-fit: cover; border-radius: 50%; background: #eae1f1; }
+.perfil-avatar-img[hidden], .perfil-avatar[hidden] { display: none; }
+.perfil-foto-form { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 4px 0 0; }
+.perfil-foto-boton { cursor: pointer; min-height: 36px; padding: 7px 16px; font-size: 13px; }
+.perfil-foto-form:focus-within .perfil-foto-boton { outline: 3px solid #8e6ba4; outline-offset: 2px; }
+.perfil-foto-form.con-js .perfil-foto-enviar { display: none; }
+.perfil-foto-form.subiendo .perfil-foto-boton { opacity: .6; pointer-events: none; }
+.perfil-foto-quitar { margin: 0; }
+.perfil-foto-quitar button { padding: 0; border: 0; background: none; color: #9a3045; font: 500 12px var(--fuente); text-decoration: underline; cursor: pointer; }
+.perfil-foto-ayuda { margin: 0; font-size: 11px; color: #8a8292; max-width: 180px; }
+.perfil-hero-texto { position: relative; min-width: 0; padding-top: 92px; }
+.perfil-hero-texto h2 { margin: 0 0 8px; font-size: 26px; overflow-wrap: anywhere; }
+.perfil-etiquetas { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; }
+.chip-rol { background: #f1ebf8; color: var(--purple); }
+.perfil-desde { font-size: 12px; color: #8a8292; }
+.perfil-pro .perfil-datos { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding-top: 16px; border-top: 1px solid #f0ebf3; }
+.perfil-kpis { margin-top: 18px; }
+.perfil-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; align-items: start; }
+.perfil-rejilla > .tarjeta, .perfil-rejilla > .perfil-editor { margin: 0; }
+.perfil-accesos h2 { margin: 0 0 10px; font-size: 16px; }
+.perfil-accesos li + li { border-top: 1px solid #f0ebf3; }
+.perfil-accesos a { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 6px; margin: 0 -6px; border-radius: 10px; color: inherit; text-decoration: none; }
+.perfil-accesos a:hover { background: #f8f3fb; }
+.perfil-accesos a > span:first-child { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #f1ebf8; color: var(--purple); font-size: 15px; }
+.perfil-accesos strong { display: block; font-size: 14px; color: var(--purple); }
+.perfil-accesos small { display: block; font-size: 12px; color: #7a7282; }
+.perfil-pro .perfil-editor { margin-top: 0; }
+.cuenta-avatar-img { object-fit: cover; border-radius: 50%; padding: 0; }
+@media (max-width: 860px) {
+  .perfil-hero { grid-template-columns: 1fr; gap: 14px; padding: 22px; }
+  .perfil-hero::before { height: 70px; }
+  .perfil-hero-texto { padding-top: 0; text-align: center; }
+  .perfil-etiquetas { justify-content: center; }
+  .perfil-pro .perfil-datos { grid-template-columns: 1fr; text-align: left; }
+  .perfil-rejilla { grid-template-columns: 1fr; }
+  .perfil-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .perfil-kpis .kpi { padding: 14px; }
+  .perfil-kpis .kpi > strong { font-size: 24px; }
+}
+
+/* ---------- Agenda: días pasados visibles pero atenuados ---------- */
+#agenda-calendar .fc-day-past { background: #f7f6f4; }
+#agenda-calendar .fc-day-past .fc-daygrid-day-number, #agenda-calendar .fc-col-header-cell.fc-day-past .fc-col-header-cell-cushion { color: #a39bab; }
+#agenda-calendar .fc-event-past { opacity: .6; }
+#agenda-calendar .fc-daygrid-event[class*="agenda-"] { padding: 2px 6px; border-radius: 6px; }
+#agenda-calendar .fc-daygrid-event[class*="agenda-"] .fc-event-time, #agenda-calendar .fc-daygrid-event[class*="agenda-"] .fc-event-title { color: #fff; font-size: 11px; }
+#agenda-calendar .fc-daygrid-event[class*="agenda-"] .fc-daygrid-event-dot { display: none; }
+#agenda-calendar .fc-daygrid-event.agenda-disponibilidad .fc-event-time, #agenda-calendar .fc-daygrid-event.agenda-disponibilidad .fc-event-title { color: #4c3a5c; }
+#agenda-calendar .fc-day-past.fc-timegrid-col, #agenda-calendar .fc-daygrid-day.fc-day-past { cursor: default; }
+
+/* ---------- Portafolio público ---------- */
+/* Carrusel: alto fijo; la foto llena el marco y un fondo difuminado evita bandas negras */
+.mt-carrusel { gap: 0; margin: 4px 0 0; border-radius: 16px; scrollbar-width: none; }
+.mt-carrusel::-webkit-scrollbar { display: none; }
+.mt-diapositiva { position: relative; min-height: 0; height: clamp(260px, 42vw, 440px); overflow: hidden; border-radius: 16px; background: #18131e; }
+.mt-diapositiva img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; background: none; }
+.mt-diapositiva .mt-diapositiva-fondo { object-fit: cover; filter: blur(28px) saturate(1.2) brightness(.7); transform: scale(1.15); }
+.mt-diapositiva .mt-diapositiva-foto { object-fit: contain; }
+.mt-diapositiva figcaption { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 2px; padding: 48px 22px 18px; background: linear-gradient(transparent, rgba(16, 10, 22, .82)); color: #fff; }
+.mt-diapositiva figcaption strong { font-size: 18px; }
+.mt-diapositiva figcaption span { font-size: 13px; opacity: .85; }
+.mt-diapositiva.image-placeholder { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; color: #fff; background: linear-gradient(135deg, #2c2238, var(--purple)); }
+section[aria-label="Fotografías destacadas del estudio"] .encabezado { align-items: center; }
+#carrusel-anterior, #carrusel-siguiente { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+
+/* Filtros */
+section[aria-label="Galería de estilos"] .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 8px; }
+section[aria-label="Galería de estilos"] .filter { min-height: 38px; padding: 7px 16px; border: 1px solid #e0dae4; border-radius: 999px; background: var(--card); color: #4c4456; font-size: 13px; font-weight: 500; transition: background .15s, border-color .15s, color .15s; }
+section[aria-label="Galería de estilos"] .filter:hover { border-color: #b9a2c9; color: var(--purple); }
+section[aria-label="Galería de estilos"] .filter.active, section[aria-label="Galería de estilos"] .filter[aria-pressed="true"] { background: var(--purple); border-color: var(--purple); color: #fff; }
+.portafolio-ayuda { margin: 0 0 18px; padding: 0; border: 0; background: none; font-size: 13px; color: #7a7282; }
+
+/* Galería: todas las tarjetas del mismo tamaño */
+.portfolio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; align-items: start; }
+.portfolio-card { display: flex; flex-direction: column; margin: 0; padding: 0; overflow: hidden; border: 1px solid #e6e1e9; border-radius: 16px; background: var(--card); box-shadow: 0 1px 2px rgba(41, 38, 49, .04); transition: transform .2s ease, box-shadow .2s ease, border-color .2s; }
+.portfolio-card:hover, .portfolio-card:focus-visible { transform: translateY(-3px); border-color: #d6c6e5; box-shadow: 0 14px 30px rgba(41, 38, 49, .12); outline: none; }
+.portfolio-card .image-placeholder { position: relative; aspect-ratio: 4 / 5; height: auto; min-height: 0; margin: 0; padding: 0; overflow: hidden; border-radius: 0; }
+.portfolio-card .image-placeholder.con-foto { background: #f1edf3; }
+.portfolio-card .mt-foto { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
+.portfolio-card:hover .mt-foto { transform: scale(1.05); }
+.portfolio-card .card-caption { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; }
+.portfolio-card .card-caption h2 { margin: 0; font-size: 17px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-card .card-caption p { margin: 0; font-size: 12px; color: #7a7282; }
+.card-estilo { align-self: flex-start; padding: 3px 9px; border-radius: 999px; background: #f1ebf8; color: var(--purple); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+/* Estilos aún sin fotografía: misma proporción, más discretos */
+.portfolio-card-pendiente { border-style: dashed; background: #fbfafc; box-shadow: none; }
+.portfolio-card-pendiente .image-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(160deg, #f6f2f9, #ece4f2); color: #8a7a99; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.portfolio-card-pendiente .placeholder-mark { font-size: 34px; color: #b39bc7; }
+.portfolio-card-pendiente .card-caption h2 { font-size: 16px; color: #4c4456; }
+@media (max-width: 640px) {
+  .portfolio-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .portfolio-card .card-caption { padding: 10px 12px 12px; }
+  .portfolio-card .card-caption h2 { font-size: 14px; }
+  .mt-diapositiva figcaption { padding: 36px 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .portfolio-card, .portfolio-card .mt-foto, .foto-propia figure img { transition: none; } .portfolio-card:hover { transform: none; } }
+
+/* Agenda: sesiones anteriores */
+.agenda-anteriores { margin-top: 18px; }
+.agenda-anteriores .tarjeta-titulo .nota { margin: 0; font-size: 12px; }
+.fecha-pasada { background: #f1eff2; color: #7a7282; }
+.agenda-estado { font-size: 11px; padding: 3px 9px; }
+.agenda-estado-realizada { background: #e6f3e6; color: #2f6b2f; }
+.agenda-estado-no_asistio { background: #f8e9ec; color: #9a3045; }
+.agenda-estado-reservada { background: #fff4e0; color: #8a5a00; }
+
+/* ---------- Portafolio: varias fotografías a la vez ---------- */
+.portafolio-vista.con-varias { place-items: stretch; padding: 10px; }
+.portafolio-miniaturas { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; width: 100%; }
+.portafolio-miniaturas img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; }
+.portafolio-conteo { font-weight: 600; color: var(--purple); }
+.portafolio-conteo.conteo-excedido { color: #9a3045; }
 
 @media (prefers-reduced-motion: reduce) {
   .primary-button, .secondary-button, .boton, .filtros-bandeja a, .upload-box, .check-field, .interruptor, .correo-fila, .kpi-enlace, .acceso { transition: none; }

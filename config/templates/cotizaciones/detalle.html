@@ -99,7 +99,7 @@
       <p class="nota">Los pagos se realizan fuera de MTFlow. Registrar un abono significa que la tatuadora verificó su recepción. El total incluye el abono y descuenta devoluciones.</p>
       {% if tiene_inasistencias %}<p>Acuerdo por inasistencia: {{ propuesta.get_destino_abono_display }}. Una devolución acordada solo reduce el total al registrarla como efectuada.</p>{% endif %}
       <h3>Pagos adicionales y devoluciones</h3>
-      <ul class="lista-limpia">{% for movimiento in propuesta.movimientos.all %}<li>{{ movimiento.creado_en|date:"d/m/Y H:i" }} · {{ movimiento.get_tipo_display }}: {{ movimiento.monto }} CLP · {{ movimiento.detalle }}</li>{% empty %}<li class="nota">Sin pagos adicionales ni devoluciones.</li>{% endfor %}</ul>
+      <ul class="lista-limpia">{% for movimiento in propuesta.movimientos.all %}<li>{{ movimiento.creado_en|date:"d/m/Y H:i" }} · {{ movimiento.get_tipo_display }}: {{ movimiento.monto }} CLP · {{ movimiento.detalle }}{% if movimiento.comprobante %} · <a href="{% url 'nucleo:cobro_comprobante' propuesta.referencia movimiento.pk %}" target="_blank" rel="noopener">Ver comprobante</a>{% endif %}</li>{% empty %}<li class="nota">Sin pagos adicionales ni devoluciones.</li>{% endfor %}</ul>
       {% if puede_gestionar %}
       <details class="mas-acciones">
         <summary>Todas las acciones de esta solicitud</summary>

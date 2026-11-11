@@ -3,7 +3,19 @@
 {% block contenido %}
 <p class="miga">{% if portafolio %}<a href="{% url 'nucleo:portafolio' %}">← Mi portafolio</a>{% else %}<a href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}">← Solicitud</a>{% endif %}</p>
 <h1>{{ titulo }}</h1>
-{% if propuesta %}<p class="bajada">{{ propuesta.contacto }} · Total acordado: {{ propuesta.precio_final|default_if_none:"Pendiente" }} CLP · Recibido neto: {{ propuesta.total_cobrado }} CLP · Saldo: {{ propuesta.saldo_pendiente }} CLP</p>{% endif %}
+{% if resumen_cobro %}<p class="bajada">{{ propuesta.contacto }} · Código {{ propuesta.codigo }}</p>
+<section class="resumen-cobro" aria-label="Estado de pagos">
+  <div class="cifras">
+    <div><span>Total acordado</span><strong>{{ resumen_cobro.texto.precio }}</strong></div>
+    <div><span>Abono verificado</span><strong>{{ resumen_cobro.texto.abono }}</strong></div>
+    <div><span>Pagos adicionales</span><strong>{{ resumen_cobro.texto.pagos }}</strong></div>
+    {% if resumen_cobro.devoluciones %}<div><span>Devoluciones</span><strong>− {{ resumen_cobro.texto.devoluciones }}</strong></div>{% endif %}
+    <div class="cifra-destacada{% if not resumen_cobro.saldo %} cifra-al-dia{% endif %}"><span>Resta por cobrar</span><strong>{{ resumen_cobro.texto.saldo }}</strong></div>
+  </div>
+  <p class="nota">Recibido neto: {{ resumen_cobro.texto.neto }} CLP (abono + pagos − devoluciones).
+  {% if resumen_cobro.saldo %}El importe viene relleno con lo que resta; cámbialo si recibiste un pago parcial.{% else %}Este trabajo ya está pagado completo: solo registra una devolución si corresponde.{% endif %}</p>
+</section>
+{% elif propuesta %}<p class="bajada">{{ propuesta.contacto }} · Total acordado: {{ propuesta.precio_final|default_if_none:"Pendiente" }} CLP · Recibido neto: {{ propuesta.total_cobrado }} CLP · Saldo: {{ propuesta.saldo_pendiente }} CLP</p>{% endif %}
 {% if portafolio %}<p class="bajada">Sube una fotografía del trabajo terminado o del estudio. Las referencias privadas de las solicitudes no se publican automáticamente.</p>{% endif %}
 <form method="post" enctype="multipart/form-data" class="tarjeta">{% csrf_token %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{{ campo.errors }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button class="boton" type="submit">Guardar</button></form>
 {% endblock %}

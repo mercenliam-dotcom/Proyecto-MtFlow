@@ -136,7 +136,7 @@ def _decodificar(datos: bytes, formato_real: str) -> Image.Image:
         img.load()  # decodifica todos los píxeles
     return img
 
-def validar_imagen(archivo) -> ImagenValidada:
+def validar_imagen(archivo, exigir_nitidez=True, lado_min=None) -> ImagenValidada:
     """Valida un archivo subido y devuelve la imagen re-codificada, o lanza ValidationError."""
     # 1. Tamaño
     tamano = getattr(archivo, "size", None)
@@ -197,10 +197,11 @@ def validar_imagen(archivo) -> ImagenValidada:
 
     # 7. Dimensiones
     ancho, alto = img.size
-    if min(ancho, alto) < settings.IMAGEN_LADO_MIN_PX:
+    minimo = lado_min or settings.IMAGEN_LADO_MIN_PX
+    if min(ancho, alto) < minimo:
         raise ValidationError(
             f"La imagen es demasiado pequeña: el lado menor debe medir al menos "
-            f"{settings.IMAGEN_LADO_MIN_PX} píxeles.",
+            f"{minimo} píxeles.",
             code="pequena",
         )
     if max(ancho, alto) > settings.IMAGEN_LADO_MAX_PX:
@@ -212,7 +213,7 @@ def validar_imagen(archivo) -> ImagenValidada:
 
     # 8. Nitidez
     nitidez = calcular_nitidez(img)
-    if nitidez < settings.IMAGEN_NITIDEZ_MIN:
+    if exigir_nitidez and nitidez < settings.IMAGEN_NITIDEZ_MIN:
         raise ValidationError(
             "La imagen está demasiado borrosa para analizarla. Sube una foto más nítida.",
             code="borrosa",

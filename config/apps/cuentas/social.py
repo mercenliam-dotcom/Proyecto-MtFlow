@@ -32,6 +32,8 @@ TTL = 600
 
 
 def disponibles():
+    if not getattr(settings, "ACCESO_SOCIAL_VISIBLE", False):
+        return []
     try:
         base = urlsplit(settings.SOCIAL_AUTH_BASE_URL)
     except ValueError:

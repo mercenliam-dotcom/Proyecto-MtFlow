@@ -13,7 +13,8 @@
         {% if form.instance.pk %}<img id="portafolio-preview" src="{% url 'web:imagen_portafolio' form.instance.referencia %}" alt="Fotografía actual">{% else %}<img id="portafolio-preview" alt="Vista previa" hidden><p id="portafolio-vacio">La vista previa aparecerá aquí.</p>{% endif %}
       </div>
       <div class="upload-box">{% include "_campo.html" with campo=form.imagen %}</div>
-      {% if form.instance.pk %}<p class="nota">Deja el archivo vacío para conservar la fotografía actual.</p>{% endif %}
+      {% if form.instance.pk %}<p class="nota">Deja el archivo vacío para conservar la fotografía actual.</p>{% else %}<p class="nota">Puedes elegir <strong>varias fotografías a la vez</strong> (hasta 10). Cada una queda como una foto independiente con los mismos datos; con más de una, el título se numera: «Rosa (1/3)», «Rosa (2/3)»…</p>{% endif %}
+      <p class="nota portafolio-conteo" id="portafolio-conteo" hidden></p>
       {% include "_campo.html" with campo=form.titulo %}
       <div class="form-row">{% include "_campo.html" with campo=form.tipo %}{% include "_campo.html" with campo=form.estilo %}</div>
       {% include "_campo.html" with campo=form.postulacion %}

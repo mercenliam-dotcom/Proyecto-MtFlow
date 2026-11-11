@@ -19,8 +19,32 @@ from .imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML
 from .operaciones_agenda import bloquear_profesional
 
 
+MAX_FOTOS_POR_ENVIO = 10
+
+
+class VariasImagenesInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
+class VariasImagenesField(forms.FileField):
+    """Acepta uno o varios archivos y devuelve siempre una lista."""
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", VariasImagenesInput(attrs={"accept": TIPOS_ACEPTADOS_HTML, "multiple": True}))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        unico = super().clean
+        if isinstance(data, (list, tuple)):
+            archivos = [unico(d, initial) for d in data if d]
+            if self.required and not archivos:
+                raise ValidationError(self.error_messages["required"], code="required")
+            return archivos
+        archivo = unico(data, initial)
+        return [archivo] if archivo else []
+
+
 class PortafolioForm(forms.ModelForm):
-    imagen = forms.FileField(required=False, label="Fotografía JPG / PNG (máximo 10 MB)", widget=forms.FileInput(attrs={"accept": TIPOS_ACEPTADOS_HTML}))
+    imagen = VariasImagenesField(required=False, label="Fotografías JPG / PNG (máximo 10 MB cada una)")
     version = forms.CharField(required=False, widget=forms.HiddenInput)
 
     class Meta:
@@ -31,19 +55,38 @@ class PortafolioForm(forms.ModelForm):
     def __init__(self, *args, artista, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance.tatuadora = artista
-        self.fields["postulacion"].queryset = Postulacion.objects.filter(tatuadora=artista, estado="REALIZADA").select_related("contacto")
-        self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto} · {(p.zona_cuerpo or '').capitalize()} · terminado el {p.realizada_en:%d/%m/%Y}" if p.realizada_en else f"{p.contacto} · {p.codigo}"
+        # Trabajos terminados o con al menos una sesión realizada (aunque no se haya cerrado el trabajo).
+        from django.db.models import Q
+        relacionables = Postulacion.objects.filter(Q(estado="REALIZADA") | Q(vinculos_sesiones__bloque__estado="REALIZADA"), tatuadora=artista).select_related("contacto").distinct().order_by("-realizada_en", "-creada_en")
+        if self.instance.postulacion_id:
+            relacionables = (relacionables | Postulacion.objects.filter(pk=self.instance.postulacion_id)).distinct()
+        self.fields["postulacion"].queryset = relacionables
+        self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto} · {(p.zona_cuerpo or '').capitalize()} · " + (f"terminado el {p.realizada_en:%d/%m/%Y}" if p.realizada_en else "sesión realizada") + f" · {p.codigo}"
+        self.fields["postulacion"].help_text = ("Aparecen los trabajos con al menos una sesión realizada." if relacionables.exists()
+            else "Aún no tienes trabajos con sesiones realizadas. Aparecerán aquí cuando marques una sesión como realizada.")
         self.fields["estilo"].label_from_instance = lambda e: e.nombre
         self.fields["imagen"].required = not self.instance.pk
         if self.instance.pk:
+            # Al editar se reemplaza una sola fotografía.
+            self.fields["imagen"].label = "Reemplazar fotografía (JPG / PNG, máximo 10 MB)"
+            self.fields["imagen"].widget.attrs.pop("multiple", None)
             self.fields["version"].required = True
             self.initial["version"] = self.instance.actualizada_en.isoformat()
 
     def clean_imagen(self):
-        imagen = self.cleaned_data.get("imagen")
-        if imagen:
-            return validar_imagen(imagen).archivo
-        return None
+        archivos = self.cleaned_data.get("imagen") or []
+        limite = 1 if self.instance.pk else MAX_FOTOS_POR_ENVIO
+        if len(archivos) > limite:
+            raise ValidationError(f"Puedes subir hasta {limite} fotografía{'s' if limite > 1 else ''} a la vez.")
+        validadas, errores = [], []
+        for archivo in archivos:
+            try:
+                validadas.append(validar_imagen(archivo).archivo)
+            except ValidationError as exc:
+                errores.append(f"{archivo.name}: {' '.join(exc.messages)}")
+        if errores:
+            raise ValidationError(errores)
+        return validadas
 
 
 @rol_requerido(Rol.ADMIN)
@@ -67,28 +110,40 @@ def editar(request, referencia=None):
         status = 400
         if form.is_valid():
             storage = FileSystemStorage(location=settings.MEDIA_ROOT)
-            ruta = None
+            rutas = []
             try:
-                archivo = form.cleaned_data.get("imagen")
-                if archivo:
-                    ruta = storage.save(f"portafolio/{uuid.uuid4().hex}/{archivo.name}", archivo)
+                for archivo in form.cleaned_data.get("imagen") or []:
+                    rutas.append(storage.save(f"portafolio/{uuid.uuid4().hex}/{archivo.name}", archivo))
                 with transaction.atomic(durable=True):
                     bloquear_profesional(request.user)
                     if trabajo.pk:
                         anterior = TrabajoPortafolio.objects.select_for_update().get(pk=trabajo.pk)
                         if form.cleaned_data["version"] != anterior.actualizada_en.isoformat():
                             raise ValidationError("La fotografía cambió en otra ventana. Recarga antes de guardar.")
-                    if ruta:
-                        trabajo.url = ruta
-                    trabajo.full_clean()
-                    trabajo.save()
+                    if trabajo.pk or len(rutas) <= 1:
+                        if rutas:
+                            trabajo.url = rutas[0]
+                        trabajo.full_clean()
+                        trabajo.save()
+                    else:
+                        # Varias a la vez: una fotografía independiente por archivo, con los mismos datos.
+                        total = len(rutas)
+                        for numero, ruta in enumerate(rutas, start=1):
+                            nueva = TrabajoPortafolio(
+                                tatuadora=artista, publicado_en=trabajo.publicado_en, tipo=trabajo.tipo, estilo=trabajo.estilo,
+                                postulacion=trabajo.postulacion, visible=trabajo.visible, en_carrusel=trabajo.en_carrusel,
+                                autorizacion_publicacion=trabajo.autorizacion_publicacion,
+                                titulo=f"{trabajo.titulo} ({numero}/{total})"[:120], url=ruta)
+                            nueva.full_clean()
+                            nueva.save()
             except (ValidationError, DatabaseError, OSError) as exc:
-                if ruta:
+                for ruta in rutas:
                     storage.delete(ruta)
                 form.add_error(None, " ".join(exc.messages) if isinstance(exc, ValidationError) else "No se pudo guardar. Vuelve a seleccionar la imagen e inténtalo de nuevo.")
                 status = 409
             else:
-                messages.success(request, "Portafolio actualizado.")
+                cantidad = len(form.cleaned_data.get("imagen") or [])
+                messages.success(request, f"Se agregaron {cantidad} fotografías al portafolio." if cantidad > 1 and not referencia else "Portafolio actualizado.")
                 return redirect("nucleo:portafolio")
     return render(request, "flujo/portafolio_form.html", {"form": form, "titulo": "Editar fotografía" if referencia else "Agregar fotografía", "portafolio": True}, status=status)
 

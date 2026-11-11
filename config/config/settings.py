@@ -90,6 +90,7 @@ MIDDLEWARE = [
     "apps.nucleo.middleware.CabecerasSeguridadMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.nucleo.middleware.LimiteArchivosMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.cuentas.permisos.ForzarCambioContrasenaMiddleware",
@@ -260,7 +261,7 @@ IMAGEN_NITIDEZ_MIN = float(env("IMAGEN_NITIDEZ_MIN", "40"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = IMAGEN_MAX_BYTES * 3 + 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = IMAGEN_MAX_BYTES
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
-DATA_UPLOAD_MAX_NUMBER_FILES = 3
+DATA_UPLOAD_MAX_NUMBER_FILES = 10  # tope absoluto; LimiteArchivosMiddleware deja 3 salvo en el portafolio
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_HANDLERS = [
     "apps.nucleo.uploads.LimiteImagenUploadHandler",
@@ -344,6 +345,8 @@ ADMIN_DESARROLLO_HABILITADO = env_bool("ADMIN_DESARROLLO_HABILITADO", False)
 CSRF_FAILURE_VIEW = 'apps.nucleo.errores.csrf_failure'
 
 # Acceso externo: sin credenciales no se muestran ni habilitan los proveedores.
+# Acceso con Google y Facebook: oculto y desactivado hasta reactivarlo con ACCESO_SOCIAL_VISIBLE=1.
+ACCESO_SOCIAL_VISIBLE = env("ACCESO_SOCIAL_VISIBLE", "0").strip().lower() in ("1", "true", "si", "yes")
 SOCIAL_AUTH_BASE_URL = env("SOCIAL_AUTH_BASE_URL", "http://127.0.0.1:8000" if DEBUG else "").rstrip("/")
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")

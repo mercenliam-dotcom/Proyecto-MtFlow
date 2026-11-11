@@ -91,6 +91,11 @@ def gestionar(user, referencia, datos):
     return p
 
 
+def _horario_legible(fecha, inicio, fin):
+    """11/11/2026 14:30–17:30 (para el historial)."""
+    return f"{fecha:%d/%m/%Y} {inicio:%H:%M}–{fin:%H:%M}"
+
+
 ABONO_MIN, ABONO_MAX = 30, 40  # porcentaje del precio total acordado
 
 
@@ -119,7 +124,7 @@ def guardar_bloque(user, datos, referencia=None):
             raise ValidationError("El bloque cambió en otra ventana. Recarga antes de modificarlo.")
         if datos["tipo"] != b.tipo or (b.postulacion_id and getattr(datos.get("postulacion"), "pk", None) != b.postulacion_id):
             raise ValidationError("Para cambiar el tipo o el cliente, cancela el bloque y crea uno nuevo.")
-    anteriores = (b.fecha, b.hora_inicio, b.hora_fin) if b.pk else None
+    anteriores = _horario_legible(b.fecha, b.hora_inicio, b.hora_fin) if b.pk else None
     p = None
     if datos["tipo"] == "CITA":
         p = get_object_or_404(Postulacion.objects.select_for_update(), pk=datos["postulacion"].pk, tatuadora=artista)
@@ -156,8 +161,8 @@ def guardar_bloque(user, datos, referencia=None):
         p.estado = "RESERVADA"
         Sesion.objects.get_or_create(bloque=b, defaults={"postulacion": p})
         p.save(update_fields=["estado", "actualizada_en"])
-        detalle = f"{b.fecha} {b.hora_inicio:%H:%M}–{b.hora_fin:%H:%M}"
-        if anteriores:
+        detalle = _horario_legible(b.fecha, b.hora_inicio, b.hora_fin)
+        if anteriores and anteriores != detalle:
             detalle = f"Antes: {anteriores}. Ahora: {detalle}"
         EventoSolicitud.objects.create(postulacion=p, actor=user, tipo="reprogramada" if anteriores else "reservada", detalle=detalle[:500])
     return b

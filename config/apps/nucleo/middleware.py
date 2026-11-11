@@ -38,3 +38,39 @@ class CabecerasSeguridadMiddleware:
         if user is not None and user.is_authenticated:
             response["Cache-Control"] = "no-store"
         return response
+
+
+class LimiteArchivosMiddleware:
+    """Máximo de archivos por envío: 3 en general y 10 solo al agregar fotos al portafolio.
+    DATA_UPLOAD_MAX_NUMBER_FILES fija el tope absoluto (10) al leer el formulario."""
+    GENERAL = 3
+    POR_VISTA = {"nucleo:portafolio_nuevo": 10}
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_view(self, request, vista, args, kwargs):
+        # Va antes de CsrfViewMiddleware: aquí se lee el formulario por primera vez, así
+        # un envío con demasiados archivos recibe un mensaje claro y no una página de error.
+        if request.method != "POST" or not request.content_type.startswith("multipart/"):
+            return None
+        from django.contrib import messages
+        from django.core.exceptions import TooManyFilesSent
+        from django.http import HttpResponseBadRequest
+        from django.shortcuts import redirect
+        nombre = request.resolver_match.view_name if request.resolver_match else ""
+        limite = self.POR_VISTA.get(nombre, self.GENERAL)
+        try:
+            cantidad = sum(len(lista) for _, lista in request.FILES.lists())
+        except TooManyFilesSent:
+            cantidad = limite + 1
+        if cantidad <= limite:
+            return None
+        aviso = f"Puedes subir hasta {limite} fotografías a la vez. Elige menos archivos e inténtalo de nuevo."
+        if nombre in self.POR_VISTA and hasattr(request, "_messages"):
+            messages.error(request, aviso)
+            return redirect(request.path)
+        return HttpResponseBadRequest(aviso)

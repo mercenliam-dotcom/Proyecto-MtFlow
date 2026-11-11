@@ -271,6 +271,7 @@ class Command(BaseCommand):
             return 0
         clientes = list(Postulacion.objects.filter(pk__in=ids).values_list("cliente_id", flat=True))
         TrabajoPortafolio.objects.filter(postulacion_id__in=ids).update(postulacion=None)
+        rutas_cobros = [r for r in MovimientoCobro.objects.filter(postulacion_id__in=ids).values_list("comprobante", flat=True) if r]
         MovimientoCobro.objects.filter(postulacion_id__in=ids).delete()
         EventoSolicitud.objects.filter(postulacion_id__in=ids).delete()
         bloques = list(Sesion.objects.filter(postulacion_id__in=ids).values_list("bloque_id", flat=True))
@@ -287,7 +288,7 @@ class Command(BaseCommand):
         Postulacion.objects.filter(pk__in=ids).delete()
         Cliente.objects.filter(pk__in=clientes, usuario__isnull=True, solicitudes__isnull=True).delete()
         raiz = Path(settings.MEDIA_ROOT).resolve()
-        for ruta in rutas:
+        for ruta in rutas + rutas_cobros:
             archivo = (raiz / ruta).resolve()
             if raiz in archivo.parents and archivo.is_file():
                 archivo.unlink()

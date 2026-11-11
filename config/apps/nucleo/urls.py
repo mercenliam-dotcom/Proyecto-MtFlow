@@ -17,6 +17,7 @@ urlpatterns = [
     path("portafolio/<uuid:referencia>/", portafolio.editar, name="portafolio_editar"),
     path("portafolio/<uuid:referencia>/quitar/", portafolio.eliminar, name="portafolio_eliminar"),
     path("cotizaciones/<uuid:referencia>/flujo/<str:accion>/", flujo.editar, name="flujo"),
+    path("cotizaciones/<uuid:referencia>/cobros/<int:pk>/comprobante/", flujo.comprobante, name="cobro_comprobante"),
     path("agenda/", agenda.inicio, name="agenda"),
     path("agenda/eventos/", agenda.eventos, name="agenda_eventos"),
     path("agenda/nuevo/", agenda.editar, name="agenda_nuevo"),

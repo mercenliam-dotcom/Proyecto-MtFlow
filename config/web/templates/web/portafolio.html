@@ -26,7 +26,7 @@
 <section class="surface" aria-label="Fotografías destacadas del estudio">
   <div class="encabezado"><h2>El estudio y nuestros trabajos</h2><div><button type="button" class="filter" id="carrusel-anterior" aria-label="Fotografía anterior">←</button><button type="button" class="filter" id="carrusel-siguiente" aria-label="Fotografía siguiente">→</button></div></div>
   <div class="mt-carrusel" id="carrusel">
-  {% for foto in destacados %}<figure class="mt-diapositiva"><img src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy"><figcaption>{{ foto.titulo }} · {{ foto.tatuadora.nombre_publico }}</figcaption></figure>
+  {% for foto in destacados %}<figure class="mt-diapositiva"><img class="mt-diapositiva-fondo" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="" aria-hidden="true" loading="lazy"><img class="mt-diapositiva-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy"><figcaption><strong>{{ foto.titulo }}</strong><span>{{ foto.estilo.nombre|default:"El estudio" }} · {{ foto.tatuadora.nombre_publico }}</span></figcaption></figure>
   {% empty %}<article class="mt-diapositiva image-placeholder"><span class="placeholder-mark" aria-hidden="true">✧</span><h3>Arte, espacio e inspiración</h3><p>Próximamente: fotografías del estudio y trabajos terminados.</p></article><article class="mt-diapositiva image-placeholder"><span class="placeholder-mark" aria-hidden="true">✦</span><h3>Cada tatuaje, una historia</h3><p>Conoce nuestros estilos y envíanos tu idea.</p></article>{% endfor %}
   </div>
 </section>
@@ -47,7 +47,7 @@
         {% endfor %}
     </div>
 
-    <p class="demo-note">Filtra los trabajos publicados por estilo.</p>
+    <p class="demo-note portafolio-ayuda">{{ publicados|length }} trabajo{{ publicados|length|pluralize }} publicado{{ publicados|length|pluralize }} · Elige un estilo para filtrar.</p>
 
     <div class="portfolio-grid">
         {% for foto in publicados %}
@@ -57,15 +57,15 @@
                 <img class="mt-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy">
             </div>
             <div class="card-caption">
-                <!-- Se invierte el orden para destacar el estilo -->
-                <h2>{{ foto.estilo.nombre|default:"El estudio" }}</h2>
-                <p>{{ foto.titulo }} · {{ foto.tatuadora.nombre_publico }}</p>
+                <span class="card-estilo">{{ foto.estilo.nombre|default:"El estudio" }}</span>
+                <h2>{{ foto.titulo }}</h2>
+                <p>por {{ foto.tatuadora.nombre_publico }}</p>
             </div>
         </article>
         {% endfor %}
 
         {% for trabajo in pendientes %}
-        <article class="portfolio-card" data-style="{{ trabajo.estilo }}" role="button" tabindex="0">
+        <article class="portfolio-card portfolio-card-pendiente" data-style="{{ trabajo.estilo }}" role="button" tabindex="0">
             <div class="image-placeholder">
                 <span class="placeholder-mark" aria-hidden="true">✧</span>
                 <span>Fotografía pendiente</span>

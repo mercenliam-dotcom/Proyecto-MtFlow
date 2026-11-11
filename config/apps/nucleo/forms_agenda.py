@@ -193,7 +193,7 @@ class GestionForm(forms.Form):
             if solicitud.estado in ("ACEPTADA", "RESERVADA"):
                 permitidas.append("abono")
             self.fields["accion"].choices = [(k, v) for k, v in self.fields["accion"].choices if k in permitidas]
-            self.initial.update(precio_final=solicitud.precio_final, monto_abono=solicitud.monto_abono, abono_solicitado=solicitud.abono_solicitado, alto_final_cm=solicitud.alto_final_cm, ancho_final_cm=solicitud.ancho_final_cm)
+            self.initial.update(precio_final=solicitud.precio_final, monto_abono=solicitud.monto_abono or solicitud.abono_solicitado, abono_solicitado=solicitud.abono_solicitado, alto_final_cm=solicitud.alto_final_cm, ancho_final_cm=solicitud.ancho_final_cm)
         if accion:
             self.initial["accion"] = accion
             if accion != "rechazar":

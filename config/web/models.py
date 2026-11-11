@@ -351,6 +351,8 @@ class MovimientoCobro(models.Model):
     detalle = models.CharField(max_length=300, validators=[texto_sin_controles])
     verificado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     creado_en = models.DateTimeField(auto_now_add=True)
+    # Ruta privada (MEDIA_ROOT) de la imagen del comprobante; vacía si no se adjuntó.
+    comprobante = models.CharField(max_length=300, blank=True, default="")
 
     class Meta:
         ordering = ["-creado_en", "-pk"]

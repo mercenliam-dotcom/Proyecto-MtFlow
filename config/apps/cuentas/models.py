@@ -73,6 +73,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField("activa", default=True)
     es_admin_desarrollo = models.BooleanField(default=False, editable=False)
     creado_en = models.DateTimeField(default=timezone.now, editable=False)
+    # Ruta privada (MEDIA_ROOT/avatares/...) de la foto de perfil; vacía = iniciales.
+    avatar = models.CharField(max_length=300, blank=True, default="", editable=False)
     creado_por = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL,
         related_name="cuentas_creadas", editable=False,
@@ -130,6 +132,11 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
             self.nombre_usuario = self.nombre_usuario.strip().lower()
         if self.email:
             self.email = self.email.strip().lower()
+
+    @property
+    def avatar_version(self):
+        """Parte del nombre del archivo, para que el navegador no muestre una foto anterior."""
+        return self.avatar.rsplit("/", 1)[-1][:8] if self.avatar else ""
 
     def get_full_name(self):
         return f"{self.nombre} {self.apellido}"

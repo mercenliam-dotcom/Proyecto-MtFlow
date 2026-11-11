@@ -1,10 +1,11 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block titulo %}{{ titulo }}{% endblock %}
 {% block contenido %}
 <p><a href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}">← Solicitud de {{ propuesta.contacto.nombres }}</a></p>
 <h1>{{ titulo }}</h1><p class="bajada">{{ ayuda }}</p>
 {% if guiado %}<p class="nota">{% if accion == 'aceptar' %}Paso 1 de 3: acuerdo → pago externo → agenda.{% elif accion == 'abono' %}Paso 2 de 3: confirma únicamente dinero que realmente recibiste. Después podrás agendar.{% else %}Registra el motivo para conservar la decisión en el historial.{% endif %}</p>{% endif %}
 {% if accion == 'abono' %}<p>Precio acordado: {{ propuesta.precio_final }} CLP · Abono solicitado: {{ propuesta.abono_solicitado|default_if_none:"Sin definir" }} CLP.</p><p>Indica cuánto has recibido como abono y marca que comprobaste la transferencia o el pago. No se necesita una pasarela ni esperar una confirmación bancaria automática.</p>{% endif %}
-<form method="post" class="tarjeta">{% csrf_token %}{% if guiado %}<input type="hidden" name="continuar" value="1">{% endif %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{{ campo.errors }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button class="boton" type="submit">{{ boton }}{% if guiado and accion != 'rechazar' %} y continuar{% endif %}</button></form>
+<form method="post" class="tarjeta"{% if accion == 'aceptar' or accion == 'abono' %} data-abono-precio="{{ propuesta.precio_final|default_if_none:'' }}"{% endif %}>{% csrf_token %}{% if guiado %}<input type="hidden" name="continuar" value="1">{% endif %}{{ form.non_field_errors }}{% for campo in form %}{% if campo.is_hidden %}{{ campo }}{{ campo.errors }}{% else %}{% include "_campo.html" %}{% endif %}{% endfor %}<button class="boton" type="submit">{{ boton }}{% if guiado and accion != 'rechazar' %} y continuar{% endif %}</button></form>
 {% if guiado %}<p><a href="{% url 'nucleo:registro' %}">{% if accion == 'abono' %}Todavía no recibí el pago: continuar más tarde desde Registro{% else %}Volver al Registro{% endif %}</a> · <a href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}">Ver detalle completo</a></p>{% endif %}
 {% endblock %}
+{% block page_scripts %}{% if accion == 'aceptar' or accion == 'abono' %}<script src="{% static 'js/abono-sugerido.js' %}" defer></script>{% endif %}{% endblock %}

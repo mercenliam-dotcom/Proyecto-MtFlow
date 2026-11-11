@@ -111,4 +111,5 @@ def perfil(request):
             else:
                 messages.success(request, "Perfil actualizado. Los datos de solicitudes anteriores se conservan como fueron enviados.")
                 return redirect("clientes:perfil")
-    return render(request, "clientes/perfil.html", {"datos": datos, "preferencias": preferencias}, status=status)
+    from .perfil import resumen_perfil
+    return render(request, "clientes/perfil.html", {"datos": datos, "preferencias": preferencias, "resumen": resumen_perfil(request.user)}, status=status)

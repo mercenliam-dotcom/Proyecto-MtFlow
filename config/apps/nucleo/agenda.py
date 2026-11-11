@@ -74,7 +74,9 @@ def profesional(request):
 def inicio(request):
     artista = profesional(request)
     bloques = BloqueHorario.objects.filter(tatuadora=artista, fecha__gte=timezone.localdate()).exclude(estado="CANCELADA").select_related("sesion__postulacion__contacto")[:100]
-    return render(request, "agenda/inicio.html", {"bloques": bloques, "hoy": timezone.localdate().isoformat()})
+    # Sesiones ya pasadas (realizadas, sin asistencia o aún sin cerrar), las más recientes primero.
+    anteriores = BloqueHorario.objects.filter(tatuadora=artista, tipo="CITA", fecha__lt=timezone.localdate()).exclude(estado="CANCELADA").select_related("sesion__postulacion__contacto").order_by("-fecha", "-hora_inicio")[:20]
+    return render(request, "agenda/inicio.html", {"bloques": bloques, "anteriores": anteriores, "hoy": timezone.localdate().isoformat()})
 
 
 @rol_requerido(Rol.ADMIN)
