@@ -47,7 +47,7 @@
   {% for propuesta in pagina %}
   <a class="correo-fila" href="{% url detalle_nombre propuesta.referencia %}">
     <span class="correo-avatar" aria-hidden="true">{{ propuesta.contacto.nombres|first|upper }}</span>
-    <span class="bandeja-persona"><strong>{{ propuesta.contacto }}</strong><span class="chip chip-estado chip-{{ propuesta.estado|lower }}">{{ propuesta.estado_legible }}</span>{% if es_equipo %}<small>{{ propuesta.tatuadora.nombre_publico }}</small>{% endif %}</span>
+    <span class="bandeja-persona"><strong>{{ propuesta.contacto }}</strong>{% if not es_equipo and not propuesta.vista_en %}<span class="nueva-marca">NUEVA</span>{% endif %}<span class="chip chip-estado chip-{{ propuesta.estado|lower }}">{{ propuesta.estado_legible }}</span>{% if es_equipo %}<small>{{ propuesta.tatuadora.nombre_publico }}</small>{% endif %}</span>
     <span class="bandeja-idea"><strong>{{ propuesta.zona_cuerpo|capfirst }} · {{ propuesta.alto_cm }} × {{ propuesta.ancho_cm }} cm</strong><span>{{ propuesta.descripcion|truncatechars:85 }}</span></span>
     <span class="bandeja-valores"><strong>{{ propuesta.precio_legible }}</strong><small>Estilo: {{ propuesta.confianza_legible }}</small></span>
     {% if not es_equipo %}<span class="bandeja-siguiente">{% if propuesta.estado == "RECIBIDA" or propuesta.estado == "EN_REVISION" %}Decidir{% elif propuesta.estado == "ACEPTADA" %}Abono y agenda{% elif propuesta.estado == "RESERVADA" %}Realizar sesión{% elif propuesta.estado == "REALIZADA" %}Terminado{% else %}Cerrada{% endif %}</span>{% endif %}

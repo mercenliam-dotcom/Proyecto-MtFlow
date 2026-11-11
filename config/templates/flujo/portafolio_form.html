@@ -30,5 +30,15 @@
     </section>
   </div>
 </form>
+{% if form.instance.pk %}
+<details class="zona-peligro">
+  <summary>Quitar esta fotografía del portafolio</summary>
+  <form method="post" action="{% url 'nucleo:portafolio_eliminar' form.instance.referencia %}">{% csrf_token %}
+    <p>Se borrará la fotografía y dejará de verse en la página pública y en el carrusel. Esta acción no se puede deshacer.</p>
+    <label class="interruptor" for="confirmar-quitar"><input type="checkbox" id="confirmar-quitar" name="confirmar" value="si" required><span><strong>Sí, quiero quitarla</strong><small>Si solo quieres ocultarla, desmarca «Publicar» y guarda.</small></span></label>
+    <button class="boton boton-peligro" type="submit">Quitar fotografía</button>
+  </form>
+</details>
+{% endif %}
 {% endblock %}
 {% block page_scripts %}<script src="{% static 'js/portafolio-form.js' %}" defer></script>{% endblock %}

@@ -58,5 +58,13 @@ class RegistroYDecision(TestCase):
 
     def test_abono_parcial_no_salta_a_reserva(self):
         self.p.estado="ACEPTADA"; self.p.precio_final=100000; self.p.abono_solicitado=30000; self.p.save()
+        # Un abono bajo el 30 % del precio ya no se registra (regla 30 %–40 %).
         r=self.client.post(self.paso("abono"),{"accion":"abono","version":self.p.actualizada_en.isoformat(),"monto_abono":10000,"verificado":"on","continuar":"1"})
-        self.assertRedirects(r,reverse("nucleo:cotizacion_detalle",args=[self.p.referencia]))
+        self.assertContains(r,"entre 30 % y 40 %",status_code=400)
+        self.p.refresh_from_db()
+        self.assertIsNone(self.p.abono_verificado_en)
+        r=self.client.post(self.paso("abono"),{"accion":"abono","version":self.p.actualizada_en.isoformat(),"monto_abono":45000,"verificado":"on","continuar":"1"})
+        self.assertEqual(r.status_code,400)
+        r=self.client.post(self.paso("abono"),{"accion":"abono","version":self.p.actualizada_en.isoformat(),"monto_abono":35000,"verificado":"on","continuar":"1"})
+        # Abono dentro del rango y completo: continúa a agendar la sesión.
+        self.assertRedirects(r,reverse("nucleo:agenda_nuevo")+"?solicitud="+str(self.p.referencia),fetch_redirect_response=False)

@@ -158,6 +158,26 @@ class FlujoCompleto(TestCase):
         self.client.force_login(self.b.usuario)
         self.assertEqual(self.client.get(url).status_code, 404)
 
+    def test_portafolio_quitar_fotografia_borra_registro_y_archivo(self):
+        from pathlib import Path
+        from django.conf import settings
+        self.client.post(reverse("nucleo:portafolio_nuevo"), {"titulo": "Rosa para quitar", "tipo": "ESTUDIO", "imagen": jpg_valido(), "visible": "on", "autorizacion_publicacion": "on"})
+        trabajo = TrabajoPortafolio.objects.get()
+        archivo = Path(settings.MEDIA_ROOT) / trabajo.url
+        self.assertTrue(archivo.is_file())
+        quitar = reverse("nucleo:portafolio_eliminar", args=[trabajo.referencia])
+        self.assertContains(self.client.get(reverse("nucleo:portafolio_editar", args=[trabajo.referencia])), quitar)
+        self.assertEqual(self.client.get(quitar).status_code, 405)
+        self.client.post(quitar)  # sin confirmar no borra
+        self.assertTrue(TrabajoPortafolio.objects.exists())
+        self.client.force_login(self.b.usuario if hasattr(self, "b") else profesional("ajenaporta").usuario)
+        self.assertEqual(self.client.post(quitar, {"confirmar": "si"}).status_code, 404)
+        self.client.force_login(self.a.usuario)
+        self.assertRedirects(self.client.post(quitar, {"confirmar": "si"}), reverse("nucleo:portafolio"))
+        self.assertFalse(TrabajoPortafolio.objects.exists())
+        self.assertFalse(archivo.exists())
+        self.assertNotContains(Client().get(reverse("web:portafolio")), "Rosa para quitar")
+
     def test_portafolio_publicar_requiere_autorizacion(self):
         r = self.client.post(reverse("nucleo:portafolio_nuevo"), {"titulo": "No autorizado", "tipo": "ESTUDIO", "imagen": jpg_valido(), "visible": "on"})
         self.assertEqual(r.status_code, 400)

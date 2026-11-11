@@ -68,7 +68,14 @@ class Agenda(TestCase):
         self.assertEqual(self.p.sesiones.get(), b)
         self.assertEqual(self.p.abono_verificado_por, self.a.usuario)
         self.assertEqual(self.p.eventos.count(), 3)
-        self.assertContains(self.client.get(reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])), "Agendar una sesión")
+        # Con una sesión ya reservada no se ofrece agendar otra.
+        self.assertNotContains(self.client.get(reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])), "Agendar una sesión")
+
+    def test_solicitud_con_sesion_reservada_no_agenda_otra(self):
+        self.reservar()
+        with self.assertRaisesMessage(ValidationError, "ya tiene una sesión reservada"):
+            guardar_bloque(self.a.usuario, self.datos("CITA", 12, 13))
+        self.assertEqual(self.p.sesiones.count(), 1)
 
     def test_sesion_exige_abono_y_disponibilidad(self):
         with self.assertRaises(ValidationError):
@@ -82,8 +89,8 @@ class Agenda(TestCase):
         self.reservar()
         with self.assertRaises(ValidationError):
             guardar_bloque(self.a.usuario, self.datos("CITA", 10, 12))
-        guardar_bloque(self.a.usuario, self.datos("CITA", 11, 12))
-        self.assertEqual(self.p.sesiones.count(), 2)
+        guardar_bloque(self.a.usuario, self.datos("BLOQUEO", 11, 12))
+        self.assertEqual(BloqueHorario.objects.filter(tipo="BLOQUEO").count(), 1)
 
     def test_bloqueo_personal_impide_reserva(self):
         self.reservar()
@@ -202,13 +209,19 @@ class Agenda(TestCase):
         self.assertEqual(r.status_code, 404)
 
     def test_ultima_sesion_requiere_cierre_explicito_del_trabajo(self):
+        # Varias sesiones, de a una: la siguiente se agenda cuando la anterior se cierra.
         primero = self.reservar()
-        segundo = guardar_bloque(self.a.usuario, self.datos("CITA", 11, 12))
         ayer = timezone.localdate() - timedelta(days=1)
-        BloqueHorario.objects.filter(pk__in=[primero.pk, segundo.pk]).update(fecha=ayer)
+        BloqueHorario.objects.filter(pk=primero.pk).update(fecha=ayer)
+        primero.refresh_from_db()
         cerrar_bloque(self.a.usuario, primero.referencia, "realizar", "", primero.actualizada_en.isoformat())
         self.p.refresh_from_db()
+        self.assertEqual(self.p.estado, "ACEPTADA")
+        segundo = guardar_bloque(self.a.usuario, self.datos("CITA", 11, 12))
+        self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "RESERVADA")
+        BloqueHorario.objects.filter(pk=segundo.pk).update(fecha=ayer)
+        segundo.refresh_from_db()
         cerrar_bloque(self.a.usuario, segundo.referencia, "realizar", "", segundo.actualizada_en.isoformat())
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "ACEPTADA")

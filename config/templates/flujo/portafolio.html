@@ -8,6 +8,6 @@
     {% if trabajo.en_carrusel %}<span class="sello sello-carrusel">Carrusel</span>{% endif %}
   </figure>
   <div class="foto-propia-texto"><h2>{{ trabajo.titulo }}</h2><p>{{ trabajo.get_tipo_display }}{% if trabajo.estilo %} · {{ trabajo.estilo.nombre }}{% endif %} · {{ trabajo.publicado_en|date:"d/m/Y" }}</p>
-  <a class="boton secundario" href="{% url 'nucleo:portafolio_editar' trabajo.referencia %}">Editar / cambiar publicación</a></div>
+  <a class="boton secundario" href="{% url 'nucleo:portafolio_editar' trabajo.referencia %}">Editar, ocultar o quitar</a></div>
 </article>{% empty %}<section class="tarjeta portafolio-vacio"><h2>Tu primera fotografía</h2><p>Agrega un trabajo terminado o una vista del estudio para presentarlo en la página pública.</p><a class="boton" href="{% url 'nucleo:portafolio_nuevo' %}">Agregar fotografía</a></section>{% endfor %}</div>
 {% endblock %}

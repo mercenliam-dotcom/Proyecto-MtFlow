@@ -80,6 +80,13 @@ class GestionForm(forms.Form):
                 self.fields["motivo"].label = "Observación o referencia del comprobante (opcional)" if accion == "abono" else "Observación del acuerdo (opcional)"
             if accion == "abono":
                 self.fields["monto_abono"].help_text = "Si ya registraste parte del abono aquí, escribe el total acumulado; no vuelvas a sumar un pago registrado por otra opción."
+                if solicitud is not None and solicitud.precio_final:
+                    from .operaciones_agenda import rango_abono, _clp
+                    minimo, maximo = rango_abono(solicitud.precio_final)
+                    self.fields["monto_abono"].help_text = f"Debe ser entre 30 % y 40 % del precio acordado ({_clp(solicitud.precio_final)}): entre {_clp(minimo)} y {_clp(maximo)} CLP. " + self.fields["monto_abono"].help_text
+                    self.fields["monto_abono"].widget.attrs.update(min=minimo, max=maximo)
+            if accion == "aceptar":
+                self.fields["abono_solicitado"].help_text = "Entre 30 % y 40 % del precio total acordado."
             self.fields["accion"].widget = forms.HiddenInput()
             campos = {"aceptar": {"precio_final", "abono_solicitado", "alto_final_cm", "ancho_final_cm", "motivo"},
                       "abono": {"monto_abono", "verificado", "motivo"}, "revisar": set(), "rechazar": {"motivo"}}

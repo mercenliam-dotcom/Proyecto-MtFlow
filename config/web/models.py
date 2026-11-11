@@ -129,6 +129,8 @@ class Postulacion(models.Model):
     abono_verificado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="abonos_verificados")
     referencia = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     estado_ml = models.CharField(max_length=20, choices=EstadoML.choices, default=EstadoML.LEGADO)
+    # Primera vez que la tatuadora abrió el detalle; vacío = aviso no leído.
+    vista_en = models.DateTimeField(null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.RESTRICT, related_name="solicitudes")
     tatuadora = models.ForeignKey(Tatuadora, on_delete=models.RESTRICT)
     zona_cuerpo = models.CharField(max_length=100)

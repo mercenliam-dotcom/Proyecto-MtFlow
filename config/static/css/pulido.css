@@ -441,6 +441,48 @@ table { border-collapse: collapse; }
   .agenda-encabezado .acciones .boton:not(.secundario) { order: -1; flex-basis: 100%; }
 }
 
+/* ---------- Campana de avisos ---------- */
+.topbar > a { margin-left: auto; }
+.campana { position: relative; margin-left: 14px; padding: 0; border: 0; font-size: inherit; }
+.campana > summary { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #ddd5e1; border-radius: 9px; color: #584362; cursor: pointer; list-style: none; transition: background .15s, border-color .15s; }
+.campana > summary::-webkit-details-marker { display: none; }
+.campana > summary:hover, .campana[open] > summary { background: #f3edf8; border-color: #c9b3da; }
+.campana > summary:focus-visible { outline: 3px solid #8e6ba4; outline-offset: 2px; }
+.campana-cuenta { position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; border: 2px solid var(--paper); background: #c2364f; color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; }
+.campana-cuenta[hidden] { display: none; }
+.campana-sonando .campana-icono { animation: campana-sonar .9s ease; transform-origin: 50% 10%; }
+@keyframes campana-sonar { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-5deg); } 75% { transform: rotate(2deg); } }
+.campana-panel { position: absolute; top: calc(100% + 10px); right: 0; z-index: 30; width: min(360px, calc(100vw - 32px)); border: 1px solid #e3dce7; border-radius: 14px; background: #fff; box-shadow: 0 16px 40px rgba(30, 16, 44, .18); overflow: hidden; }
+.campana-cabecera { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid #f0ebf3; font-size: 14px; }
+.campana-cabecera span { font-size: 12px; color: #7a7282; }
+.campana-lista { max-height: 320px; margin: 0; padding: 6px; overflow-y: auto; list-style: none; }
+.campana-lista a { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px; border-radius: 10px; color: inherit; text-decoration: none; }
+.campana-lista a:hover, .campana-lista a:focus-visible { background: #f6f0fb; }
+.campana-lista strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.campana-lista small { display: block; font-size: 12px; color: #7a7282; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.campana-punto { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--purple); }
+.campana-vacia { padding: 22px 12px; text-align: center; font-size: 13px; color: #7a7282; }
+.campana-pie { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #f0ebf3; background: #faf8fb; font-size: 12px; }
+.campana-pie form { margin: 0; }
+.campana-pie button { padding: 0; border: 0; background: none; color: #7a7282; font: inherit; cursor: pointer; text-decoration: underline; }
+.campana-pie button:hover { color: var(--purple); }
+.nueva-marca { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #c2364f; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .03em; vertical-align: middle; }
+@media (max-width: 640px) { .topbar > a { font-size: 12px; } .campana { margin-left: 10px; } .campana-panel { position: fixed; top: 64px; left: 16px; right: 16px; width: auto; } }
+@media (prefers-reduced-motion: reduce) { .campana-sonando .campana-icono { animation: none; } }
+
+/* ---------- Quitar fotografía ---------- */
+.zona-peligro { margin: 22px 0 0; padding: 0; border: 1px solid #ecd3d9; border-radius: 14px; background: #fdf8f9; font-size: 14px; }
+.zona-peligro > summary { padding: 14px 18px; color: #9a3045; font-weight: 600; cursor: pointer; list-style: none; }
+.zona-peligro > summary::-webkit-details-marker { display: none; }
+.zona-peligro > summary::before { content: "＋ "; }
+.zona-peligro[open] > summary::before { content: "－ "; }
+.zona-peligro form { display: grid; gap: 10px; padding: 0 18px 18px; }
+.zona-peligro p { margin: 0; color: #6d5560; }
+.zona-peligro .interruptor { background: #fff; }
+.zona-peligro .interruptor:has(input:checked) { border-color: #9a3045; background: #fbeef1; }
+.boton.boton-peligro { justify-self: start; background: #9a3045; border-color: #9a3045; color: #fff; }
+.boton.boton-peligro:hover { background: #7d2337; border-color: #7d2337; box-shadow: 0 6px 16px rgba(154, 48, 69, .25); }
+
 @media (prefers-reduced-motion: reduce) {
   .primary-button, .secondary-button, .boton, .filtros-bandeja a, .upload-box, .check-field, .interruptor, .correo-fila, .kpi-enlace, .acceso { transition: none; }
 }

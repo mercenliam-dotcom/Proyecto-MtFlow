@@ -10,7 +10,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from apps.cuentas.models import Rol
 from apps.cuentas.permisos import rol_requerido
 from web.models import TrabajoPortafolio, Postulacion
@@ -91,6 +91,35 @@ def editar(request, referencia=None):
                 messages.success(request, "Portafolio actualizado.")
                 return redirect("nucleo:portafolio")
     return render(request, "flujo/portafolio_form.html", {"form": form, "titulo": "Editar fotografía" if referencia else "Agregar fotografía", "portafolio": True}, status=status)
+
+
+@transaction.non_atomic_requests
+@rol_requerido(Rol.ADMIN)
+@require_POST
+def eliminar(request, referencia):
+    """Quita la fotografía del portafolio (y de la página pública) y borra su archivo."""
+    artista = profesional(request)
+    trabajo = get_object_or_404(TrabajoPortafolio, referencia=referencia, tatuadora=artista)
+    if request.POST.get("confirmar") != "si":
+        messages.error(request, "Confirma que quieres quitar la fotografía.")
+        return redirect("nucleo:portafolio_editar", referencia=referencia)
+    ruta = trabajo.url
+    try:
+        with transaction.atomic(durable=True):
+            bloquear_profesional(request.user)
+            TrabajoPortafolio.objects.filter(pk=trabajo.pk, tatuadora=artista).delete()
+    except DatabaseError:
+        messages.error(request, "No se pudo quitar la fotografía. Inténtalo de nuevo.")
+        return redirect("nucleo:portafolio_editar", referencia=referencia)
+    raiz = Path(settings.MEDIA_ROOT).resolve()
+    archivo = (raiz / ruta).resolve()
+    if ruta.startswith("portafolio/") and raiz in archivo.parents and not TrabajoPortafolio.objects.filter(url=ruta).exists():
+        try:
+            archivo.unlink(missing_ok=True)
+        except OSError:
+            pass  # el registro ya no existe; un archivo huérfano no se publica
+    messages.success(request, "Fotografía quitada del portafolio.")
+    return redirect("nucleo:portafolio")
 
 
 @never_cache

@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views, cotizaciones, agenda, flujo, metricas, portafolio
-from . import horario_trabajo
+from . import horario_trabajo, avisos
 
 app_name = "nucleo"
 
@@ -15,6 +15,7 @@ urlpatterns = [
     path("portafolio/", portafolio.lista, name="portafolio"),
     path("portafolio/nuevo/", portafolio.editar, name="portafolio_nuevo"),
     path("portafolio/<uuid:referencia>/", portafolio.editar, name="portafolio_editar"),
+    path("portafolio/<uuid:referencia>/quitar/", portafolio.eliminar, name="portafolio_eliminar"),
     path("cotizaciones/<uuid:referencia>/flujo/<str:accion>/", flujo.editar, name="flujo"),
     path("agenda/", agenda.inicio, name="agenda"),
     path("agenda/eventos/", agenda.eventos, name="agenda_eventos"),
@@ -22,6 +23,8 @@ urlpatterns = [
     path("agenda/<uuid:referencia>/", agenda.editar, name="agenda_editar"),
     path("agenda/<uuid:referencia>/cerrar/", agenda.cerrar, name="agenda_cerrar"),
     path("cotizaciones/<uuid:referencia>/gestion/", agenda.gestion, name="cotizacion_gestion"),
+    path("avisos/", avisos.estado, name="avisos"),
+    path("avisos/leidas/", avisos.marcar_leidas, name="avisos_leidas"),
     path("", views.inicio, name="inicio"),
     path("cotizaciones/", cotizaciones.lista, name="cotizaciones"),
     path("cotizaciones/<uuid:referencia>/", cotizaciones.detalle, name="cotizacion_detalle"),

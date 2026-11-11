@@ -118,6 +118,8 @@ def _lista(request, propuestas, es_equipo=False, es_registro=False):
 @never_cache
 @require_GET
 def detalle(request, referencia):
+    from .avisos import marcar_vista
+    marcar_vista(request.user, referencia)
     return _detalle(request, referencia, propias(request.user))
 
 
@@ -212,7 +214,7 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
         "propuesta": propuesta, "referencias": referencias, "revision": propuesta.imagen_set.filter(es_principal=True).select_related("etiquetaconsolidada__estilo").first(),
         "estado_legible": propuesta.estado_comercial,
         "pendiente_decision": propuesta.estado in ("RECIBIDA", "EN_REVISION"),
-        "puede_agendar": propuesta.estado in ("ACEPTADA", "RESERVADA") and propuesta.total_cobrado > 0 and propuesta.total_cobrado >= (propuesta.abono_solicitado or 0) and propuesta.destino_abono not in ("RETENIDO", "DEVOLVER"),
+        "puede_agendar": propuesta.estado in ("ACEPTADA", "RESERVADA") and not propuesta.sesiones.filter(estado="RESERVADA").exists() and propuesta.total_cobrado > 0 and propuesta.total_cobrado >= (propuesta.abono_solicitado or 0) and propuesta.destino_abono not in ("RETENIDO", "DEVOLVER"),
         "opciones": opciones, "es_equipo": es_equipo,
         "gestion_form": gestion_form if gestion_form is not None else GestionForm(solicitud=propuesta),
         "puede_gestionar": propuesta.tatuadora.usuario_id == request.user.pk and request.user.es_tatuadora and propuesta.tatuadora.activa,

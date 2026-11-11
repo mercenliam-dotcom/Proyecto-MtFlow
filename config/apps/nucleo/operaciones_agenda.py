@@ -46,6 +46,10 @@ def gestionar(user, referencia, datos):
             raise ValidationError("El precio no puede ser menor que lo efectivamente cobrado.")
         if datos.get("abono_solicitado") and datos["abono_solicitado"] > datos["precio_final"]:
             raise ValidationError("El abono solicitado no puede superar el precio total.")
+        if datos.get("abono_solicitado"):
+            minimo, maximo = rango_abono(datos["precio_final"])
+            if not minimo <= datos["abono_solicitado"] <= maximo:
+                raise ValidationError(f"El abono debe ser entre {ABONO_MIN} % y {ABONO_MAX} % del precio total: entre {_clp(minimo)} y {_clp(maximo)} CLP.")
         if bool(datos.get("alto_final_cm")) != bool(datos.get("ancho_final_cm")):
             raise ValidationError("Completa ambas medidas finales.")
         for campo in ("abono_solicitado", "alto_final_cm", "ancho_final_cm"):
@@ -59,6 +63,9 @@ def gestionar(user, referencia, datos):
         monto = datos["monto_abono"]
         if not datos["verificado"] or monto > p.precio_final or monto < (p.monto_abono or 0):
             raise ValidationError("El abono debe estar verificado, no disminuir y no superar el precio acordado.")
+        minimo, maximo = rango_abono(p.precio_final)
+        if not minimo <= monto <= maximo:
+            raise ValidationError(f"El abono debe ser entre {ABONO_MIN} % y {ABONO_MAX} % del precio acordado: entre {_clp(minimo)} y {_clp(maximo)} CLP.")
         if p.abono_verificado_en and monto == p.monto_abono:
             return p
         abono_contabilizado = (p.monto_abono or 0) if p.abono_verificado_en else 0
@@ -84,6 +91,18 @@ def gestionar(user, referencia, datos):
     return p
 
 
+ABONO_MIN, ABONO_MAX = 30, 40  # porcentaje del precio total acordado
+
+
+def rango_abono(precio):
+    """Montos permitidos para el abono: entre 30 % y 40 % del precio (CLP enteros)."""
+    return -(-precio * ABONO_MIN // 100), precio * ABONO_MAX // 100
+
+
+def _clp(monto):
+    return "$" + f"{monto:,}".replace(",", ".")
+
+
 @transaction.atomic
 def guardar_bloque(user, datos, referencia=None):
     artista = bloquear_profesional(user)
@@ -106,6 +125,9 @@ def guardar_bloque(user, datos, referencia=None):
         p = get_object_or_404(Postulacion.objects.select_for_update(), pk=datos["postulacion"].pk, tatuadora=artista)
         if p.estado not in ("ACEPTADA", "RESERVADA") or p.total_cobrado <= 0 or p.destino_abono in ("RETENIDO", "DEVOLVER") or (p.abono_solicitado and p.total_cobrado < p.abono_solicitado):
             raise ValidationError("La solicitud necesita acuerdo y abono verificado antes de reservar.")
+        reservada = p.sesiones.filter(estado="RESERVADA").exclude(pk=b.pk).first()
+        if reservada:
+            raise ValidationError(f"Esta solicitud ya tiene una sesión reservada ({reservada.fecha:%d/%m/%Y} {reservada.hora_inicio:%H:%M}). Reprográmala o ciérrala antes de agendar otra.")
         if p.sesiones.filter(estado="NO_ASISTIO").exists() and p.destino_abono != "REAGENDAR":
             raise ValidationError("Antes de reservar otra sesión, registra el acuerdo para reagendar después de la inasistencia.")
     candidatos = BloqueHorario.objects.filter(tatuadora=artista, fecha=datos["fecha"], hora_inicio__lt=datos["hora_fin"], hora_fin__gt=datos["hora_inicio"]).exclude(pk=b.pk)
