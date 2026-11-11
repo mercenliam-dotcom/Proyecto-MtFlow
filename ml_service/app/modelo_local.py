@@ -19,7 +19,7 @@ CLASES_LOCALES = {
     "Tribal-Neotribal": "E-07",
 }
 
-VERSIONES_KERAS = ("v1", "v2")
+VERSIONES_KERAS = ("v1", "v2", "v3")
 REDIMENSIONADO_V2 = "Pillow bilinear con orientación EXIF aplicada"
 
 
@@ -46,7 +46,7 @@ def leer_bundle(directorio: Path):
     version = cfg.get("model_version", "v1")
     if version not in VERSIONES_KERAS:
         raise ValueError("Versión de EfficientNetB0 no compatible.")
-    resize = REDIMENSIONADO_V2 if version == "v2" else "bilinear"
+    resize = REDIMENSIONADO_V2 if version in ("v2", "v3") else "bilinear"
     if (cfg.get("architecture") != "EfficientNetB0" or cfg.get("image_size") != [224, 224]
             or cfg.get("input_range") != [0, 255] or cfg.get("resize") != resize
             or cfg.get("color_mode", "rgb") != "rgb"):
@@ -85,11 +85,23 @@ class PredictorEfficientNetKeras:
             raise ValueError("El modelo no tiene la entrada RGB 224x224 y las siete salidas esperadas.")
         self._version_bundle = ruta.stem.rsplit("_", 1)[-1]
         self.version = f"efficientnet_b0:{self._version_bundle}:{digest}"
+        from . import config
+        self.detector_ood = None
+        self.extractor_ood = None
+        if config.OOD_ACTIVO:
+            from .ood import DetectorOOD
+            clases = json.loads((Path(directorio) / "class_names.json").read_text(encoding="utf-8-sig"))
+            self.detector_ood = DetectorOOD(config.OOD_CALIBRACION, digest, clases)
+            self.extractor_ood = tf.keras.Model(
+                inputs=self.modelo.inputs,
+                outputs=[self.modelo.get_layer(self.detector_ood.capa).output, self.modelo.output],
+            )
+            self.version += f":ood:{self.detector_ood.version[:16]}"
         self._lock = threading.Lock()
 
     def preparar_bytes(self, datos: bytes):
         tf = self.tf
-        if self._version_bundle == "v2":
+        if self._version_bundle in ("v2", "v3"):
             import numpy as np
 
             with Image.open(io.BytesIO(datos)) as imagen:
@@ -120,10 +132,20 @@ class PredictorEfficientNetKeras:
         return tf.image.resize(pixels, (224, 224), method="bilinear", antialias=False)[None, ...]
 
     def predecir_bytes(self, datos: bytes) -> dict[str, float]:
+        return self.analizar_bytes(datos)[0]
+
+    def analizar_bytes(self, datos: bytes):
+        """Una sola pasada para las siete probabilidades y el embedding OOD."""
         try:
             with self._lock:
                 batch = self.preparar_bytes(datos)
-                valores = self.modelo(batch, training=False).numpy()[0].tolist()
-            return validar_puntuaciones(valores, self.codigos)
+                ood = None
+                if self.extractor_ood is not None:
+                    embedding, probabilidades = self.extractor_ood([batch], training=False)
+                    valores = probabilidades.numpy()[0].tolist()
+                    ood = self.detector_ood.evaluar(embedding.numpy()[0])
+                else:
+                    valores = self.modelo(batch, training=False).numpy()[0].tolist()
+            return validar_puntuaciones(valores, self.codigos), ood
         except (self.tf.errors.OpError, ValueError, OSError) as exc:
             raise PredictorNoDisponible("No se pudo ejecutar el modelo local.") from exc

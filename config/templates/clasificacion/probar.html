@@ -40,7 +40,13 @@
         </li>
         {% endif %}{% endfor %}
       </ul>
-      <p class="nota">Exigencia de clasificación automática: 60 %. Si ningún estilo la alcanza, el resultado es «Fuera de catálogo» y requiere revisión profesional.</p>
+      <p class="nota">Exigencia de clasificación automática: 60 %. Si ningún estilo la alcanza o la referencia se aleja de los ejemplos conocidos, requiere revisión profesional.</p>
+      {% if resultado.ood %}
+      <details><summary>Detalle del detector de similitud</summary>
+        <p>Distancia: {{ resultado.ood.distancia|floatformat:4 }} · límite: {{ resultado.ood.umbral|floatformat:4 }}. Una distancia mayor al límite deriva la referencia a revisión manual.</p>
+        <p class="nota">Versión del detector: {{ resultado.ood.version }}</p>
+      </details>
+      {% endif %}
       {% if resultado.estilo_sugerido == "E-99" %}<p class="nota">La mayor puntuación entre los siete estilos fue {{ confianza_pct }} %. No es una probabilidad de «Fuera de catálogo».</p>{% endif %}
       <p class="nota">Modelo: {{ resultado.version_modelo }}. La confianza es una puntuación del clasificador; no es un intervalo estadístico ni garantiza un acierto.</p>
     {% else %}

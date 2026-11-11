@@ -24,7 +24,13 @@ MAX_PIXELES = 40_000_000
 
 # Único backend admitido. Sin API externa ni sustitución por simulación.
 MODO_PREDICTOR = os.environ.get("ML_PREDICTOR", "local").strip().lower()
-MTFLOW_MODEL_DIR = Path(os.environ.get("MTFLOW_MODEL_DIR", "modelos/efficientnet_b0_v2"))
+MTFLOW_MODEL_DIR = Path(os.environ.get("MTFLOW_MODEL_DIR", "modelos/efficientnet_b0_v3"))
 if not MTFLOW_MODEL_DIR.is_absolute():
     MTFLOW_MODEL_DIR = BASE_DIR / MTFLOW_MODEL_DIR
 UMBRAL_CONFIANZA = 0.60
+
+# Activado por defecto en esta rama. Desactivación explícita para comparar el baseline.
+OOD_ACTIVO = os.environ.get("MTFLOW_OOD_ENABLED", "1").lower() in ("1", "true", "si", "yes")
+OOD_CALIBRACION = Path(os.environ.get("MTFLOW_OOD_CALIBRATION", "modelos/efficientnet_b0_v3/ood/calibracion_ood_v3.json"))
+if not OOD_CALIBRACION.is_absolute():
+    OOD_CALIBRACION = BASE_DIR / OOD_CALIBRACION

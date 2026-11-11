@@ -273,6 +273,11 @@ class Prediccion(models.Model):
     confianza_maxima = models.DecimalField(max_digits=17, decimal_places=16)
     umbral_confianza = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
     tiempo_inferencia_ms = models.IntegerField()
+    ood = models.JSONField(null=True, blank=True)
+    motivo_abstencion = models.CharField(max_length=32, blank=True, default="", choices=[
+        ("", "Sin abstención"), ("fuera_distribucion", "Fuera de distribución"),
+        ("confianza_insuficiente", "Confianza insuficiente"),
+    ])
     generada_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:

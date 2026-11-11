@@ -176,6 +176,7 @@
                     <p>El análisis no está disponible. Tu referencia de precio sigue disponible y no depende del modelo.</p>
                 {% elif estilo %}
                     <p>{{ estilo }}{% if simulado %} · Resultado simulado, no es un análisis real{% elif revision_ml %} · Necesita revisión profesional{% else %} · Estilo sugerido{% endif %}</p>
+                    {% if motivo_abstencion == "fuera_distribucion" %}<p>La referencia se aleja de los ejemplos conocidos por el modelo. La tatuadora revisará la imagen; puedes continuar con tu propuesta.</p>{% endif %}
                 {% else %}
                     <p>No solicitado. Puedes activar el análisis al completar el formulario.</p>
                 {% endif %}

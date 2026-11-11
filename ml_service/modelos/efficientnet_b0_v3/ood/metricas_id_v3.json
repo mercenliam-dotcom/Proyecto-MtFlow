@@ -1,0 +1,114 @@
+{
+  "model_sha256": "52517cfedb9da6fa63fb2b4826b89d7974639f27b9b3aab2d1a5416b5966e041",
+  "ood_external_evaluated": false,
+  "ood_rejection_rate": null,
+  "ood_auroc": null,
+  "threshold": 0.4379139110950403,
+  "k": 5,
+  "valid": {
+    "n": 176,
+    "accepted": 168,
+    "sent_to_review": 8,
+    "id_retention": 0.9545454545454546,
+    "id_rejection": 0.045454545454545456,
+    "style_accuracy_all": 0.8295454545454546,
+    "style_accuracy_among_accepted": 0.8392857142857143,
+    "by_class": [
+      {
+        "class": "Alto contraste",
+        "n": 34,
+        "accepted": 32,
+        "retention": 0.9411764705882353
+      },
+      {
+        "class": "Anime",
+        "n": 21,
+        "accepted": 20,
+        "retention": 0.9523809523809523
+      },
+      {
+        "class": "Cibersigilismo",
+        "n": 13,
+        "accepted": 13,
+        "retention": 1.0
+      },
+      {
+        "class": "Lettering",
+        "n": 17,
+        "accepted": 14,
+        "retention": 0.8235294117647058
+      },
+      {
+        "class": "Linea Fina",
+        "n": 24,
+        "accepted": 24,
+        "retention": 1.0
+      },
+      {
+        "class": "Ornamentos",
+        "n": 44,
+        "accepted": 44,
+        "retention": 1.0
+      },
+      {
+        "class": "Tribal-Neotribal",
+        "n": 23,
+        "accepted": 21,
+        "retention": 0.9130434782608695
+      }
+    ]
+  },
+  "test": {
+    "n": 80,
+    "accepted": 77,
+    "sent_to_review": 3,
+    "id_retention": 0.9625,
+    "id_rejection": 0.0375,
+    "style_accuracy_all": 0.8375,
+    "style_accuracy_among_accepted": 0.8311688311688312,
+    "by_class": [
+      {
+        "class": "Alto contraste",
+        "n": 13,
+        "accepted": 13,
+        "retention": 1.0
+      },
+      {
+        "class": "Anime",
+        "n": 8,
+        "accepted": 8,
+        "retention": 1.0
+      },
+      {
+        "class": "Cibersigilismo",
+        "n": 6,
+        "accepted": 6,
+        "retention": 1.0
+      },
+      {
+        "class": "Lettering",
+        "n": 6,
+        "accepted": 5,
+        "retention": 0.8333333333333334
+      },
+      {
+        "class": "Linea Fina",
+        "n": 8,
+        "accepted": 8,
+        "retention": 1.0
+      },
+      {
+        "class": "Ornamentos",
+        "n": 22,
+        "accepted": 21,
+        "retention": 0.9545454545454546
+      },
+      {
+        "class": "Tribal-Neotribal",
+        "n": 17,
+        "accepted": 16,
+        "retention": 0.9411764705882353
+      }
+    ]
+  }
+}

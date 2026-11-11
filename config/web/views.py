@@ -40,6 +40,7 @@ def analizar_referencia(request):
         "estilo_sugerido": resultado.estilo_sugerido,
         "nombre": ESTILOS[resultado.estilo_sugerido],
         "simulado": resultado.version_modelo.startswith("simulado"),
+        "motivo_abstencion": resultado.motivo_abstencion,
     })
 
 
@@ -109,6 +110,7 @@ def cotizacion(request):
                             estilo=ESTILOS[resultado.estilo_sugerido],
                             simulado=resultado.version_modelo.startswith("simulado"),
                             revision_ml=resultado.estilo_sugerido == "E-99" or resultado.confianza_maxima < settings.UMBRAL_REVISION,
+                            motivo_abstencion=resultado.motivo_abstencion,
                         )
         elif request.method == "POST":
             estado = 400

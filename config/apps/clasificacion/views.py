@@ -55,7 +55,7 @@ def probar(request):
                 for c, p in resultado.ordenadas()
             ]
             contexto["recomendacion"] = recomendar(
-                resultado.estilo_sugerido, resultado.confianza_maxima
+                resultado.estilo_sugerido, resultado.confianza_maxima, resultado.motivo_abstencion
             )
             contexto["estilo_nombre"] = ESTILOS[resultado.estilo_sugerido]
             contexto["confianza_pct"] = round(resultado.confianza_maxima * 100, 1)

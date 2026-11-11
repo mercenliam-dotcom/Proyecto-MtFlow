@@ -1,0 +1,100 @@
+{
+  "model_version": "v3",
+  "architecture": "EfficientNetB0",
+  "initial_weights": "imagenet",
+  "run_id": "20261110T205940192142Z",
+  "source": "Roboflow / martin-stgmar-gmail-com / clasificacion-7-estilos-tatu",
+  "dataset_snapshot": "clasificacion_7_estilos_tatu_20261110T204324437Z",
+  "raw_manifest_sha256": "faeaa83348abc9c0ccf3f9e1d0356e73658df4bc3e2cff4d05fdf25609e41e26",
+  "manifest_sha256": "3bf3b4fa348f4cf2d24425f35c47b372034ab851b2451d1d355c7ecb00ee6bca",
+  "dataset_drive_path": "/content/drive/MyDrive/MTFlow/Dataset/clasificacion_7_estilos_tatu_20261110T204324437Z",
+  "backup_parts": [
+    {
+      "name": "clasificacion_7_estilos_tatu_20261110T204324437Z_parte01.zip",
+      "sha256": "33959335fb91ee98f8e855993d6594def400455ae74c349ca5efa345ceeacd84",
+      "bytes": 83065258,
+      "drive_id": "1ApzNSP_xYD-RHoCOQgNb37iGgXKpMk3j"
+    },
+    {
+      "name": "clasificacion_7_estilos_tatu_20261110T204324437Z_parte02.zip",
+      "sha256": "2b3523024b4d32b4d4d42a68d56f4742680fc1c6c56471d16ad51c859e1ad52a",
+      "bytes": 83840843,
+      "drive_id": "1PQKxni7FHdrTDp6CfvCiR8aeBSub-Ilo"
+    },
+    {
+      "name": "clasificacion_7_estilos_tatu_20261110T204324437Z_parte03.zip",
+      "sha256": "f2a70cb2bd61ce7e3dfe761560662dd43814a0856824c4a9399af06e73a87335",
+      "bytes": 83766075,
+      "drive_id": "16uh3a8gdb5VGAgCgYLDZds1fNsMJtmGd"
+    },
+    {
+      "name": "clasificacion_7_estilos_tatu_20261110T204324437Z_parte04.zip",
+      "sha256": "112dabeaeba7234b1b747e545d9e4f480a5dc63cdfa8250a972375997b4c7105",
+      "bytes": 42881005,
+      "drive_id": "16BQCxv4aHY8t2qmRsnznfA7IkZLf24DY"
+    }
+  ],
+  "split_method": "Roboflow original splits; optional reviewed duplicate exclusion; no reassignment",
+  "exclude_reviewed_duplicates": true,
+  "image_size": [
+    224,
+    224
+  ],
+  "input_range": [
+    0,
+    255
+  ],
+  "color_mode": "rgb",
+  "resize": "Pillow bilinear con orientación EXIF aplicada",
+  "class_ids": [
+    "Alto contraste",
+    "Anime",
+    "Cibersigilismo",
+    "Lettering",
+    "Linea Fina",
+    "Ornamentos",
+    "Tribal-Neotribal"
+  ],
+  "source_class_aliases": {
+    "Alto Contraste": "Alto contraste",
+    "Anime": "Anime",
+    "Cybersigilism": "Cibersigilismo",
+    "Lettering": "Lettering",
+    "Linea Fina": "Linea Fina",
+    "Ornamentos": "Ornamentos",
+    "Neotribal": "Tribal-Neotribal"
+  },
+  "embedding_layer": "global_average_pooling2d",
+  "seed": 42,
+  "batch_size": 32,
+  "class_weights": {
+    "Alto contraste": 0.9492254853248596,
+    "Anime": 1.017676591873169,
+    "Cibersigilismo": 1.0679620504379272,
+    "Lettering": 1.0679620504379272,
+    "Linea Fina": 1.2357863187789917,
+    "Ornamentos": 0.7910212278366089,
+    "Tribal-Neotribal": 1.1265233755111694
+  },
+  "head_epochs_max": 12,
+  "finetune_epochs_max": 20,
+  "finetune_last_layers": 30,
+  "head_learning_rate": 0.001,
+  "finetune_learning_rate": 3e-05,
+  "augmentation": {
+    "horizontal_flip": false,
+    "rotation": 0.04,
+    "zoom": 0.08,
+    "contrast": 0.1
+  },
+  "checkpoint_monitor": "val_f1_macro_argmax",
+  "tensorflow": "2.21.0",
+  "keras": "3.13.2",
+  "python": "3.13.16",
+  "ood_calibrated": false,
+  "test_used_for_selection": false,
+  "selected_stage": "finetune",
+  "selected_epoch": 14,
+  "validation_macro_f1": 0.8155746231355988,
+  "model_sha256": "52517cfedb9da6fa63fb2b4826b89d7974639f27b9b3aab2d1a5416b5966e041"
+}

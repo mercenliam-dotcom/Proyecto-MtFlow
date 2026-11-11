@@ -4,7 +4,7 @@ Catálogo de estilos del estudio y lógica de recomendación.
 Los nombres corresponden a las siete clases del EfficientNetB0 Keras local.
 El servicio de inferencia traduce el orden exportado a E-01…E-07.
 
-E-99 es la abstención del sistema cuando ninguna clase alcanza el 60 %.
+E-99 es la abstención cuando falla OOD o ninguna clase alcanza el 60 %.
 No es una octava clase aprendida ni demuestra que la imagen no sea un tatuaje.
 """
 from dataclasses import dataclass
@@ -34,13 +34,19 @@ class Recomendacion:
     explicacion: str
 
 
-def recomendar(estilo: str, confianza: float) -> Recomendacion:
+def recomendar(estilo: str, confianza: float, motivo_abstencion=None) -> Recomendacion:
     """
     El sistema RECOMIENDA, no decide (ADR-0004). Ninguna de estas salidas
     rechaza una solicitud: todas llegan a la tatuadora con su marca.
     Umbrales tentativos, configurables por variable de entorno.
     """
     if estilo == CODIGO_FUERA_DE_CATALOGO:
+        if motivo_abstencion == "fuera_distribucion":
+            return Recomendacion(
+                "EN_EVALUACION", "REVISION_ESPECIAL", "Revisión manual",
+                "La referencia se aleja de los ejemplos conocidos por el modelo. "
+                "La tatuadora revisará la imagen; esto no significa que no pueda tatuarse.",
+            )
         return Recomendacion(
             "NO_RECOMENDADO", "REVISION_ESPECIAL", "No recomendado",
             "No se asignó una categoría automática con la exigencia del 60 %. "
