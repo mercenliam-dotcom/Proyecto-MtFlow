@@ -1,25 +1,43 @@
-from datetime import datetime
-
+from datetime import datetime, time, date
 from django import forms
 from django.forms.utils import from_current_timezone
 from django.utils import timezone
 from web.validadores import texto_sin_controles
 from web.models import BloqueHorario, Postulacion
 
+def parse_hora(v):
+    """Convierte de forma segura el valor del select a un objeto time."""
+    if isinstance(v, time):
+        return v
+    if isinstance(v, str) and v:
+        return datetime.strptime(v[:5], "%H:%M").time()
+    return v
+
+# Generamos opciones de 30 en 30 minutos para el menú desplegable
+OPCIONES_HORA = [(time(h, m), f"{h:02d}:{m:02d}") for h in range(9, 21) for m in (0, 30)]
 
 class BloqueForm(forms.Form):
     tipo = forms.ChoiceField(label="Qué quieres agendar", choices=BloqueHorario.Tipo.choices)
     fecha = forms.DateField(label="Fecha (DD/MM/AAAA)", input_formats=["%d/%m/%Y", "%Y-%m-%d"], widget=forms.DateInput(attrs={"placeholder": "DD/MM/AAAA", "inputmode": "numeric", "pattern": r"[0-9]{2}/[0-9]{2}/[0-9]{4}"}, format="%d/%m/%Y"))
-    hora_inicio = forms.TimeField(label="Inicio", widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
-    hora_fin = forms.TimeField(label="Término", widget=forms.TimeInput(attrs={"type": "time"}, format="%H:%M"))
+    
+    hora_inicio = forms.TypedChoiceField(label="Inicio", choices=OPCIONES_HORA, coerce=parse_hora, widget=forms.Select)
+    hora_fin = forms.TypedChoiceField(label="Término", choices=OPCIONES_HORA, coerce=parse_hora, widget=forms.Select)
+    
     postulacion = forms.ModelChoiceField(label="Solicitud (solo para sesiones)", queryset=Postulacion.objects.none(), required=False)
     nota = forms.CharField(label="Nota interna / motivo del cambio", max_length=300, required=False, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"rows": 2}))
     version = forms.CharField(required=False, widget=forms.HiddenInput)
+    # NUEVO: Guardamos el ID de la referencia actual si estamos editando
+    referencia_actual = forms.CharField(required=False, widget=forms.HiddenInput)
 
-    def __init__(self, *args, tatuadora, **kwargs):
+    def __init__(self, *args, tatuadora, referencia_actual=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["fecha"].widget.attrs["min"] = timezone.localdate().isoformat()
         self.fields["tipo"].choices = [("DISPONIBILIDAD", "Horario excepcional de una fecha"), ("CITA", "Sesión reservada"), ("BLOQUEO", "Bloqueo personal")]
+        
+        # Si nos pasan la referencia al instanciar el formulario, la guardamos
+        if referencia_actual:
+            self.initial["referencia_actual"] = str(referencia_actual)
+            
         from django.db.models import Q
         self.fields["postulacion"].queryset = Postulacion.objects.filter(
             tatuadora=tatuadora, estado__in=["ACEPTADA", "RESERVADA"],
@@ -28,22 +46,101 @@ class BloqueForm(forms.Form):
         self.fields["postulacion"].help_text = "No necesitas una sesión previa: este formulario crea la primera sesión de una solicitud con pago registrado."
         self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto.nombres} · {p.referencia.hex[:8]}"
 
+        # --- FILTRO DINÁMICO DE HORAS OCUPADAS ---
+        fecha_val = None
+        if self.is_bound and self.data.get("fecha"):
+            fecha_str = self.data.get("fecha")
+        else:
+            fecha_str = self.initial.get("fecha")
+        
+        if isinstance(fecha_str, str):
+            try:
+                fecha_val = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+            except ValueError:
+                try:
+                    fecha_val = datetime.strptime(fecha_str, "%d/%m/%Y").date()
+                except ValueError:
+                    pass
+        elif isinstance(fecha_str, datetime):
+            fecha_val = fecha_str.date()
+        elif isinstance(fecha_str, date):
+            fecha_val = fecha_str
+
+        # Extraer referencia actual desde los datos si existe
+        ref_actual = None
+        if self.is_bound and self.data.get("referencia_actual"):
+            ref_actual = self.data.get("referencia_actual")
+        elif self.initial.get("referencia_actual"):
+            ref_actual = self.initial.get("referencia_actual")
+
+        opciones_inicio = []
+        opciones_fin = []
+        
+        if fecha_val:
+            # Traemos las citas de la tatuadora
+            query_citas = BloqueHorario.objects.filter(
+                tatuadora=tatuadora, 
+                fecha=fecha_val,
+                estado__in=["RESERVADA", "REALIZADA", "BLOQUEADO"]
+            )
+            
+            # NUEVO: Si estamos editando, excluimos EL BLOQUE ACTUAL de la consulta de ocupación
+            if ref_actual:
+                query_citas = query_citas.exclude(referencia=ref_actual)
+                
+            citas = list(query_citas)
+            
+            # Recorremos cada hora posible del menú desplegable
+            for t_obj, label in OPCIONES_HORA:
+                minutos_actual = t_obj.hour * 60 + t_obj.minute
+                libre_para_inicio = True
+                libre_para_fin = True
+                
+                for cita in citas:
+                    inicio_m = cita.hora_inicio.hour * 60 + cita.hora_inicio.minute
+                    fin_m = cita.hora_fin.hour * 60 + cita.hora_fin.minute
+                    
+                    if inicio_m <= minutos_actual < fin_m:
+                        libre_para_inicio = False
+                    if inicio_m < minutos_actual <= fin_m:
+                        libre_para_fin = False
+                        
+                if libre_para_inicio:
+                    opciones_inicio.append((t_obj, label))
+                if libre_para_fin:
+                    opciones_fin.append((t_obj, label))
+                    
+            self.fields["hora_inicio"].choices = opciones_inicio or OPCIONES_HORA
+            self.fields["hora_fin"].choices = opciones_fin or OPCIONES_HORA
+
     def clean(self):
         d = super().clean()
+        
+        # Convertimos el texto a Hora real si viene como String
+        for campo in ["hora_inicio", "hora_fin"]:
+            valor = d.get(campo)
+            if isinstance(valor, str) and valor:
+                try:
+                    d[campo] = datetime.strptime(valor, "%H:%M").time()
+                except ValueError:
+                    pass
+        
         if d.get("tipo") == "CITA" and not d.get("postulacion"):
             self.add_error("postulacion", "Selecciona una solicitud aceptada con abono verificado.")
         if d.get("tipo") != "CITA" and d.get("postulacion"):
             self.add_error("postulacion", "Solo las sesiones se asocian a una solicitud.")
+            
         if all(d.get(k) for k in ("fecha", "hora_inicio", "hora_fin")):
             if d["hora_inicio"] >= d["hora_fin"]:
                 self.add_error("hora_fin", "El término debe ser posterior al inicio, dentro del mismo día.")
-            try:
-                inicio = from_current_timezone(datetime.combine(d["fecha"], d["hora_inicio"]))
-                from_current_timezone(datetime.combine(d["fecha"], d["hora_fin"]))
-                if inicio <= timezone.now():
-                    self.add_error("fecha", "Elige una fecha y hora futuras.")
-            except forms.ValidationError:
-                self.add_error("hora_inicio", "Horario ambiguo o inexistente por el cambio de hora en Chile.")
+            else:
+                try:
+                    inicio = from_current_timezone(datetime.combine(d["fecha"], d["hora_inicio"]))
+                    from_current_timezone(datetime.combine(d["fecha"], d["hora_fin"]))
+                    if inicio <= timezone.now():
+                        self.add_error("fecha", "Elige una fecha y hora futuras.")
+                except forms.ValidationError:
+                    self.add_error("hora_inicio", "Horario ambiguo o inexistente por el cambio de hora en Chile.")
         return d
 
 
@@ -79,7 +176,7 @@ class GestionForm(forms.Form):
             if accion != "rechazar":
                 self.fields["motivo"].label = "Observación o referencia del comprobante (opcional)" if accion == "abono" else "Observación del acuerdo (opcional)"
             if accion == "abono":
-                self.fields["monto_abono"].help_text = "Si ya registraste parte del abono aquí, escribe el total acumulado; no vuelvas a sumar un pago registrado por otra opción."
+                self.fields["monto_abono"].help_text = "Si ya registraste parte del abono aquí, escribe el total acumulado; no vuelvas a sumar un pago registrado por otra opción"
             self.fields["accion"].widget = forms.HiddenInput()
             campos = {"aceptar": {"precio_final", "abono_solicitado", "alto_final_cm", "ancho_final_cm", "motivo"},
                       "abono": {"monto_abono", "verificado", "motivo"}, "revisar": set(), "rechazar": {"motivo"}}

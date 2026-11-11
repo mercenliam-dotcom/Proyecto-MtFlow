@@ -108,6 +108,9 @@ def guardar_bloque(user, datos, referencia=None):
             raise ValidationError("La solicitud necesita acuerdo y abono verificado antes de reservar.")
         if p.sesiones.filter(estado="NO_ASISTIO").exists() and p.destino_abono != "REAGENDAR":
             raise ValidationError("Antes de reservar otra sesión, registra el acuerdo para reagendar después de la inasistencia.")
+        # NUEVA VALIDACIÓN: Bloquea duplicidad de agenda
+        if not b.pk and p.sesiones.filter(estado="RESERVADA").exists():
+            raise ValidationError("Esta cotización ya tiene un horario asignado. No puedes asignarle otro.")
     candidatos = BloqueHorario.objects.filter(tatuadora=artista, fecha=datos["fecha"], hora_inicio__lt=datos["hora_fin"], hora_fin__gt=datos["hora_inicio"]).exclude(pk=b.pk)
     if datos["tipo"] == "DISPONIBILIDAD":
         if candidatos.filter(tipo="DISPONIBILIDAD", estado="DISPONIBLE").exists():
@@ -160,12 +163,16 @@ def cerrar_bloque(user, referencia, accion, motivo, version):
         raise ValidationError("El bloque cambió. Recarga la página.")
     if b.estado in ("CANCELADA", "REALIZADA", "NO_ASISTIO"):
         raise ValidationError("El bloque ya está cerrado.")
+
     if accion in ("realizar", "inasistencia"):
-        fin = from_current_timezone(datetime.combine(b.fecha, b.hora_fin))
-        if b.tipo != "CITA" or fin > timezone.now():
-            raise ValidationError("Solo puedes completar una sesión cuyo horario ya terminó.")
+        # Se eliminó la validación estricta de tiempo (fin > timezone.now())
+        # Ahora la advertencia vive en el frontend con JavaScript
+        if b.tipo != "CITA":
+            raise ValidationError("Solo puedes completar una sesión de tipo cita.")
+        
         if accion == "inasistencia" and not motivo.strip():
             raise ValidationError("Registra una observación sobre la inasistencia.")
+        
         b.estado = "REALIZADA" if accion == "realizar" else "NO_ASISTIO"
     elif accion == "cancelar":
         if not motivo.strip():

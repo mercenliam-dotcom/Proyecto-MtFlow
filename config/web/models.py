@@ -224,7 +224,7 @@ class ContactoSolicitud(models.Model):
 
 
 class Sesion(models.Model):
-    """Única relación entre una reserva de agenda y una solicitud."""
+    """ Única relación entre una reserva de agenda y una solicitud."""
     bloque = models.OneToOneField(BloqueHorario, primary_key=True, on_delete=models.RESTRICT, related_name="sesion")
     postulacion = models.ForeignKey(Postulacion, on_delete=models.RESTRICT, related_name="vinculos_sesiones")
 
@@ -232,6 +232,10 @@ class Sesion(models.Model):
         if self.bloque_id and self.postulacion_id:
             if self.bloque.tatuadora_id != self.postulacion.tatuadora_id or self.bloque.tipo != "CITA":
                 raise ValidationError("La sesión debe vincular una cita y una solicitud de la misma tatuadora.")
+            
+            # --- NUEVA VALIDACIÓN: Bloquea duplicidad ---
+            if Sesion.objects.filter(postulacion_id=self.postulacion_id).exclude(pk=self.pk).exists():
+                raise ValidationError("Esta solicitud ya tiene un horario asignado. No puedes asignarle otro.")
 
 
 class Imagen(models.Model):
