@@ -38,7 +38,7 @@ def bundle(tmp_path, version="v1"):
     clases = list(CLASES_LOCALES)
     cfg = dict(architecture="EfficientNetB0", class_ids=clases,
                image_size=[224, 224], input_range=[0, 255], resize="bilinear")
-    if version == "v2":
+    if version in ("v2", "v3"):
         cfg.update(model_version=version, resize=REDIMENSIONADO_V2, color_mode="rgb")
     (tmp_path / "class_names.json").write_text(json.dumps(clases))
     (tmp_path / "training_config.json").write_text(json.dumps(cfg))
@@ -67,7 +67,7 @@ def test_clase_extra_y_orden_inconsistente_se_rechazan(tmp_path):
         leer_bundle(tmp_path)
 
 
-@pytest.mark.parametrize("version", ["v1", "v2"])
+@pytest.mark.parametrize("version", ["v1", "v2", "v3"])
 def test_orden_exportado_se_traduce_por_nombre_no_por_posicion(tmp_path, version):
     cfg = bundle(tmp_path, version)
     cfg["class_ids"] = cfg["class_ids"][::-1]

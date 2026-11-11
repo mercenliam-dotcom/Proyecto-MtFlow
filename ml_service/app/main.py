@@ -45,7 +45,8 @@ def verificar_clave(x_api_key: str = Header(default="")):
 @app.get("/salud")
 def salud():
     return {"estado": "ok", "version_modelo": predictor.version,
-            "umbral_confianza": config.UMBRAL_CONFIANZA}
+            "umbral_confianza": config.UMBRAL_CONFIANZA,
+            "ood_activo": getattr(predictor, "detector_ood", None) is not None}
 
 
 @app.post("/clasificar", dependencies=[Depends(verificar_clave)])
@@ -70,11 +71,14 @@ async def clasificar(imagen: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail="Imagen no válida")
     try:
         # La inferencia es bloqueante: dejar libre el bucle de FastAPI.
-        if hasattr(predictor, "predecir_bytes"):
+        ood = None
+        if hasattr(predictor, "analizar_bytes"):
+            confianzas, ood = await run_in_threadpool(predictor.analizar_bytes, datos)
+        elif hasattr(predictor, "predecir_bytes"):
             confianzas = await run_in_threadpool(predictor.predecir_bytes, datos)
         else:
             confianzas = await run_in_threadpool(predictor.predecir, img)
-        respuesta = construir_respuesta(predictor.version, confianzas)
+        respuesta = construir_respuesta(predictor.version, confianzas, ood)
     except PredictorNoDisponible as e:
         # Django muestra "servicio no disponible" y la imagen no se pierde.
         log.warning("clasificar -> 503: %s", e)

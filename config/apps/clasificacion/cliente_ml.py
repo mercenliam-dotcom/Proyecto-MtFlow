@@ -32,6 +32,8 @@ class ResultadoClasificacion:
     confianza_maxima: float
     version_modelo: str
     umbral_confianza: float = UMBRAL_CONFIANZA
+    ood: dict | None = None
+    motivo_abstencion: str | None = None
 
     def ordenadas(self):
         return sorted(self.confianzas.items(), key=lambda kv: kv[1], reverse=True)
@@ -59,11 +61,36 @@ def _validar_respuesta(datos) -> ResultadoClasificacion:
     # una respuesta antigua se decide exclusivamente sobre las siete clases.
     ganador = max(sorted(ESTILOS_OBLIGATORIOS), key=limpias.get)
     maxima = limpias[ganador]
-    estilo = ganador if maxima >= UMBRAL_CONFIANZA else "E-99"
+    version = datos.get("version_modelo", "desconocida")
+    if not isinstance(version, str) or not version or len(version) > 120:
+        raise ServicioMLNoDisponible("Versión del modelo inválida")
+    ood = datos.get("ood")
+    if ":ood:" in version and ood is None:
+        raise ServicioMLNoDisponible("Falta el análisis OOD declarado por el modelo")
+    fuera = False
+    if ood is not None:
+        if not isinstance(ood, dict) or set(ood) != {"version", "distancia", "umbral", "fuera_distribucion"}:
+            raise ServicioMLNoDisponible("Metadatos OOD inválidos")
+        for campo in ("distancia", "umbral"):
+            valor = ood[campo]
+            if isinstance(valor, bool) or not isinstance(valor, (int, float)) or not math.isfinite(valor) or not 0 <= valor <= 2:
+                raise ServicioMLNoDisponible("Puntuación OOD inválida")
+        identificador = ood["version"]
+        if (not isinstance(identificador, str) or len(identificador) != 64
+                or any(c not in "0123456789abcdef" for c in identificador)
+                or not version.endswith(":ood:" + identificador[:16])
+                or type(ood["fuera_distribucion"]) is not bool
+                or ood["fuera_distribucion"] != (ood["distancia"] > ood["umbral"])):
+            raise ServicioMLNoDisponible("Decisión OOD inconsistente")
+        fuera = ood["fuera_distribucion"]
+    motivo = "fuera_distribucion" if fuera else "confianza_insuficiente" if maxima < UMBRAL_CONFIANZA else None
+    if (ood is not None or "motivo_abstencion" in datos) and datos.get("motivo_abstencion") != motivo:
+        raise ServicioMLNoDisponible("El motivo de abstención no coincide con el análisis")
+    estilo = ganador if motivo is None else "E-99"
     # Los metadatos nuevos deben coincidir con el vector. Las respuestas antiguas
     # de dos campos se aceptan aplicando igualmente la regla del 60 % en Django.
     if "estilo_sugerido" in datos and datos["estilo_sugerido"] != estilo:
-        raise ServicioMLNoDisponible("La categoría no coincide con la exigencia del 60 %")
+        raise ServicioMLNoDisponible("La categoría no coincide con el análisis OOD y la exigencia del 60 %")
     if "umbral_confianza" in datos and (
         isinstance(datos["umbral_confianza"], bool) or datos["umbral_confianza"] != UMBRAL_CONFIANZA
     ):
@@ -73,8 +100,7 @@ def _validar_respuesta(datos) -> ResultadoClasificacion:
         if (isinstance(declarada, bool) or not isinstance(declarada, (int, float))
                 or not math.isfinite(declarada) or not math.isclose(declarada, maxima, abs_tol=1e-9)):
             raise ServicioMLNoDisponible("La confianza máxima no coincide con el vector")
-    version = str(datos.get("version_modelo", "desconocida"))[:120]
-    return ResultadoClasificacion(limpias, estilo, maxima, version)
+    return ResultadoClasificacion(limpias, estilo, maxima, version, ood=ood, motivo_abstencion=motivo)
 
 
 def clasificar(contenido: bytes, nombre: str, tipo: str) -> ResultadoClasificacion:

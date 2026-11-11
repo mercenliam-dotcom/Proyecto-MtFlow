@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "metodo": "knn_coseno_train_valid_v1",
+  "model_version": "v3",
+  "modelo_sha256": "52517cfedb9da6fa63fb2b4826b89d7974639f27b9b3aab2d1a5416b5966e041",
+  "clases": [
+    "Alto contraste",
+    "Anime",
+    "Cibersigilismo",
+    "Lettering",
+    "Linea Fina",
+    "Ornamentos",
+    "Tribal-Neotribal"
+  ],
+  "capa": "global_average_pooling2d",
+  "embedding_dimension": 1280,
+  "k": 5,
+  "umbral_distancia": 0.4379139110950403,
+  "regla_ood": "distancia > umbral; igualdad se acepta",
+  "retencion_id_objetivo": 0.95,
+  "quantile_method": "higher",
+  "n_train": 619,
+  "n_valid": 176,
+  "retencion_valid_observada": 0.9545454545454546,
+  "referencias_sha256": "77fee9014570c22fae524c3d3f59b4fac3f6e3f084ea10a69ba40196e3ca19d2",
+  "manifest_sha256": "3bf3b4fa348f4cf2d24425f35c47b372034ab851b2451d1d355c7ecb00ee6bca",
+  "source_embeddings_sha256": "4d364ab37de17710e1509cffd29d0258f4c4ffb2cfbc7881e0ed87d831309708",
+  "dataset_snapshot": "clasificacion_7_estilos_tatu_20261110T204324437Z",
+  "created_utc": "2026-11-10T21:16:43.301116+00:00",
+  "preprocessing": {
+    "image_size": [
+      224,
+      224
+    ],
+    "input_range": [
+      0,
+      255
+    ],
+    "resize": "Pillow bilinear con orientación EXIF aplicada"
+  },
+  "ajuste": "k=5 y retención 0.95 fijados antes de evaluar test; solo train/valid en calibración",
+  "limitaciones": [
+    "Retención empírica; no garantía de rechazo OOD.",
+    "Valid ya intervino en la selección del clasificador; no hay garantía conformal.",
+    "OOD indica lejanía de los siete estilos, no invalidez artística.",
+    "Pendiente evaluación con imágenes OOD externas independientes."
+  ]
+}

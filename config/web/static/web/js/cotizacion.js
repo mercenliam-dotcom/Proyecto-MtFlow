@@ -59,7 +59,9 @@ async function analyzeReference() {
         if (currentVersion !== analysisVersion || currentSelection !== selectionVersion) return;
         if (!response.ok) throw new Error(data.error || "No pudimos analizar la imagen.");
         analysisStyle.textContent = data.nombre;
-        analysisNote.textContent = data.estilo_sugerido === "E-99"
+        analysisNote.textContent = data.motivo_abstencion === "fuera_distribucion"
+            ? "La referencia se aleja de los ejemplos conocidos. La tatuadora revisará la imagen; puedes continuar con tu propuesta."
+            : data.estilo_sugerido === "E-99"
             ? "La referencia necesita revisión profesional para definir su estilo."
             : "La sugerencia orienta a la tatuadora y no confirma una reserva ni el precio.";
         analysisResult.hidden = false;

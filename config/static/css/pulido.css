@@ -483,6 +483,10 @@ table { border-collapse: collapse; }
 .boton.boton-peligro { justify-self: start; background: #9a3045; border-color: #9a3045; color: #fff; }
 .boton.boton-peligro:hover { background: #7d2337; border-color: #7d2337; box-shadow: 0 6px 16px rgba(154, 48, 69, .25); }
 
+/* ---------- Portafolio público: fotografías reales ---------- */
+.portfolio-card .image-placeholder.con-foto { padding: 0; overflow: hidden; }
+.portfolio-card .mt-foto { display: block; width: 100%; height: 100%; object-fit: cover; }
+
 @media (prefers-reduced-motion: reduce) {
   .primary-button, .secondary-button, .boton, .filtros-bandeja a, .upload-box, .check-field, .interruptor, .correo-fila, .kpi-enlace, .acceso { transition: none; }
 }

@@ -6,7 +6,7 @@
 <div class="encabezado detalle-encabezado">
   <div>
     <h1>La propuesta de {{ propuesta.contacto.nombres }}</h1>
-    <p class="nota cotizacion-referencia">Referencia: {{ propuesta.referencia }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }} · Para {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
+    <p class="nota cotizacion-referencia">Código: {{ propuesta.codigo }} · {{ propuesta.creada_en|date:"d/m/Y H:i" }} · Para {{ propuesta.tatuadora.nombre_publico }}. Su recepción no confirma una reserva.</p>
   </div>
   <span class="chip chip-estado chip-{{ e|lower }}">{{ estado_legible }}</span>
 </div>
@@ -132,7 +132,10 @@
         {% if referencia.prediccion %}
           {% if referencia.simulado %}<p class="alerta alerta-info">Resultado simulado: no proviene de un análisis real del modelo.</p>{% endif %}
           <p class="estilo-sugerido"><span>Estilo sugerido</span><strong>{{ referencia.prediccion.estilo_sugerido.nombre }}</strong>{% if referencia.confianza != None %}<em>{{ referencia.confianza }} %</em>{% endif %}</p>
-          {% if referencia.umbral != None %}<p class="nota">Exigencia aplicada: {{ referencia.umbral }} %.{% if referencia.prediccion.estilo_sugerido.codigo == "E-99" %} Ningún estilo alcanzó el umbral. Mayor puntuación: {{ referencia.maxima }} %. «Fuera de catálogo» es una decisión del sistema y requiere revisión profesional.{% endif %}</p>{% endif %}
+          {% if referencia.prediccion.motivo_abstencion == "fuera_distribucion" %}
+          <p class="nota">La referencia se aleja de los ejemplos conocidos por el modelo y requiere revisión manual. Esto no significa que no pueda tatuarse.</p>
+          {% elif referencia.umbral != None %}<p class="nota">Exigencia aplicada: {{ referencia.umbral }} %.{% if referencia.prediccion.estilo_sugerido.codigo == "E-99" %} Ningún estilo alcanzó el umbral. Mayor puntuación: {{ referencia.maxima }} %. «Fuera de catálogo» es una decisión del sistema y requiere revisión profesional.{% endif %}</p>{% endif %}
+          {% if referencia.prediccion.ood %}<details><summary>Detalle del detector de similitud</summary><p>Distancia: {{ referencia.prediccion.ood.distancia|floatformat:4 }} · límite: {{ referencia.prediccion.ood.umbral|floatformat:4 }}. Una distancia mayor deriva a revisión manual.</p><p class="nota">Detector: {{ referencia.prediccion.ood.version }}</p></details>{% endif %}
           {% if referencia.filas %}<details class="confianzas-detalle"><summary>Confianzas registradas</summary><ul class="lista-limpia">{% for fila in referencia.filas %}<li><span>{{ fila.nombre }}</span><strong>{% if fila.omitida %}&lt; 40 %{% else %}{{ fila.porcentaje }} %{% endif %}</strong></li>{% endfor %}</ul></details>{% else %}<p class="nota">No hay un desglose de confianzas registrado para esta predicción.</p>{% endif %}
           <p class="nota cotizacion-referencia">Modelo: {{ referencia.prediccion.version_modelo }}</p>
           <p class="nota">La clasificación orienta la revisión. No acepta ni rechaza la propuesta ni determina su precio.</p>

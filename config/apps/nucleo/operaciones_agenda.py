@@ -182,12 +182,16 @@ def cerrar_bloque(user, referencia, accion, motivo, version):
         raise ValidationError("El bloque cambió. Recarga la página.")
     if b.estado in ("CANCELADA", "REALIZADA", "NO_ASISTIO"):
         raise ValidationError("El bloque ya está cerrado.")
+
     if accion in ("realizar", "inasistencia"):
-        fin = from_current_timezone(datetime.combine(b.fecha, b.hora_fin))
-        if b.tipo != "CITA" or fin > timezone.now():
-            raise ValidationError("Solo puedes completar una sesión cuyo horario ya terminó.")
+        # Se eliminó la validación estricta de tiempo (fin > timezone.now())
+        # Ahora la advertencia vive en el frontend con JavaScript
+        if b.tipo != "CITA":
+            raise ValidationError("Solo puedes completar una sesión de tipo cita.")
+        
         if accion == "inasistencia" and not motivo.strip():
             raise ValidationError("Registra una observación sobre la inasistencia.")
+        
         b.estado = "REALIZADA" if accion == "realizar" else "NO_ASISTIO"
     elif accion == "cancelar":
         if not motivo.strip():

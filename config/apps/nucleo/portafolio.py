@@ -32,7 +32,7 @@ class PortafolioForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.instance.tatuadora = artista
         self.fields["postulacion"].queryset = Postulacion.objects.filter(tatuadora=artista, estado="REALIZADA").select_related("contacto")
-        self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto} · {p.referencia.hex[:8]}"
+        self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto} · {(p.zona_cuerpo or '').capitalize()} · terminado el {p.realizada_en:%d/%m/%Y}" if p.realizada_en else f"{p.contacto} · {p.codigo}"
         self.fields["estilo"].label_from_instance = lambda e: e.nombre
         self.fields["imagen"].required = not self.instance.pk
         if self.instance.pk:

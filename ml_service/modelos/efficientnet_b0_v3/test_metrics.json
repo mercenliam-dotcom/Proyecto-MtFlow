@@ -1,0 +1,13 @@
+{
+  "accuracy": 0.8375,
+  "macro_f1": 0.8240549366599786,
+  "correct": 67,
+  "test_images": 80,
+  "validation_macro_f1": 0.8155746231355988,
+  "selected_stage": "finetune",
+  "selected_epoch": 14,
+  "model_sha256": "52517cfedb9da6fa63fb2b4826b89d7974639f27b9b3aab2d1a5416b5966e041",
+  "dataset_snapshot": "clasificacion_7_estilos_tatu_20261110T204324437Z",
+  "duplicates_excluded": 12,
+  "comparison_note": "Las métricas de v2/v3 usan distintos datasets de test; no constituyen una comparación controlada."
+}

@@ -132,7 +132,8 @@ def editar(request, referencia=None):
             inicial["fecha"] = date.fromisoformat(inicial["fecha"])
         except ValueError:
             inicial["fecha"] = timezone.localdate()
-    form = BloqueForm(request.POST if request.method == "POST" else None, initial=inicial, tatuadora=artista)
+# Reemplaza la línea: form = BloqueForm(request.POST if request.method == "POST" else None, initial=inicial, tatuadora=artista)
+    form = BloqueForm(request.POST if request.method == "POST" else None, initial=inicial, tatuadora=artista, referencia_actual=referencia)
     status = 200
     if request.method == "POST":
         status = 400

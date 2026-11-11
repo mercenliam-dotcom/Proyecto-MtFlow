@@ -29,7 +29,7 @@
 {% if referencia %}
 <div class="alerta alerta-info" role="status" id="solicitud-recibida">
     <strong>{% if repetida %}Esta propuesta ya fue recibida.{% else %}Propuesta recibida.{% endif %}</strong>
-    <p>Referencia: {{ referencia }}. La tatuadora seleccionada revisará tu propuesta y podrá confirmarla o rechazarla. Esto no confirma una reserva ni un precio final.</p>
+    <p>Código de tu solicitud: <strong>{{ codigo }}</strong>. La tatuadora seleccionada revisará tu propuesta y podrá confirmarla o rechazarla. Esto no confirma una reserva ni un precio final.</p>
     <a href="{% url 'web:cotizacion' %}">Enviar otra propuesta</a>
     {% if user.es_cliente %}<a href="{% url 'clientes:detalle' referencia %}">Ver mi solicitud</a>{% endif %}
 </div>
@@ -176,6 +176,7 @@
                     <p>El análisis no está disponible. Tu referencia de precio sigue disponible y no depende del modelo.</p>
                 {% elif estilo %}
                     <p>{{ estilo }}{% if simulado %} · Resultado simulado, no es un análisis real{% elif revision_ml %} · Necesita revisión profesional{% else %} · Estilo sugerido{% endif %}</p>
+                    {% if motivo_abstencion == "fuera_distribucion" %}<p>La referencia se aleja de los ejemplos conocidos por el modelo. La tatuadora revisará la imagen; puedes continuar con tu propuesta.</p>{% endif %}
                 {% else %}
                     <p>No solicitado. Puedes activar el análisis al completar el formulario.</p>
                 {% endif %}
@@ -236,7 +237,7 @@
 <dialog class="dialogo dialogo-exito" id="dialogo-exito" aria-labelledby="dialogo-exito-titulo">
     <p class="dialogo-icono" aria-hidden="true">✓</p>
     <h2 id="dialogo-exito-titulo">{% if repetida %}Ya teníamos tu propuesta{% else %}¡Propuesta enviada!{% endif %}</h2>
-    <p>Referencia <strong>{{ referencia }}</strong>. La tatuadora la revisará y te contactará para confirmar el horario y el precio final.</p>
+    <p>Código de tu solicitud: <strong>{{ codigo }}</strong>. Guárdalo por si necesitas consultar por ella. La tatuadora la revisará y te contactará para confirmar el horario y el precio final.</p>
     <footer class="dialogo-pie">
         {% if estimacion %}<button type="button" class="primary-button" data-cerrar data-ver-estimacion>Ver mi estimación</button>{% else %}<button type="button" class="primary-button" data-cerrar>Entendido</button>{% endif %}
         {% if user.es_cliente %}<a class="secondary-button" href="{% url 'clientes:detalle' referencia %}">Ver mi solicitud</a>{% endif %}

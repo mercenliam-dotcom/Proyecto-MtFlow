@@ -1,0 +1,95 @@
+{
+  "evaluated_utc": "2026-11-10T22:02:50.249576+00:00",
+  "model_sha256": "52517cfedb9da6fa63fb2b4826b89d7974639f27b9b3aab2d1a5416b5966e041",
+  "calibration_sha256": "7e69048d17c680d16c0228e0c7e368911fdfc855713884c8a65bfbad5efe162f",
+  "threshold": 0.4379139110950403,
+  "threshold_changed": false,
+  "collection_manifest_sha256": "d5cbfc8ebd7db2ba674e6d8fc4646782ff185b7abf2617d3087c0bc9527f7fb0",
+  "ood_n": 80,
+  "ood_sent_to_review": 80,
+  "ood_accepted_as_compatible": 0,
+  "ood_rejection_rate": 1.0,
+  "id_test_n": 80,
+  "id_test_retained": 77,
+  "id_test_sent_to_review": 3,
+  "id_test_retention": 0.9625,
+  "auroc_ood_positive": 0.99953125,
+  "balanced_test_accuracy": 0.98125,
+  "confusion_matrix_rows_true_ID_OOD_columns_predicted_ID_OOD": [
+    [
+      77,
+      3
+    ],
+    [
+      0,
+      80
+    ]
+  ],
+  "category_results": [
+    {
+      "category": "animales",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "comida",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "paisajes",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "vehiculos",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "plantas",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "objetos_domesticos",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "arquitectura",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    },
+    {
+      "category": "tecnologia",
+      "n": 10,
+      "ood_sent_to_review": 10,
+      "ood_accepted_as_compatible": 0,
+      "ood_rejection_rate": 1.0
+    }
+  ],
+  "selection_used_detector_scores": false,
+  "all_images_included_in_results": true,
+  "scope": "Exploratory far-OOD set: 8 categories x 10 general photographs from Wikimedia Commons.",
+  "limitations": [
+    "These candidates do not establish performance on all uploads or adjacent tattoo styles.",
+    "Do not retune the threshold on these images and then report them as independent test.",
+    "OOD flags distribution distance, not artistic validity.",
+    "The ID comparison reuses the existing classifier test set; it is not a newly collected ID sample."
+  ]
+}

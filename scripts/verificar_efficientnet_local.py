@@ -13,7 +13,7 @@ from app import config
 assert config.API_KEY, 'Configurar ML_SERVICE_API_KEY antes de probar.'
 with TestClient(app) as cliente:
     salud=cliente.get('/salud').json()
-    assert salud['version_modelo'].startswith('efficientnet_b0:v2:')
+    assert salud['version_modelo'].startswith('efficientnet_b0:v3:')
     datos=io.BytesIO()
     Image.new('RGB',(300,300),(150,80,40)).save(datos,'PNG')
     respuesta=cliente.post('/clasificar',headers={'X-API-Key':config.API_KEY},files={'imagen':('prueba.png',datos.getvalue(),'image/png')})
@@ -22,5 +22,11 @@ with TestClient(app) as cliente:
     assert len(resultado['confianzas'])==7
     assert abs(sum(resultado['confianzas'].values())-1)<1e-4
     assert resultado['umbral_confianza']==.6
-    print('OK: carga de EfficientNetB0 v2 e inferencia real con siete probabilidades; umbral 60 %.')
+    if config.OOD_ACTIVO:
+        assert salud['ood_activo'] is True
+        assert resultado['ood']['fuera_distribucion'] == (resultado['ood']['distancia'] > resultado['ood']['umbral'])
+        assert resultado['ood']['umbral'] == 0.4379139110950403
+        assert resultado['estilo_sugerido'] == ('E-99' if resultado['ood']['fuera_distribucion'] or resultado['confianza_maxima'] < .6 else max(resultado['confianzas'], key=resultado['confianzas'].get))
+        print('OK: OOD KNN real activo con calibración v3 y decisión coherente.')
+    print('OK: carga de EfficientNetB0 v3 e inferencia real con siete probabilidades; umbral 60 %.')
     print('Imagen sintetica: comprueba ejecucion, no exactitud del clasificador.')

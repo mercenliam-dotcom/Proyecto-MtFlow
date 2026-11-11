@@ -178,6 +178,12 @@ class Postulacion(models.Model):
         return max(0, (self.precio_final or 0) - self.total_cobrado)
 
     @property
+    def codigo(self):
+        """Código corto y legible para mostrar (MT-7309021A). La referencia completa
+        sigue siendo el identificador interno de los enlaces."""
+        return "MT-" + self.referencia.hex[:8].upper()
+
+    @property
     def estado_comercial(self):
         if self.estado == "ACEPTADA":
             return "Confirmada" if self.abono_verificado_en and self.total_cobrado > 0 else "Cotizada"
@@ -226,7 +232,7 @@ class ContactoSolicitud(models.Model):
 
 
 class Sesion(models.Model):
-    """Única relación entre una reserva de agenda y una solicitud."""
+    """ Única relación entre una reserva de agenda y una solicitud."""
     bloque = models.OneToOneField(BloqueHorario, primary_key=True, on_delete=models.RESTRICT, related_name="sesion")
     postulacion = models.ForeignKey(Postulacion, on_delete=models.RESTRICT, related_name="vinculos_sesiones")
 
@@ -234,6 +240,10 @@ class Sesion(models.Model):
         if self.bloque_id and self.postulacion_id:
             if self.bloque.tatuadora_id != self.postulacion.tatuadora_id or self.bloque.tipo != "CITA":
                 raise ValidationError("La sesión debe vincular una cita y una solicitud de la misma tatuadora.")
+            
+            # --- NUEVA VALIDACIÓN: Bloquea duplicidad ---
+            if Sesion.objects.filter(postulacion_id=self.postulacion_id).exclude(pk=self.pk).exists():
+                raise ValidationError("Esta solicitud ya tiene un horario asignado. No puedes asignarle otro.")
 
 
 class Imagen(models.Model):
@@ -271,6 +281,11 @@ class Prediccion(models.Model):
     confianza_maxima = models.DecimalField(max_digits=17, decimal_places=16)
     umbral_confianza = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
     tiempo_inferencia_ms = models.IntegerField()
+    ood = models.JSONField(null=True, blank=True)
+    motivo_abstencion = models.CharField(max_length=32, blank=True, default="", choices=[
+        ("", "Sin abstención"), ("fuera_distribucion", "Fuera de distribución"),
+        ("confianza_insuficiente", "Confianza insuficiente"),
+    ])
     generada_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:

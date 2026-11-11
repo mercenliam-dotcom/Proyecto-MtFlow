@@ -105,7 +105,8 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
                 estado="RECIBIDA", estado_ml=estado_ml,
                 precio_sugerido=estimacion.get("minimo"),
                 presupuesto_estimado=datos.get("presupuesto"), fecha_propuesta=datos.get("fecha_propuesta"), hora_propuesta=datos.get("hora_propuesta"),
-                alerta_ml=recomendar(resultado.estilo_sugerido, resultado.confianza_maxima).alerta_ml if resultado else None,
+                alerta_ml=recomendar(resultado.estilo_sugerido, resultado.confianza_maxima,
+                                     resultado.motivo_abstencion).alerta_ml if resultado else None,
             )
             contacto = ContactoSolicitud(postulacion=postulacion, nombres=datos["nombre"], correo=datos["email"], telefono=datos["telefono"], apellidos=datos.get("primer_apellido", ""), segundo_apellido=datos.get("segundo_apellido", ""), canal_preferido=datos.get("canal_preferido") or "correo", usuario_social=datos.get("usuario_social", ""))
             contacto.full_clean()
@@ -127,6 +128,8 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
                     estilo_sugerido=estilos[resultado.estilo_sugerido],
                     confianza_maxima=Decimal(str(resultado.confianza_maxima)), tiempo_inferencia_ms=tiempo_ms,
                     umbral_confianza=Decimal(str(resultado.umbral_confianza)),
+                    ood=resultado.ood,
+                    motivo_abstencion=resultado.motivo_abstencion or "",
                 )
                 ConfianzaEstilo.objects.bulk_create([
                     ConfianzaEstilo(prediccion=prediccion, estilo=estilos[codigo], confianza=Decimal(str(confianza)))

@@ -40,6 +40,7 @@ def analizar_referencia(request):
         "estilo_sugerido": resultado.estilo_sugerido,
         "nombre": ESTILOS[resultado.estilo_sugerido],
         "simulado": resultado.version_modelo.startswith("simulado"),
+        "motivo_abstencion": resultado.motivo_abstencion,
     })
 
 
@@ -93,7 +94,7 @@ def cotizacion(request):
                 form.add_error(None, "No pudimos guardar tu propuesta. Inténtalo nuevamente con la misma página; no confirmaremos la recepción hasta guardarla completa.")
                 estado = 503
             else:
-                contexto.update(referencia=recepcion.postulacion.referencia, repetida=recepcion.repetida)
+                contexto.update(referencia=recepcion.postulacion.referencia, codigo=recepcion.postulacion.codigo, repetida=recepcion.repetida)
                 if not recepcion.repetida:
                     form.validada.archivo.seek(0)
                     contexto.update(
@@ -109,6 +110,7 @@ def cotizacion(request):
                             estilo=ESTILOS[resultado.estilo_sugerido],
                             simulado=resultado.version_modelo.startswith("simulado"),
                             revision_ml=resultado.estilo_sugerido == "E-99" or resultado.confianza_maxima < settings.UMBRAL_REVISION,
+                            motivo_abstencion=resultado.motivo_abstencion,
                         )
         elif request.method == "POST":
             estado = 400
