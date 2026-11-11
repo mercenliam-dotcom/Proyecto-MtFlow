@@ -169,7 +169,9 @@ def main():
                 fila.update(caso=caso, estado="evaluada")
                 if caso == "flujo_web":
                     try:
-                        v = validar_imagen(SimpleUploadedFile("foto.jpg", datos, content_type="image/jpeg"))
+                        nombre = Path(muestra["ruta"]).name
+                        tipo = "image/png" if datos.startswith(b"\x89PNG\r\n\x1a\n") else "image/jpeg"
+                        v = validar_imagen(SimpleUploadedFile(nombre, datos, content_type=tipo))
                         datos = v.archivo.read()
                     except ValidationError as error:
                         fila.update(estado="bloqueada_entrada", motivo=error.code)
