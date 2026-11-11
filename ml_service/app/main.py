@@ -14,7 +14,9 @@ validar la imagen (defensa en profundidad).
 import io
 import logging
 import secrets
+import threading
 import warnings
+from contextlib import closing
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from starlette.concurrency import run_in_threadpool
@@ -35,6 +37,9 @@ if not log.handlers:
 
 app = FastAPI(title="MTFlow · servicio de inferencia", docs_url=None, redoc_url=None, openapi_url=None)
 predictor = cargar_predictor()
+# El cupo abarca lectura, decodificación e inferencia; el lock del predictor
+# por sí solo dejaba acumular fotos ya decodificadas mientras esperaban turno.
+cupo_imagen = threading.BoundedSemaphore(1)
 
 
 def verificar_clave(x_api_key: str = Header(default="")):
@@ -49,38 +54,57 @@ def salud():
             "ood_activo": getattr(predictor, "detector_ood", None) is not None}
 
 
-@app.post("/clasificar", dependencies=[Depends(verificar_clave)])
-async def clasificar(imagen: UploadFile = File(...)):
-    datos = await imagen.read(config.MAX_BYTES + 1)
-    if not datos or len(datos) > config.MAX_BYTES:
-        raise HTTPException(status_code=413, detail="Tamaño no permitido")
-    if not (datos.startswith(b"\xff\xd8\xff") or datos.startswith(b"\x89PNG\r\n\x1a\n")):
-        raise HTTPException(status_code=415, detail="Solo JPG o PNG")
+def procesar_imagen(datos):
+    """Decodifica una vez y libera los píxeles al terminar, también si falla."""
     Image.MAX_IMAGE_PIXELS = config.MAX_PIXELES
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
-            img = Image.open(io.BytesIO(datos))
-            if img.format not in ("JPEG", "PNG") or getattr(img, "is_animated", False):
-                raise HTTPException(status_code=415, detail="Solo JPG o PNG estáticos")
-            img.load()
+            with closing(Image.open(io.BytesIO(datos))) as img:
+                if img.format not in ("JPEG", "PNG") or getattr(img, "is_animated", False):
+                    raise HTTPException(status_code=415, detail="Solo JPG o PNG estáticos")
+                if img.width * img.height > config.MAX_PIXELES:
+                    raise HTTPException(status_code=413, detail="La imagen tiene demasiados píxeles")
+                img.load()
+                try:
+                    ood = None
+                    if hasattr(predictor, "analizar_imagen"):
+                        confianzas, ood = predictor.analizar_imagen(img, datos)
+                    elif hasattr(predictor, "analizar_bytes"):
+                        confianzas, ood = predictor.analizar_bytes(datos)
+                    elif hasattr(predictor, "predecir_bytes"):
+                        confianzas = predictor.predecir_bytes(datos)
+                    else:
+                        confianzas = predictor.predecir(img)
+                    return construir_respuesta(predictor.version, confianzas, ood)
+                except PredictorNoDisponible as e:
+                    log.warning("clasificar -> 503: %s", e)
+                    raise HTTPException(status_code=503, detail="Modelo no disponible") from e
     except HTTPException:
         raise
-    except (UnidentifiedImageError, OSError, SyntaxError, ValueError,
-            Image.DecompressionBombError, Image.DecompressionBombWarning):
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning):
+        raise HTTPException(status_code=413, detail="La imagen tiene demasiados píxeles")
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
         raise HTTPException(status_code=422, detail="Imagen no válida")
+
+
+@app.post("/clasificar", dependencies=[Depends(verificar_clave)])
+async def clasificar(imagen: UploadFile = File(...)):
+    if not cupo_imagen.acquire(blocking=False):
+        await imagen.close()
+        raise HTTPException(status_code=503, detail="El análisis está ocupado. Reintenta en unos segundos.",
+                            headers={"Retry-After": "3"})
     try:
-        # La inferencia es bloqueante: dejar libre el bucle de FastAPI.
-        ood = None
-        if hasattr(predictor, "analizar_bytes"):
-            confianzas, ood = await run_in_threadpool(predictor.analizar_bytes, datos)
-        elif hasattr(predictor, "predecir_bytes"):
-            confianzas = await run_in_threadpool(predictor.predecir_bytes, datos)
-        else:
-            confianzas = await run_in_threadpool(predictor.predecir, img)
-        respuesta = construir_respuesta(predictor.version, confianzas, ood)
-    except PredictorNoDisponible as e:
-        # Django muestra "servicio no disponible" y la imagen no se pierde.
-        log.warning("clasificar -> 503: %s", e)
-        raise HTTPException(status_code=503, detail="Modelo no disponible")
-    return respuesta
+        datos = await imagen.read(config.MAX_BYTES + 1)
+        if not datos or len(datos) > config.MAX_BYTES:
+            raise HTTPException(status_code=413, detail="Tamaño no permitido")
+        if not (datos.startswith(b"\xff\xd8\xff") or datos.startswith(b"\x89PNG\r\n\x1a\n")):
+            raise HTTPException(status_code=415, detail="Solo JPG o PNG")
+        # La decodificación también se ejecuta fuera del bucle de FastAPI,
+        # para que /salud pueda responder durante el procesamiento.
+        return await run_in_threadpool(procesar_imagen, datos)
+    finally:
+        try:
+            await imagen.close()
+        finally:
+            cupo_imagen.release()

@@ -15,7 +15,7 @@ from apps.cuentas.models import Rol
 from apps.cuentas.permisos import rol_requerido
 from web.models import TrabajoPortafolio, Postulacion
 from .agenda import profesional
-from .imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML
+from .imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML, configurar_campo_imagen
 from .operaciones_agenda import bloquear_profesional
 
 
@@ -30,6 +30,7 @@ class PortafolioForm(forms.ModelForm):
 
     def __init__(self, *args, artista, **kwargs):
         super().__init__(*args, **kwargs)
+        configurar_campo_imagen(self.fields["imagen"])
         self.instance.tatuadora = artista
         self.fields["postulacion"].queryset = Postulacion.objects.filter(tatuadora=artista, estado="REALIZADA").select_related("contacto")
         self.fields["postulacion"].label_from_instance = lambda p: f"{p.contacto} · {p.referencia.hex[:8]}"

@@ -52,6 +52,26 @@ EXTENSIONES = {
 }
 TIPOS_ACEPTADOS_HTML = "image/jpeg,image/png"  # solo pista para el navegador
 
+
+def configurar_campo_imagen(campo):
+    """El navegador muestra y comprueba el mismo límite de peso que el servidor."""
+    campo.widget.attrs["data-max-bytes"] = settings.IMAGEN_MAX_BYTES
+
+
+def _validar_dimensiones(ancho, alto):
+    if ancho * alto > settings.IMAGEN_MAX_PIXELES:
+        raise ValidationError("La imagen tiene demasiados píxeles.", code="bomba")
+    if min(ancho, alto) < settings.IMAGEN_LADO_MIN_PX:
+        raise ValidationError(
+            f"La imagen es demasiado pequeña: el lado menor debe medir al menos "
+            f"{settings.IMAGEN_LADO_MIN_PX} píxeles.", code="pequena",
+        )
+    if max(ancho, alto) > settings.IMAGEN_LADO_MAX_PX:
+        raise ValidationError(
+            f"La imagen es demasiado grande: el lado mayor no puede superar "
+            f"{settings.IMAGEN_LADO_MAX_PX} píxeles.", code="grande",
+        )
+
 # Firmas de formatos que la gente intenta subir con frecuencia, para dar un
 # mensaje claro. No es la defensa: la defensa es que solo pasan JPEG y PNG.
 _FIRMAS_CONOCIDAS = [
@@ -131,9 +151,14 @@ def _decodificar(datos: bytes, formato_real: str) -> Image.Image:
             # 6. Sin animación (descarta APNG)
             if getattr(prueba, "is_animated", False) or getattr(prueba, "n_frames", 1) > 1:
                 raise ValidationError("No se aceptan imágenes animadas ni videos.", code="animada")
+            _validar_dimensiones(*prueba.size)
             prueba.verify()  # recorre el archivo completo y valida su estructura
         img = Image.open(io.BytesIO(datos))
-        img.load()  # decodifica todos los píxeles
+        try:
+            img.load()  # decodifica todos los píxeles
+        except BaseException:
+            img.close()
+            raise
     return img
 
 def validar_imagen(archivo) -> ImagenValidada:
@@ -192,47 +217,36 @@ def validar_imagen(archivo) -> ImagenValidada:
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
         raise ValidationError("La imagen está dañada o no se puede leer.", code="corrupta")
 
-    # Respetar la orientación de la cámara antes de medir y re-codificar
-    img = ImageOps.exif_transpose(img)
-
-    # 7. Dimensiones
-    ancho, alto = img.size
-    if min(ancho, alto) < settings.IMAGEN_LADO_MIN_PX:
-        raise ValidationError(
-            f"La imagen es demasiado pequeña: el lado menor debe medir al menos "
-            f"{settings.IMAGEN_LADO_MIN_PX} píxeles.",
-            code="pequena",
+    try:
+        # Sin EXIF de orientación, exif_transpose() antes copiaba toda la foto.
+        ImageOps.exif_transpose(img, in_place=True)
+        ancho, alto = img.size
+        nitidez = calcular_nitidez(img)
+        if nitidez < settings.IMAGEN_NITIDEZ_MIN:
+            raise ValidationError(
+                "La imagen está demasiado borrosa para analizarla. Sube una foto más nítida.",
+                code="borrosa",
+            )
+        # Se conserva la imagen validada para la tatuadora, sin metadatos ni
+        # cambios de resolución/calidad respecto de la versión anterior.
+        modo = "RGB" if formato_real == "JPEG" else "RGBA" if img.mode in ("RGBA", "LA", "P") else "RGB"
+        limpia = img if img.mode == modo else img.convert(modo)
+        try:
+            with io.BytesIO() as salida:
+                if formato_real == "JPEG":
+                    limpia.save(salida, format="JPEG", quality=92, optimize=True)
+                    ext = "jpg"
+                else:
+                    limpia.save(salida, format="PNG", optimize=True)
+                    ext = "png"
+                contenido = salida.getvalue()
+        finally:
+            if limpia is not img:
+                limpia.close()
+        return ImagenValidada(
+            archivo=ContentFile(contenido, name=f"{uuid.uuid4().hex}.{ext}"),
+            formato=formato_real, ancho_px=ancho, alto_px=alto,
+            nitidez=round(nitidez, 2), nombre_original=nombre,
         )
-    if max(ancho, alto) > settings.IMAGEN_LADO_MAX_PX:
-        raise ValidationError(
-            f"La imagen es demasiado grande: el lado mayor no puede superar "
-            f"{settings.IMAGEN_LADO_MAX_PX} píxeles.",
-            code="grande",
-        )
-
-    # 8. Nitidez
-    nitidez = calcular_nitidez(img)
-    if nitidez < settings.IMAGEN_NITIDEZ_MIN:
-        raise ValidationError(
-            "La imagen está demasiado borrosa para analizarla. Sube una foto más nítida.",
-            code="borrosa",
-        )
-
-    # Re-codificación: se descarta el archivo original y se genera uno nuevo.
-    salida = io.BytesIO()
-    if formato_real == "JPEG":
-        img.convert("RGB").save(salida, format="JPEG", quality=92, optimize=True)
-        ext = "jpg"
-    else:
-        modo = "RGBA" if img.mode in ("RGBA", "LA", "P") else "RGB"
-        img.convert(modo).save(salida, format="PNG", optimize=True)
-        ext = "png"
-
-    return ImagenValidada(
-        archivo=ContentFile(salida.getvalue(), name=f"{uuid.uuid4().hex}.{ext}"),
-        formato=formato_real,
-        ancho_px=ancho,
-        alto_px=alto,
-        nitidez=round(nitidez, 2),
-        nombre_original=nombre,
-    )
+    finally:
+        img.close()

@@ -102,12 +102,8 @@ class PredictorEfficientNetKeras:
     def preparar_bytes(self, datos: bytes):
         tf = self.tf
         if self._version_bundle in ("v2", "v3"):
-            import numpy as np
-
             with Image.open(io.BytesIO(datos)) as imagen:
-                rgb = ImageOps.exif_transpose(imagen).convert("RGB")
-                pixels = np.asarray(rgb.resize((224, 224), Image.Resampling.BILINEAR))
-            return tf.convert_to_tensor(pixels[None, ...])
+                return self.preparar_imagen(imagen)
 
         with Image.open(io.BytesIO(datos)) as imagen:
             orientacion = imagen.getexif().get(274, 1)
@@ -131,14 +127,36 @@ class PredictorEfficientNetKeras:
         # El reescalado está dentro del modelo: SIN /255, SIN CenterCrop.
         return tf.image.resize(pixels, (224, 224), method="bilinear", antialias=False)[None, ...]
 
+    def preparar_imagen(self, imagen):
+        """Mismos píxeles v2/v3 sin copiar a tamaño completo una imagen RGB."""
+        import numpy as np
+
+        ImageOps.exif_transpose(imagen, in_place=True)
+        rgb = imagen if imagen.mode == "RGB" else imagen.convert("RGB")
+        try:
+            with rgb.resize((224, 224), Image.Resampling.BILINEAR) as reducida:
+                return self.tf.convert_to_tensor(np.asarray(reducida)[None, ...])
+        finally:
+            if rgb is not imagen:
+                rgb.close()
+
     def predecir_bytes(self, datos: bytes) -> dict[str, float]:
         return self.analizar_bytes(datos)[0]
 
     def analizar_bytes(self, datos: bytes):
+        return self._analizar(lambda: self.preparar_bytes(datos))
+
+    def analizar_imagen(self, imagen, datos):
+        if self._version_bundle not in ("v2", "v3"):
+            # El preprocesamiento TensorFlow de v1 conserva sus bytes originales.
+            return self.analizar_bytes(datos)
+        return self._analizar(lambda: self.preparar_imagen(imagen))
+
+    def _analizar(self, preparar):
         """Una sola pasada para las siete probabilidades y el embedding OOD."""
         try:
             with self._lock:
-                batch = self.preparar_bytes(datos)
+                batch = preparar()
                 ood = None
                 if self.extractor_ood is not None:
                     embedding, probabilidades = self.extractor_ood([batch], training=False)

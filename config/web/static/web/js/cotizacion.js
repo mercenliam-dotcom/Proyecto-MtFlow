@@ -110,6 +110,7 @@ function clearPreview() {
 function rejectFile(message) {
     clearPreview();
     fileInput.value = "";
+    fileInput.dispatchEvent(new Event("input", { bubbles: true }));
     fileError.textContent = message;
 }
 
@@ -128,10 +129,7 @@ fileInput.addEventListener("change", () => {
         return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-        rejectFile("La imagen supera el límite de 10 MB.");
-        return;
-    }
+    if (!fileInput.checkValidity()) return;
 
     const currentVersion = selectionVersion;
     objectUrl = URL.createObjectURL(file);
@@ -158,6 +156,7 @@ fileInput.addEventListener("change", () => {
 document.getElementById("remove-image").addEventListener("click", () => {
     clearPreview();
     fileInput.value = "";
+    fileInput.dispatchEvent(new Event("input", { bubbles: true }));
     fileError.textContent = "";
     summary.hidden = true;
 });

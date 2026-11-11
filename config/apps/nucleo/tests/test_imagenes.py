@@ -133,6 +133,18 @@ class DocumentosYVideosRechazados(SimpleTestCase):
 
 
 class LimitesYCalidad(SimpleTestCase):
+    @override_settings(IMAGEN_LADO_MAX_PX=500)
+    def test_dimensiones_se_rechazan_sin_cargar_los_pixeles(self):
+        from unittest.mock import patch
+        imagen = u.jpg_valido(tamano=(600, 300))
+        with patch.object(Image.Image, "load", side_effect=AssertionError("No debe decodificar")):
+            self.assertRechaza(imagen, "grande")
+
+    @override_settings(IMAGEN_MAX_BYTES=2 * 1024 * 1024)
+    def test_formulario_publica_limite_real_para_validacion_en_navegador(self):
+        from apps.clasificacion.forms import ImagenReferenciaForm
+        self.assertIn('data-max-bytes="2097152"', str(ImagenReferenciaForm()["imagen"]))
+
     def assertRechaza(self, archivo, codigo):
         with self.assertRaises(ValidationError) as ctx:
             validar_imagen(archivo)

@@ -3,7 +3,7 @@ import uuid
 from django import forms
 from django.core import signing
 from django.core.exceptions import ValidationError
-from apps.nucleo.imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML
+from apps.nucleo.imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML, configurar_campo_imagen
 from .models import Tatuadora
 from .validadores import nombre_contacto, telefono_contacto, texto_sin_controles
 
@@ -46,6 +46,7 @@ class CotizacionForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        configurar_campo_imagen(self.fields["imagen"])
         from django.utils import timezone
         self.fields["fecha_propuesta"].widget.attrs["min"] = timezone.localdate().isoformat()
         for campo in self.fields.values():

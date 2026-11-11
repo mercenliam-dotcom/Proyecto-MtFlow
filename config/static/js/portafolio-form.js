@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (archivo) archivo.addEventListener("change", () => {
     if (url) URL.revokeObjectURL(url);
     const f = archivo.files[0];
-    if (!f || !["image/jpeg", "image/png"].includes(f.type)) return;
+    if (!f || !archivo.checkValidity() || !["image/jpeg", "image/png"].includes(f.type)) return;
     url = URL.createObjectURL(f);
     preview.src = url; preview.hidden = false;
     if (vacio) vacio.hidden = true;
