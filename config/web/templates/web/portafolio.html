@@ -32,58 +32,32 @@
 </section>
 
 
-<section aria-label="Galería de estilos">
-    <div class="filters" role="group" aria-label="Filtrar por estilo">
-        <button class="filter active" data-filter="Todos" aria-pressed="true">
-            Todos
-        </button>
-
-        {% for trabajo in trabajos %}
-        <button class="filter"
-                data-filter="{{ trabajo.estilo }}"
-                aria-pressed="false">
-            {{ trabajo.estilo }}
-        </button>
-        {% endfor %}
+<section class="estilos-seccion" aria-labelledby="estilos-titulo">
+  <div class="estilos-cabecera">
+    <div>
+      <h2 id="estilos-titulo">Explora por estilo</h2>
+      <p class="demo-note">{{ total }} trabajo{{ total|pluralize }} publicado{{ total|pluralize }}. Elige un estilo para ver todos sus trabajos.</p>
     </div>
-
-    <p class="demo-note portafolio-ayuda">{{ publicados|length }} trabajo{{ publicados|length|pluralize }} publicado{{ publicados|length|pluralize }} · Elige un estilo para filtrar.</p>
-
-    <div class="portfolio-grid" data-galeria-zoom=".portfolio-card:not([hidden]) a[data-zoom]">
-        {% for foto in publicados %}
-        <article class="portfolio-card" data-style="{{ foto.estilo.nombre|default:'El estudio' }}">
-            <!-- La imagen se ajusta al recuadro; al tocarla se abre a pantalla completa -->
-            <a class="image-placeholder con-foto" href="{% url 'web:imagen_portafolio' foto.referencia %}" data-zoom data-titulo="{{ foto.titulo }}" aria-label="Ver «{{ foto.titulo }}» a pantalla completa">
-                <img class="mt-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy">
-                <span class="ver-foto" aria-hidden="true">Ver</span>
-            </a>
-            <div class="card-caption">
-                <button type="button" class="card-estilo" data-filtrar="{{ foto.estilo.nombre|default:'El estudio' }}" aria-label="Ver solo {{ foto.estilo.nombre|default:'El estudio' }}">{{ foto.estilo.nombre|default:"El estudio" }}</button>
-                <h2>{{ foto.titulo }}</h2>
-                <p>por {{ foto.tatuadora.nombre_publico }}</p>
-            </div>
-        </article>
-        {% endfor %}
-
-        {% for trabajo in pendientes %}
-        <article class="portfolio-card portfolio-card-pendiente" data-style="{{ trabajo.estilo }}">
-            <div class="image-placeholder">
-                <span class="placeholder-mark" aria-hidden="true">✧</span>
-                <span>Fotografía pendiente</span>
-            </div>
-            <div class="card-caption">
-                <h2>{{ trabajo.estilo }}</h2>
-                <p>{{ trabajo.descripcion }}</p>
-            </div>
-        </article>
-        {% endfor %}
+    {% if total %}<a class="boton secundario" href="{% url 'web:catalogo' %}">Ver catálogo completo →</a>{% endif %}
+  </div>
+  <div class="estilos-grid">
+    {% for g in grupos %}
+    {% if g.cantidad %}
+    <a class="estilo-tarjeta" href="{% url 'web:catalogo' %}?estilo={{ g.slug }}" data-style="{{ g.nombre }}">
+      <span class="estilo-portada"><img src="{% url 'web:imagen_portafolio' g.portada.referencia %}" alt="" loading="lazy"></span>
+      <span class="estilo-texto"><strong>{{ g.nombre }}</strong><small>{{ g.descripcion }}</small><span class="estilo-cantidad">{{ g.cantidad }} trabajo{{ g.cantidad|pluralize }} →</span></span>
+    </a>
+    {% else %}
+    <div class="estilo-tarjeta estilo-tarjeta-vacia" data-style="{{ g.nombre }}">
+      <span class="estilo-portada"><span class="placeholder-mark" aria-hidden="true">✧</span></span>
+      <span class="estilo-texto"><strong>{{ g.nombre }}</strong><small>{{ g.descripcion }}</small><span class="estilo-cantidad">Próximamente</span></span>
     </div>
+    {% endif %}
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}
 
-{% block styles %}{{ block.super }}<link rel="stylesheet" href="{% static 'vendor/photoswipe/photoswipe.css' %}">{% endblock %}
 {% block scripts %}
-<script src="{% static 'web/js/portafolio.js' %}" defer></script>
 <script src="{% static 'web/js/carrusel.js' %}" defer></script>
-<script src="{% static 'js/zoom-fotos.js' %}" data-lightbox="{% static 'vendor/photoswipe/photoswipe-lightbox.esm.min.js' %}" data-core="{% static 'vendor/photoswipe/photoswipe.esm.min.js' %}" defer></script>
 {% endblock %}

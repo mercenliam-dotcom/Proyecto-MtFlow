@@ -44,6 +44,10 @@ class AjustesEquipo(TestCase):
             self.client.post(reverse('nucleo:portafolio_nuevo'),{'titulo':'Obra privada','tipo':'TATUAJE','estilo':estilo.pk,'imagen':jpg_valido()})
             r=Client().get(reverse('web:portafolio'))
             self.assertContains(r,f'data-style="{estilo.nombre}"')
+            self.assertContains(r,'Obra publicada')  # destacada en el carrusel
+            self.assertNotContains(r,'Obra privada')
+            grupo=next(g for g in r.context['grupos'] if g['nombre']==estilo.nombre)
+            self.assertEqual(grupo['cantidad'],1)
+            r=Client().get(reverse('web:catalogo'),{'estilo':grupo['slug']})
             self.assertContains(r,'Obra publicada')
             self.assertNotContains(r,'Obra privada')
-            self.assertNotIn(estilo.nombre,[p['estilo'] for p in r.context['pendientes']])

@@ -282,6 +282,7 @@ class FlujoCompleto(TestCase):
         self.assertFalse(TrabajoPortafolio.objects.exists())
         self.assertFalse(archivo.exists())
         self.assertNotContains(Client().get(reverse("web:portafolio")), "Rosa para quitar")
+        self.assertNotContains(Client().get(reverse("web:catalogo")), "Rosa para quitar")
 
     def test_portafolio_varias_fotografias_a_la_vez(self):
         from django.core.files.uploadedfile import SimpleUploadedFile

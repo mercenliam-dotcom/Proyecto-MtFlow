@@ -44,16 +44,64 @@ def analizar_referencia(request):
     })
 
 
-def portafolio(request):
+DESCRIPCIONES_ESTILO = {
+    "Alto contraste": "La fuerza del negro y el espacio", "Anime": "Historias que se vuelven tinta",
+    "Cibersigilismo": "Trazos orgánicos y digitales", "Lettering": "Palabras con identidad",
+    "Línea fina": "Sutileza en cada línea", "Ornamentos": "Ritmo, simetría y composición",
+    "Tribal / Neotribal": "Formas que siguen el cuerpo", "El estudio": "Nuestro espacio y el día a día",
+}
+ESTUDIO = "El estudio"  # fotos sin estilo: el estudio, el equipo, el espacio
+FOTOS_POR_PAGINA = 24
+
+
+def _publicados():
     from .models import TrabajoPortafolio
-    descripciones = ["La fuerza del negro y el espacio", "Historias que se vuelven tinta", "Trazos orgánicos y digitales", "Palabras con identidad", "Sutileza en cada línea", "Ritmo, simetría y composición", "Formas que siguen el cuerpo"]
-    trabajos = [{"estilo": nombre, "descripcion": descripcion} for nombre, descripcion in zip(
-        (nombre for codigo, nombre in ESTILOS.items() if codigo != "E-99"), descripciones)]
-    publicados = TrabajoPortafolio.objects.filter(visible=True, autorizacion_publicacion=True, tatuadora__activa=True, tatuadora__usuario__is_active=True, tatuadora__usuario__es_tatuadora=True).select_related("estilo", "tatuadora__usuario").order_by("-publicado_en", "-pk")
-    fotos = list(publicados[:60])
-    presentes = {foto.estilo.nombre for foto in fotos if foto.estilo_id}
-    pendientes = [t for t in trabajos if t["estilo"] not in presentes]
-    return render(request, "web/portafolio.html", {"trabajos": trabajos, "pendientes": pendientes, "publicados": fotos, "destacados": publicados.filter(en_carrusel=True)[:12]})
+    return (TrabajoPortafolio.objects.filter(
+        visible=True, autorizacion_publicacion=True, tatuadora__activa=True,
+        tatuadora__usuario__is_active=True, tatuadora__usuario__es_tatuadora=True)
+        .select_related("estilo", "tatuadora__usuario").order_by("-publicado_en", "-pk"))
+
+
+def _grupos(publicados):
+    """Un grupo por estilo del catálogo (aunque aún no tenga fotos) y otro para el estudio."""
+    from django.db.models import Count
+    from django.utils.text import slugify
+    cantidades = dict(publicados.order_by().values_list("estilo__nombre").annotate(n=Count("pk")))
+    nombres = [n for c, n in ESTILOS.items() if c != "E-99"]
+    nombres += sorted(n for n in cantidades if n and n not in nombres)  # p. ej. «Fuera de catálogo»
+    nombres.append(ESTUDIO)
+    grupos = []
+    for nombre in nombres:
+        cantidad = cantidades.get(None if nombre == ESTUDIO else nombre, 0)
+        filtro = {"estilo__isnull": True} if nombre == ESTUDIO else {"estilo__nombre": nombre}
+        grupos.append({"slug": slugify(nombre), "nombre": nombre, "descripcion": DESCRIPCIONES_ESTILO.get(nombre, ""),
+                       "cantidad": cantidad, "portada": publicados.filter(**filtro).first() if cantidad else None,
+                       "filtro": filtro})
+    # Sin fotos del estudio no se muestra una tarjeta vacía para él.
+    return [g for g in grupos if g["nombre"] != ESTUDIO or g["cantidad"]]
+
+
+def portafolio(request):
+    publicados = _publicados()
+    grupos = _grupos(publicados)
+    return render(request, "web/portafolio.html", {
+        "grupos": grupos, "total": sum(g["cantidad"] for g in grupos),
+        "destacados": publicados.filter(en_carrusel=True)[:12],
+    })
+
+
+def catalogo(request):
+    """Todas las fotos publicadas, filtrables por estilo y paginadas."""
+    from django.core.paginator import Paginator
+    publicados = _publicados()
+    grupos = _grupos(publicados)
+    elegido = next((g for g in grupos if g["slug"] == request.GET.get("estilo")), None)
+    fotos = publicados.filter(**elegido["filtro"]) if elegido else publicados
+    pagina = Paginator(fotos, FOTOS_POR_PAGINA).get_page(request.GET.get("pagina"))
+    return render(request, "web/catalogo.html", {
+        "grupos": [g for g in grupos if g["cantidad"]], "elegido": elegido, "pagina": pagina,
+        "total": sum(g["cantidad"] for g in grupos),
+    })
 
 
 def horarios(request):

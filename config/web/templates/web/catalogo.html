@@ -1,0 +1,53 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}{% if elegido %}{{ elegido.nombre }} · {% endif %}Catálogo | MtFlow{% endblock %}
+{% block styles %}{{ block.super }}<link rel="stylesheet" href="{% static 'vendor/photoswipe/photoswipe.css' %}">{% endblock %}
+
+{% block content %}
+<p class="miga"><a href="{% url 'web:portafolio' %}">← Portafolio</a></p>
+<header class="page-header">
+  <div>
+    <p class="eyebrow">CATÁLOGO COMPLETO</p>
+    <h1>{% if elegido %}{{ elegido.nombre }}{% else %}Todos los trabajos{% endif %}</h1>
+    <div class="heading-line"></div>
+    <p class="subtitle">{% if elegido %}{{ elegido.descripcion }}. {% endif %}{{ pagina.paginator.count }} trabajo{{ pagina.paginator.count|pluralize }}{% if elegido %} de {{ total }} en total{% endif %}. Toca una foto para verla en grande.</p>
+  </div>
+</header>
+
+<nav class="filters catalogo-filtros" aria-label="Filtrar por estilo">
+  <a class="filter{% if not elegido %} active{% endif %}" href="{% url 'web:catalogo' %}" {% if not elegido %}aria-current="page"{% endif %}>Todos <span class="filtro-cantidad">{{ total }}</span></a>
+  {% for g in grupos %}<a class="filter{% if elegido.slug == g.slug %} active{% endif %}" href="?estilo={{ g.slug }}" {% if elegido.slug == g.slug %}aria-current="page"{% endif %}>{{ g.nombre }} <span class="filtro-cantidad">{{ g.cantidad }}</span></a>{% endfor %}
+</nav>
+
+{% if pagina.object_list %}
+<div class="portfolio-grid" data-galeria-zoom>
+  {% for foto in pagina %}
+  <article class="portfolio-card">
+    <a class="image-placeholder con-foto" href="{% url 'web:imagen_portafolio' foto.referencia %}" data-zoom data-titulo="{{ foto.titulo }}" aria-label="Ver «{{ foto.titulo }}» a pantalla completa">
+      <img class="mt-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy">
+      <span class="ver-foto" aria-hidden="true">Ver</span>
+    </a>
+    <div class="card-caption">
+      {% if not elegido %}<a class="card-estilo" href="?estilo={% if foto.estilo %}{{ foto.estilo.nombre|slugify }}{% else %}el-estudio{% endif %}">{{ foto.estilo.nombre|default:"El estudio" }}</a>{% endif %}
+      <h2>{{ foto.titulo }}</h2>
+      <p>por {{ foto.tatuadora.nombre_publico }}</p>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% if pagina.has_other_pages %}
+<nav class="acciones catalogo-paginacion" aria-label="Páginas del catálogo">
+  {% if pagina.has_previous %}<a class="boton secundario" href="?{% if elegido %}estilo={{ elegido.slug }}&amp;{% endif %}pagina={{ pagina.previous_page_number }}">← Anterior</a>{% endif %}
+  <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+  {% if pagina.has_next %}<a class="boton secundario" href="?{% if elegido %}estilo={{ elegido.slug }}&amp;{% endif %}pagina={{ pagina.next_page_number }}">Siguiente →</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<section class="surface portafolio-vacio"><h2>Aún no hay trabajos publicados</h2><p>Pronto verás aquí nuestros tatuajes. Mientras tanto, <a href="{% url 'web:cotizacion' %}">cuéntanos tu idea</a>.</p></section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/zoom-fotos.js' %}" data-lightbox="{% static 'vendor/photoswipe/photoswipe-lightbox.esm.min.js' %}" data-core="{% static 'vendor/photoswipe/photoswipe.esm.min.js' %}" defer></script>
+{% endblock %}

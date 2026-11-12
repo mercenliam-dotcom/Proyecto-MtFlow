@@ -10,6 +10,7 @@ urlpatterns = [
     path("cotizacion/disponibilidad/", calendario_publico, name="disponibilidad"),
     path("portafolio/imagen/<uuid:referencia>/", imagen, name="imagen_portafolio"),
     path("", views.portafolio, name="portafolio"),
+    path("catalogo/", views.catalogo, name="catalogo"),
     path("horarios/", views.horarios, name="horarios"),
     path("cotizacion/", views.cotizacion, name="cotizacion"),
     path("cotizacion/analizar/", views.analizar_referencia, name="analizar_referencia"),

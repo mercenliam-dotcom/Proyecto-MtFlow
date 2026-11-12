@@ -2,6 +2,7 @@
 {% block page_title %}{% block title %}MTFlow{% endblock %}{% endblock %}
 {% block navigation %}
 <a class="nav-item" href="{% url 'web:portafolio' %}" {% if request.resolver_match.url_name == 'portafolio' %}aria-current="page"{% endif %}><span aria-hidden="true">01</span> Estilos & portafolio</a>
+<a class="nav-item nav-sub" href="{% url 'web:catalogo' %}" {% if request.resolver_match.url_name == 'catalogo' %}aria-current="page"{% endif %}><span aria-hidden="true">↳</span> Catálogo completo</a>
 <a class="nav-item" href="{% url 'web:cotizacion' %}" {% if request.resolver_match.url_name == 'cotizacion' %}aria-current="page"{% endif %}><span aria-hidden="true">02</span> Tu cotización</a>
 {% endblock %}
 {% block access %}{% if user.is_authenticated %}<a class="team-access" href="{% url 'nucleo:inicio' %}">{% if user.es_cliente %}Mi cuenta{% else %}Espacio del equipo{% endif %} ↗</a>{% else %}<a class="team-access" href="{% url 'cuentas:login' %}">Ingresar ↗</a><a class="team-access" href="{% url 'clientes:registro' %}">Crear cuenta de cliente ↗</a>{% endif %}{% endblock %}
