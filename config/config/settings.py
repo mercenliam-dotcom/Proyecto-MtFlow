@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "whitenoise.runserver_nostatic",  # en desarrollo, WhiteNoise sirve los estáticos con max-age=0: el navegador no usa CSS viejos
     "django.contrib.staticfiles",
     "web",                 # pantallas públicas: portafolio, horarios, cotización
     "apps.nucleo",
