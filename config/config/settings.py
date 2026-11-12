@@ -88,6 +88,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "apps.nucleo.middleware.CabecerasSeguridadMiddleware",
+    "apps.nucleo.middleware.PaginasErrorPropiasMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "apps.nucleo.middleware.LimiteArchivosMiddleware",
@@ -345,6 +346,10 @@ ADMIN_DESARROLLO_HABILITADO = env_bool("ADMIN_DESARROLLO_HABILITADO", False)
 CSRF_FAILURE_VIEW = 'apps.nucleo.errores.csrf_failure'
 
 # Acceso externo: sin credenciales no se muestran ni habilitan los proveedores.
+# Con DEBUG=1 los errores muestran igual las páginas propias (sin rutas ni trazas).
+# Solo para depurar: MOSTRAR_ERRORES_TECNICOS=1 vuelve a las páginas técnicas de Django.
+MOSTRAR_ERRORES_TECNICOS = env_bool("MOSTRAR_ERRORES_TECNICOS", False)
+
 # Acceso con Google y Facebook: oculto y desactivado hasta reactivarlo con ACCESO_SOCIAL_VISIBLE=1.
 ACCESO_SOCIAL_VISIBLE = env("ACCESO_SOCIAL_VISIBLE", "0").strip().lower() in ("1", "true", "si", "yes")
 SOCIAL_AUTH_BASE_URL = env("SOCIAL_AUTH_BASE_URL", "http://127.0.0.1:8000" if DEBUG else "").rstrip("/")

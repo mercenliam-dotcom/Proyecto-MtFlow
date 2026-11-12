@@ -5,8 +5,10 @@ from django.http import Http404
 
 
 def _error(request, codigo, titulo, texto):
-    return render(request, "error.html",
-                  {"codigo": codigo, "titulo": titulo, "texto": texto}, status=codigo)
+    respuesta = render(request, "error.html",
+                       {"codigo": codigo, "titulo": titulo, "texto": texto}, status=codigo)
+    respuesta.pagina_propia = True  # PaginasErrorPropiasMiddleware no la vuelve a reemplazar
+    return respuesta
 
 
 def error_400(request, exception=None):

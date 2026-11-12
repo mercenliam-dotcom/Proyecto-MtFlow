@@ -74,3 +74,34 @@ class LimiteArchivosMiddleware:
             messages.error(request, aviso)
             return redirect(request.path)
         return HttpResponseBadRequest(aviso)
+
+
+class PaginasErrorPropiasMiddleware:
+    """
+    Con DJANGO_DEBUG=1, Django responde los errores con páginas técnicas que
+    muestran la lista de rutas, trazas y ajustes internos. Este middleware las
+    cambia por las páginas propias (las mismas de producción), salvo que se
+    active MOSTRAR_ERRORES_TECNICOS=1 para depurar. El error sigue quedando en
+    la consola del servidor.
+    """
+
+    REEMPLAZABLES = (404, 500)
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        respuesta = self.get_response(request)
+        if (settings.DEBUG and not getattr(settings, "MOSTRAR_ERRORES_TECNICOS", False)
+                and respuesta.status_code in self.REEMPLAZABLES
+                and not getattr(respuesta, "pagina_propia", False)
+                and respuesta.get("Content-Type", "").startswith("text/html")):
+            from django.http import HttpResponse
+            from .errores import error_404, error_500
+            try:
+                return error_404(request) if respuesta.status_code == 404 else error_500(request)
+            except Exception:
+                # La página de error nunca debe fallar: último recurso, texto simple.
+                return HttpResponse("Ocurrió un problema. Vuelve al inicio e inténtalo nuevamente.",
+                                    status=respuesta.status_code, content_type="text/plain; charset=utf-8")
+        return respuesta
