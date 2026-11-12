@@ -123,10 +123,10 @@ def cotizacion(request):
             inicial.update({campo: getattr(perfil, campo) for campo in ("segundo_apellido", "telefono", "canal_preferido", "usuario_social")})
     if request.method == "POST" and not admitir_cotizacion(request):
         contexto["limite"] = True
-        form = CotizacionForm()
+        form = CotizacionForm(initial=inicial, cuenta=cuenta)
         estado = 429
     else:
-        form = CotizacionForm(request.POST if request.method == "POST" else None, request.FILES or None, initial=inicial)
+        form = CotizacionForm(request.POST if request.method == "POST" else None, request.FILES or None, initial=inicial, cuenta=cuenta)
         if request.method == "POST" and form.is_valid():
             datos = form.cleaned_data
             try:
@@ -163,6 +163,14 @@ def cotizacion(request):
         elif request.method == "POST":
             estado = 400
     contexto["form"] = form
+    if cuenta:
+        canal = form["canal_preferido"].value() or "correo"
+        contexto["datos_cuenta"] = {
+            "nombre": " ".join(filter(None, (form[c].value() for c in ("nombre", "primer_apellido", "segundo_apellido")))),
+            "email": form["email"].value(), "telefono": form["telefono"].value(),
+            "canal": dict(form.fields["canal_preferido"].choices).get(canal, "Correo"),
+            "usuario_social": form["usuario_social"].value() if canal in ("instagram", "tiktok") else "",
+        }
     respuesta = render(request, "web/cotizacion.html", contexto, status=estado)
     if estado == 429:
         respuesta["Retry-After"] = str(settings.COTIZACION_VENTANA_SEGUNDOS)

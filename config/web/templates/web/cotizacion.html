@@ -124,6 +124,21 @@
 
             <fieldset class="paso" data-paso="4" data-titulo="Tus datos">
                 <legend tabindex="-1"><span class="step">04</span> ¿Cómo te contactamos?</legend>
+                {% if datos_cuenta %}
+                <section class="datos-cuenta" aria-labelledby="datos-cuenta-titulo">
+                    <p class="datos-cuenta-titulo" id="datos-cuenta-titulo">Usaremos los datos de tu cuenta</p>
+                    <dl>
+                        <div><dt>Nombre</dt><dd>{{ datos_cuenta.nombre }}</dd></div>
+                        <div><dt>Correo</dt><dd>{{ datos_cuenta.email }}</dd></div>
+                        <div><dt>Teléfono</dt><dd>{{ datos_cuenta.telefono|default:"No indicado" }}</dd></div>
+                        <div><dt>Contacto preferido</dt><dd>{{ datos_cuenta.canal }}{% if datos_cuenta.usuario_social %} ({{ datos_cuenta.usuario_social }}){% endif %}</dd></div>
+                    </dl>
+                    <p class="field-help">Para cambiarlos, actualiza <a href="{% url 'clientes:perfil' %}" target="_blank" rel="noopener">Mi perfil ↗</a> y vuelve a esta página. Las solicitudes que ya enviaste conservan los datos con que se enviaron.</p>
+                    {% for nombre in form.CAMPOS_DE_CUENTA %}{% for campo in form %}{% if campo.name == nombre %}{{ campo.errors }}{% endif %}{% endfor %}{% endfor %}
+                    {# Campos bloqueados: el servidor usa los datos de la cuenta; aquí solo alimentan el resumen final. #}
+                    <div hidden>{% for campo in form %}{% if campo.name in form.CAMPOS_DE_CUENTA %}{{ campo }}{% endif %}{% endfor %}</div>
+                </section>
+                {% else %}
                 {% include "_campo.html" with campo=form.nombre %}
                 <div class="form-row">{% include "_campo.html" with campo=form.primer_apellido %}{% include "_campo.html" with campo=form.segundo_apellido %}</div>
                 {% include "_campo.html" with campo=form.email %}
@@ -131,6 +146,7 @@
                 {% include "_campo.html" with campo=form.canal_preferido %}
                 {% include "_campo.html" with campo=form.usuario_social %}
                 <p class="field-help">Las redes son opcionales. Si no indicas un usuario, te contactaremos por correo.</p>
+                {% endif %}
                 <p class="field-help">Guardaremos tus datos de contacto, propuesta e imagen de referencia para que la tatuadora elegida los revise. La imagen no se publica en el portafolio.</p>
             </fieldset>
 

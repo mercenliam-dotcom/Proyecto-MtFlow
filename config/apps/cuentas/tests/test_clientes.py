@@ -28,8 +28,9 @@ class PortalClientes(TestCase):
         self.assertEqual({primera.cliente_id, segunda.cliente_id, tercera.cliente_id}, {primera.cliente_id})
         self.assertEqual(Cliente.objects.filter(usuario=self.u).count(), 1)
         self.assertEqual(primera.cliente.solicitudes.count(), 3)
-        self.assertEqual(primera.contacto.nombres, "Nombre primero")
-        self.assertEqual(segunda.contacto.nombres, "Nombre segundo")
+        # Con cuenta, el contacto siempre es el de la cuenta: lo enviado en el formulario se ignora.
+        self.assertEqual({p.contacto.nombres for p in (primera, segunda, tercera)}, {self.u.nombre})
+        self.assertEqual(primera.contacto.correo, self.u.email)
         self.assertEqual(sum(p.imagen_set.count() for p in (primera, segunda, tercera)), 3)
         self.assertNotIn("cuenta_cliente", {f.name for f in Postulacion._meta.fields})
         self.assertEqual(self.client.get(reverse("clientes:inicio")).context["pagina"].paginator.count, 3)
@@ -203,14 +204,15 @@ class PortalClientes(TestCase):
             self.assertNotContains(r, secreto)
 
     def test_perfil_no_modifica_rol_ni_solicitudes_anteriores_y_precarga_nuevas(self):
-        p = self.envio(nombre="Nombre original")
+        p = self.envio(nombre="Nombre que se ignora")
+        self.assertEqual(p.contacto.nombres, "María")  # el de la cuenta al momento del envío
         datos = {"datos-nombre": "Nombre nuevo", "datos-apellido": "Soto", "datos-email": self.u.email, "contacto-segundo_apellido": "Díaz", "contacto-telefono": "+56912345678", "contacto-canal_preferido": "whatsapp", "rol": "ADMIN", "es_tatuadora": "on", "usuario": self.otro.pk}
         self.assertRedirects(self.client.post(reverse("clientes:perfil"), datos), reverse("clientes:perfil"))
         self.u.refresh_from_db()
         p.refresh_from_db()
         self.assertEqual(self.u.rol, Rol.USUARIO)
         self.assertFalse(self.u.es_tatuadora)
-        self.assertEqual(p.contacto.nombres, "Nombre original")
+        self.assertEqual(p.contacto.nombres, "María")  # la solicitud anterior conserva su instantánea
         self.assertEqual(self.u.nombre, "Nombre nuevo")
         r = self.client.get(reverse("web:cotizacion"))
         self.assertEqual(r.context["form"].initial["nombre"], "Nombre nuevo")

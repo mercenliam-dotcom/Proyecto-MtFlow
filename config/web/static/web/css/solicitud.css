@@ -146,3 +146,11 @@ body.con-dialogo { overflow: hidden; }
   .con-pasos .paso.activo, .dialogo[open], .cargando { animation: none; }
   .pasos-barra span { transition: none; }
 }
+
+/* Cliente con cuenta: datos de contacto bloqueados (vienen de su perfil) */
+.datos-cuenta { display: grid; gap: 12px; padding: 18px 20px; border: 1px solid #e0d6ea; border-radius: 14px; background: #faf7fc; }
+.datos-cuenta-titulo { margin: 0; font-weight: 600; color: var(--purple); }
+.datos-cuenta dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 20px; margin: 0; }
+.datos-cuenta dt { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.datos-cuenta dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.datos-cuenta .field-help { margin: 0; }

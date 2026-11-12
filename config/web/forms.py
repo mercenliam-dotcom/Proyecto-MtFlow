@@ -44,8 +44,16 @@ class CotizacionForm(forms.Form):
     cobertura = forms.BooleanField(label="Quiero cubrir un tatuaje existente", required=False)
     imagen = forms.FileField(label="Imagen de referencia", help_text="JPG o PNG · máximo 10 MB · mínimo 224 píxeles por lado.", widget=forms.FileInput(attrs={"id": "reference", "accept": TIPOS_ACEPTADOS_HTML}))
 
-    def __init__(self, *args, **kwargs):
+    # Con sesión de cliente, estos datos salen de su cuenta y no se pueden cambiar en el envío.
+    CAMPOS_DE_CUENTA = ("nombre", "primer_apellido", "segundo_apellido", "email", "telefono", "canal_preferido", "usuario_social")
+
+    def __init__(self, *args, cuenta=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.cuenta = cuenta
+        if cuenta is not None:
+            # disabled: Django ignora lo que llegue en el POST y usa el valor inicial (el de la cuenta).
+            for nombre in self.CAMPOS_DE_CUENTA:
+                self.fields[nombre].disabled = True
         from django.utils import timezone
         self.fields["fecha_propuesta"].widget.attrs["min"] = timezone.localdate().isoformat()
         for campo in self.fields.values():
@@ -76,7 +84,10 @@ class CotizacionForm(forms.Form):
                 if not hora_disponible(datos["tatuadora"], datos["fecha_propuesta"], datos["hora_propuesta"]):
                     self.add_error("hora_propuesta", "Esa hora no está disponible dentro del horario de trabajo. Elige otra o envía sin proponer horario.")
         if datos.get("canal_preferido") == "whatsapp" and not datos.get("telefono"):
-            self.add_error("telefono", "Indica el teléfono en el que quieres recibir contacto.")
+            if self.cuenta is not None:
+                self.add_error(None, "Tu perfil indica WhatsApp como medio de contacto, pero no tiene teléfono. Agrégalo en «Mi perfil» y vuelve a enviar.")
+            else:
+                self.add_error("telefono", "Indica el teléfono en el que quieres recibir contacto.")
         if datos.get("canal_preferido") in ("instagram", "tiktok") and not datos.get("usuario_social"):
             datos["canal_preferido"] = "correo"  # Sin usuario social, el correo obligatorio permite contactar.
         return datos
