@@ -56,6 +56,14 @@ class Agenda(TestCase):
         self.assertIn("script-src 'self';", r["Content-Security-Policy"])
         self.assertIn("no-store", r["Cache-Control"])
 
+    def test_formulario_de_horario_muestra_calendario(self):
+        # Sin el nonce, la CSP bloquea los estilos de FullCalendar y el calendario queda vacío.
+        for url in (reverse("nucleo:agenda_nuevo"), reverse("nucleo:agenda_nuevo") + f"?solicitud={self.p.referencia}"):
+            r = self.client.get(url)
+            self.assertContains(r, 'id="agenda-calendar"')
+            self.assertContains(r, 'name="csp-nonce"')
+            self.assertContains(r, "vendor/fullcalendar/index.global.min.js")
+
     def test_cuenta_no_tatuadora_no_puede_abrir_agenda(self):
         self.a.usuario.es_tatuadora = False
         self.a.usuario.save()
@@ -236,6 +244,9 @@ class Agenda(TestCase):
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "ACEPTADA")
         from apps.nucleo.flujo import aplicar
+        if self.p.saldo_pendiente:
+            aplicar(self.a.usuario, self.p.referencia, "cobro", {"version": self.p.actualizada_en.isoformat(), "tipo": "PAGO", "monto": self.p.saldo_pendiente, "verificado": True, "detalle": "Pago final"})
+            self.p.refresh_from_db()
         aplicar(self.a.usuario, self.p.referencia, "terminar", {"version": self.p.actualizada_en.isoformat(), "confirmado": True})
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "REALIZADA")

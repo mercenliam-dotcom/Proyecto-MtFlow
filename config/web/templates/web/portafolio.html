@@ -49,15 +49,16 @@
 
     <p class="demo-note portafolio-ayuda">{{ publicados|length }} trabajo{{ publicados|length|pluralize }} publicado{{ publicados|length|pluralize }} · Elige un estilo para filtrar.</p>
 
-    <div class="portfolio-grid">
+    <div class="portfolio-grid" data-galeria-zoom=".portfolio-card:not([hidden]) a[data-zoom]">
         {% for foto in publicados %}
-        <article class="portfolio-card" data-style="{{ foto.estilo.nombre|default:'El estudio' }}" role="button" tabindex="0">
-            <!-- La imagen importada se ajusta al recuadro del placeholder -->
-            <div class="image-placeholder con-foto">
+        <article class="portfolio-card" data-style="{{ foto.estilo.nombre|default:'El estudio' }}">
+            <!-- La imagen se ajusta al recuadro; al tocarla se abre a pantalla completa -->
+            <a class="image-placeholder con-foto" href="{% url 'web:imagen_portafolio' foto.referencia %}" data-zoom data-titulo="{{ foto.titulo }}" aria-label="Ver «{{ foto.titulo }}» a pantalla completa">
                 <img class="mt-foto" src="{% url 'web:imagen_portafolio' foto.referencia %}" alt="{{ foto.titulo }}" loading="lazy">
-            </div>
+                <span class="ver-foto" aria-hidden="true">Ver</span>
+            </a>
             <div class="card-caption">
-                <span class="card-estilo">{{ foto.estilo.nombre|default:"El estudio" }}</span>
+                <button type="button" class="card-estilo" data-filtrar="{{ foto.estilo.nombre|default:'El estudio' }}" aria-label="Ver solo {{ foto.estilo.nombre|default:'El estudio' }}">{{ foto.estilo.nombre|default:"El estudio" }}</button>
                 <h2>{{ foto.titulo }}</h2>
                 <p>por {{ foto.tatuadora.nombre_publico }}</p>
             </div>
@@ -65,7 +66,7 @@
         {% endfor %}
 
         {% for trabajo in pendientes %}
-        <article class="portfolio-card portfolio-card-pendiente" data-style="{{ trabajo.estilo }}" role="button" tabindex="0">
+        <article class="portfolio-card portfolio-card-pendiente" data-style="{{ trabajo.estilo }}">
             <div class="image-placeholder">
                 <span class="placeholder-mark" aria-hidden="true">✧</span>
                 <span>Fotografía pendiente</span>
@@ -80,7 +81,9 @@
 </section>
 {% endblock %}
 
+{% block styles %}{{ block.super }}<link rel="stylesheet" href="{% static 'vendor/photoswipe/photoswipe.css' %}">{% endblock %}
 {% block scripts %}
 <script src="{% static 'web/js/portafolio.js' %}" defer></script>
 <script src="{% static 'web/js/carrusel.js' %}" defer></script>
+<script src="{% static 'js/zoom-fotos.js' %}" data-lightbox="{% static 'vendor/photoswipe/photoswipe-lightbox.esm.min.js' %}" data-core="{% static 'vendor/photoswipe/photoswipe.esm.min.js' %}" defer></script>
 {% endblock %}

@@ -31,6 +31,16 @@
       <a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'aceptar' %}?guiado=1">Aceptar solicitud</a>
       <a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'rechazar' %}?guiado=1">Rechazar y registrar motivo</a>
     </div>
+  {% elif cierre_disponible %}
+    {% if puede_terminar %}
+    <h2 id="siguiente-paso-titulo">Pago final confirmado: termina el trabajo</h2>
+    <p>No queda saldo pendiente.{% for b in sesiones_por_marcar %} La sesión del {{ b.fecha|date:"d/m/Y" }} se marcará como realizada al terminar.{% endfor %} Si el trabajo necesita otra sesión, agéndala antes de terminarlo.</p>
+    <div class="acciones"><a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}" data-abrir-dialogo="dialogo-cierre">Terminar trabajo</a>{% if puede_agendar %}<a class="boton secundario" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar otra sesión</a>{% endif %}</div>
+    {% else %}
+    <h2 id="siguiente-paso-titulo">Confirma el pago final</h2>
+    <p>{% if sesiones_por_marcar %}La sesión ya está agendada{% else %}La sesión está realizada{% endif %}, pero queda un saldo pendiente de <strong>{{ saldo_texto }} CLP</strong>. Registra el pago final para poder terminar el trabajo. Si necesita otra sesión, agéndala.</p>
+    <div class="acciones"><a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% if puede_agendar %}<a class="boton secundario" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar otra sesión</a>{% endif %}</div>
+    {% endif %}
   {% elif puede_agendar %}
     <h2 id="siguiente-paso-titulo">Agenda la sesión</h2>
     <p>El pago registrado habilita la reserva. Elige el inicio y el término en tu agenda.</p>
@@ -38,14 +48,14 @@
   {% elif e == 'ACEPTADA' %}
     <h2 id="siguiente-paso-titulo">Confirma el abono</h2>
     <p>Cuando verifiques el pago fuera de MTFlow, regístralo aquí. El total recibido debe cubrir el abono solicitado. Si ya registraste un pago en «Registrar pago / devolución», también cuenta: no lo registres dos veces.</p>
-    <div class="acciones"><a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'abono' %}">Confirmar abono recibido</a>{% if propuesta.precio_final %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}</div>
+    <div class="acciones"><a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'abono' %}">Confirmar abono recibido</a>{% if propuesta.precio_final %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% endif %}</div>
   {% elif e == 'RESERVADA' %}
     <h2 id="siguiente-paso-titulo">Realiza la sesión y cierra el trabajo</h2>
-    <p>Después de la sesión, registra el pago final. Si el trabajo necesita más sesiones, agenda otra antes de terminarlo.</p>
-    <div class="acciones">{% if puede_terminar %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">Terminar trabajo</a>{% endif %}{% if propuesta.precio_final %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}</div>
+    <p>La sesión está agendada. Al terminarla, registra el pago final: el trabajo solo se puede cerrar sin saldo pendiente. Si necesita más sesiones, agenda otra antes de terminarlo.</p>
+    <div class="acciones">{% if propuesta.precio_final %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% endif %}<a class="boton secundario" href="{% url 'nucleo:agenda' %}">Ver mi agenda</a></div>
   {% elif e == 'REALIZADA' %}
     <h2 id="siguiente-paso-titulo">Trabajo terminado</h2>
-    <p>Si tienes autorización, comparte una fotografía del resultado en tu portafolio.</p>
+    <p>La solicitud quedó cerrada{% if propuesta.realizada_en %} el {{ propuesta.realizada_en|date:"d/m/Y" }}{% endif %}: sus datos, pagos e historial quedan solo para consulta. Si tienes autorización, comparte una fotografía del resultado en tu portafolio.</p>
     <div class="acciones"><a class="boton secundario" href="{% url 'nucleo:portafolio_nuevo' %}">Agregar al portafolio</a></div>
   {% elif e == 'RECHAZADA' %}
     <h2 id="siguiente-paso-titulo">Solicitud rechazada</h2>
@@ -100,11 +110,11 @@
       {% if tiene_inasistencias %}<p>Acuerdo por inasistencia: {{ propuesta.get_destino_abono_display }}. Una devolución acordada solo reduce el total al registrarla como efectuada.</p>{% endif %}
       <h3>Pagos adicionales y devoluciones</h3>
       <ul class="lista-limpia">{% for movimiento in propuesta.movimientos.all %}<li>{{ movimiento.creado_en|date:"d/m/Y H:i" }} · {{ movimiento.get_tipo_display }}: {{ movimiento.monto }} CLP · {{ movimiento.detalle }}{% if movimiento.comprobante %} · <a href="{% url 'nucleo:cobro_comprobante' propuesta.referencia movimiento.pk %}" target="_blank" rel="noopener">Ver comprobante</a>{% endif %}</li>{% empty %}<li class="nota">Sin pagos adicionales ni devoluciones.</li>{% endfor %}</ul>
-      {% if puede_gestionar %}
+      {% if puede_gestionar and e != 'REALIZADA' %}
       <details class="mas-acciones">
         <summary>Todas las acciones de esta solicitud</summary>
         {{ gestion_form.non_field_errors }}
-        <div class="acciones">{% for accion, etiqueta in gestion_form.fields.accion.choices %}<a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia accion %}">{% if accion == 'abono' %}Confirmar abono recibido{% elif accion == 'aceptar' %}{% if propuesta.precio_final %}Editar acuerdo{% else %}Aceptar solicitud{% endif %}{% else %}{{ etiqueta }}{% endif %}</a>{% endfor %}{% if propuesta.precio_final and propuesta.estado != 'RECHAZADA' %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago / devolución</a>{% endif %}{% if puede_terminar %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">Terminar trabajo</a>{% endif %}{% if tiene_inasistencias %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'inasistencia' %}">Resolver abono por inasistencia</a>{% endif %}</div>
+        <div class="acciones">{% for accion, etiqueta in gestion_form.fields.accion.choices %}<a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia accion %}">{% if accion == 'abono' %}{% if propuesta.abono_verificado_en %}Ajustar abono verificado{% else %}Confirmar abono recibido{% endif %}{% elif accion == 'aceptar' %}{% if propuesta.precio_final %}Editar acuerdo{% else %}Aceptar solicitud{% endif %}{% else %}{{ etiqueta }}{% endif %}</a>{% endfor %}{% if propuesta.precio_final and propuesta.estado != 'RECHAZADA' %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% endif %}{% if puede_terminar %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}" data-abrir-dialogo="dialogo-cierre">Terminar trabajo</a>{% endif %}{% if tiene_inasistencias %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'inasistencia' %}">Resolver abono por inasistencia</a>{% endif %}</div>
         <p class="nota">Terminar una sesión no cierra automáticamente un trabajo de varias sesiones. No se procesan pagos en esta página.</p>
       </details>
       {% endif %}
@@ -172,6 +182,22 @@
     </section>
   </aside>
 </div>
+{% if puede_gestionar and puede_terminar %}
+<dialog id="dialogo-cierre" class="dialogo-cierre" aria-labelledby="dialogo-cierre-titulo"{% if ofrecer_cierre %} data-abrir-al-cargar{% endif %}>
+  <form method="post" action="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}">
+    {% csrf_token %}
+    <input type="hidden" name="version" value="{{ cierre_version }}">
+    <input type="hidden" name="confirmado" value="on">
+    <p class="eyebrow">PAGO FINAL CONFIRMADO</p>
+    <h2 id="dialogo-cierre-titulo">¿Deseas terminar los pasos ahora o continuar después?</h2>
+    <p>Al terminar, el trabajo queda como realizado y la solicitud se cierra: sus datos, pagos e historial quedarán solo para consulta.{% for b in sesiones_por_marcar %} La sesión del {{ b.fecha|date:"d/m/Y" }} se marcará como realizada.{% endfor %}</p>
+    <div class="acciones">
+      <button type="submit" class="boton">Terminar ahora</button>
+      <button type="submit" class="boton secundario" formmethod="dialog" formnovalidate>Continuar después</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 {% endwith %}
 {% endblock %}
-{% block page_scripts %}<script src="{% static 'js/decision-solicitud.js' %}" defer></script>{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/decision-solicitud.js' %}" defer></script><script src="{% static 'js/dialogo-cierre.js' %}" defer></script>{% endblock %}

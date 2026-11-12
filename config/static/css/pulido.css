@@ -633,3 +633,51 @@ section[aria-label="Galería de estilos"] .filter.active, section[aria-label="Ga
 @media (prefers-reduced-motion: reduce) {
   .primary-button, .secondary-button, .boton, .filtros-bandeja a, .upload-box, .check-field, .interruptor, .correo-fila, .kpi-enlace, .acceso { transition: none; }
 }
+
+/* Diálogo «¿terminar ahora o continuar después?» */
+.dialogo-cierre { width: min(480px, calc(100vw - 32px)); padding: 26px 26px 22px; border: 1px solid #dccdea; border-top: 4px solid var(--purple); border-radius: 16px; background: #fffdf9; color: inherit; box-shadow: 0 24px 60px rgba(35, 27, 46, .28); }
+.dialogo-cierre::backdrop { background: rgba(28, 22, 36, .45); }
+.dialogo-cierre .eyebrow { margin: 0 0 6px; }
+.dialogo-cierre h2 { margin: 0 0 10px; font-size: 20px; line-height: 1.25; }
+.dialogo-cierre p { margin: 0 0 18px; color: #5d5566; font-size: 14px; }
+.dialogo-cierre .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+
+/* Galería privada de imágenes de referencia */
+.referencias-busqueda { display: grid; gap: 8px; margin: 0 0 22px; }
+.referencias-busqueda label { font-weight: 600; font-size: 14px; }
+.referencias-busqueda-fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.referencias-busqueda-fila input { flex: 1 1 240px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px; background: #fcfbf8; }
+.referencias-busqueda .nota { margin: 0; }
+.referencias-busqueda code { font-size: 12px; background: #f1edf5; padding: 2px 6px; border-radius: 6px; }
+.referencias-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+.referencia-tarjeta { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.referencia-foto { position: relative; display: block; aspect-ratio: 1 / 1; background: #efebf3; overflow: hidden; }
+.referencia-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.referencia-foto:hover img, .referencia-foto:focus-visible img { transform: scale(1.04); }
+.referencia-sin-archivo { display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.referencia-texto { display: grid; gap: 6px; padding: 12px 14px 14px; }
+.referencia-titulo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.referencia-titulo strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.referencia-titulo .chip-estado { padding: 2px 9px; font-size: 11px; flex-shrink: 0; }
+.referencia-texto p { margin: 0; font-size: 12px; color: var(--muted); }
+.referencia-acciones { display: flex; gap: 14px; font-size: 13px; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .referencia-foto img { transition: none; } .referencia-foto:hover img { transform: none; } }
+
+/* Portafolio público: la foto abre el zoom; la etiqueta de estilo filtra */
+.portfolio-card a.image-placeholder.con-foto { position: relative; display: block; cursor: zoom-in; }
+.portfolio-card .ver-foto { position: absolute; right: 12px; bottom: 12px; padding: 5px 12px; border-radius: 999px; background: rgba(28, 22, 36, .72); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: .04em; opacity: 0; transform: translateY(4px); transition: opacity .2s ease, transform .2s ease; }
+.portfolio-card a.con-foto:hover .ver-foto, .portfolio-card a.con-foto:focus-visible .ver-foto { opacity: 1; transform: none; }
+button.card-estilo { border: 0; font-family: inherit; cursor: pointer; transition: background .2s ease; }
+button.card-estilo:hover { background: #e5dbf1; }
+@media (hover: none) { .portfolio-card .ver-foto { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .portfolio-card .ver-foto, button.card-estilo { transition: none; } }
+
+/* Métricas: gráfico de tendencia */
+.grafico-tendencia { margin-top: 22px; }
+.grafico-tendencia .nota { margin: 0 0 10px; }
+.grafico-lienzo { position: relative; height: 280px; }
+.grafico-tabla { margin-top: 12px; font-size: 13px; }
+.grafico-tabla summary { cursor: pointer; color: var(--purple); font-weight: 600; }
+.grafico-tabla table { width: 100%; max-width: 420px; margin-top: 8px; border-collapse: collapse; }
+.grafico-tabla th, .grafico-tabla td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.grafico-tabla td { text-align: right; font-variant-numeric: tabular-nums; }

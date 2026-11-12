@@ -1,0 +1,69 @@
+/* ==========================================================================
+   Refinado (propuesta): mismo diseño y mismos colores, con más pulido.
+   Todo vive en este archivo; quitar su <link> en layout.html lo desactiva.
+   ========================================================================== */
+
+/* 1. Transiciones entre páginas (View Transitions, nativo del navegador).
+      La barra lateral y la superior quedan fijas; solo el contenido cambia. */
+@view-transition { navigation: auto; }
+.sidebar { view-transition-name: barra-lateral; }
+.topbar { view-transition-name: barra-superior; }
+::view-transition-old(root) { animation: 140ms ease-out both mt-salir; }
+::view-transition-new(root) { animation: 220ms cubic-bezier(.2, .7, .2, 1) both mt-entrar; }
+@keyframes mt-salir { to { opacity: 0; } }
+@keyframes mt-entrar { from { opacity: 0; transform: translateY(6px); } }
+
+/* 2. Texto más nítido y números alineados en cifras e indicadores. */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+h2, h3 { letter-spacing: -.01em; }
+.kpi strong, .cifras strong, .grafico-tabla td, .fecha-bloque strong { font-variant-numeric: tabular-nums; }
+::selection { background: #e2d4f0; color: var(--ink); }
+
+/* 3. Barra superior fija con fondo translúcido al hacer scroll. */
+.topbar { position: sticky; top: 0; z-index: 4; background: rgba(246, 244, 239, .86); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); }
+
+/* 4. Profundidad suave y coherente en tarjetas. */
+.tarjeta, .referencia-tarjeta, .foto-propia { box-shadow: 0 1px 2px rgba(41, 38, 49, .04), 0 6px 20px -12px rgba(41, 38, 49, .12); }
+.referencia-tarjeta, .portfolio-card:not(.portfolio-card-pendiente), .acceso, .foto-propia {
+  transition: transform .2s cubic-bezier(.2, .7, .2, 1), box-shadow .2s ease, border-color .2s ease;
+}
+.referencia-tarjeta:hover, .portfolio-card:not(.portfolio-card-pendiente):hover, .acceso:hover, .foto-propia:hover {
+  transform: translateY(-2px); border-color: #d6c6e3; box-shadow: 0 2px 4px rgba(41, 38, 49, .04), 0 14px 30px -14px rgba(98, 65, 139, .28);
+}
+
+/* 5. Botones: se hunden levemente al presionarlos y tienen un foco más amable. */
+.boton, .primary-button, .secondary-button, .filter, button.card-estilo { -webkit-user-select: none; user-select: none; }
+.boton:not(.secundario), .primary-button { box-shadow: 0 1px 2px rgba(77, 48, 111, .25), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.boton:not(.secundario):hover, .primary-button:hover { box-shadow: 0 6px 16px -6px rgba(77, 48, 111, .45); }
+.boton.secundario:hover, .secondary-button:hover { border-color: #c9b3da; background: #faf7fc; }
+.boton:active, .primary-button:active, .secondary-button:active, .filter:active, .campana > summary:active { transform: translateY(1px) scale(.985); }
+.boton:focus-visible, .filter:focus-visible, .nav-item:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px #9a72c4; }
+
+/* 6. Menú lateral: cambios de estado suaves. */
+.nav-item { transition: background .18s ease, color .18s ease, box-shadow .18s ease; }
+.nav-item:hover > span { color: #d9bff0; }
+
+/* 7. Filas de bandeja: el indicador de selección aparece con suavidad. */
+.bandeja .correo-fila { position: relative; }
+.bandeja .correo-fila::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--purple); opacity: 0; transform: scaleY(.4); transition: opacity .18s ease, transform .18s ease; }
+.bandeja .correo-fila:hover::before, .bandeja .correo-fila:focus-visible::before { opacity: 1; transform: none; }
+
+/* 8. Los indicadores aparecen en cascada al cargar (solo la primera vez). */
+.kpis > .kpi { animation: mt-aparecer .45s cubic-bezier(.2, .7, .2, 1) both; }
+.kpis > .kpi:nth-child(2) { animation-delay: .05s; }
+.kpis > .kpi:nth-child(3) { animation-delay: .1s; }
+.kpis > .kpi:nth-child(4) { animation-delay: .15s; }
+@keyframes mt-aparecer { from { opacity: 0; transform: translateY(8px); } }
+
+/* 9. Barras de desplazamiento discretas. */
+* { scrollbar-width: thin; scrollbar-color: #cfc6d6 transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #d5ccdc; border: 3px solid transparent; border-radius: 99px; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: #b9a9c7; }
+
+/* Sin movimiento para quien lo pidió en su sistema. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  .kpis > .kpi { animation: none; }
+  .referencia-tarjeta:hover, .portfolio-card:hover, .acceso:hover, .foto-propia:hover, .boton:active, .filter:active { transform: none; }
+}

@@ -209,6 +209,9 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
     principal = next((r for r in referencias if r["imagen"].es_principal and r["prediccion"]), None)
     sugerido = principal["prediccion"].estilo_sugerido if principal else None
     revision_form = RevisionForm(initial={"version": propuesta.actualizada_en.isoformat(), "estilo": sugerido.pk if sugerido and sugerido.codigo != "E-99" else None})
+    from .flujo import estado_cierre
+    from .operaciones_agenda import _clp
+    cierre = estado_cierre(propuesta)
     return render(request, "cotizaciones/detalle.html", {
         "revision_form": revision_form, "estilo_sugerido": sugerido if sugerido and sugerido.codigo != "E-99" else None,
         "propuesta": propuesta, "referencias": referencias, "revision": propuesta.imagen_set.filter(es_principal=True).select_related("etiquetaconsolidada__estilo").first(),
@@ -220,5 +223,12 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
         "puede_gestionar": propuesta.tatuadora.usuario_id == request.user.pk and request.user.es_tatuadora and propuesta.tatuadora.activa,
         "sesiones": propuesta.sesiones.all(), "eventos": propuesta.eventos.select_related("actor")[:50],
         "tiene_inasistencias": propuesta.sesiones.filter(estado="NO_ASISTIO").exists(),
-        "puede_terminar": propuesta.estado in ("ACEPTADA", "RESERVADA") and propuesta.sesiones.filter(estado="REALIZADA").exists() and not propuesta.sesiones.filter(estado="RESERVADA").exists(),
+        "cierre_disponible": cierre["sesiones_listas"],
+        # Terminar exige el pago final confirmado: sin saldo pendiente.
+        "puede_terminar": cierre["puede_terminar"],
+        "sesiones_por_marcar": cierre["por_marcar"],
+        "saldo_texto": _clp(propuesta.saldo_pendiente),
+        # Tras registrar el pago final se pregunta si terminar ahora o después.
+        "ofrecer_cierre": cierre["puede_terminar"] and request.GET.get("cerrar") == "1",
+        "cierre_version": propuesta.actualizada_en.isoformat(),
     }, status=status)

@@ -9,6 +9,7 @@ from django.core.files.storage import FileSystemStorage
 from django.db import transaction, DatabaseError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
@@ -65,6 +66,29 @@ def _resumen_cobro(p):
     return datos
 
 
+def estado_cierre(p):
+    """Qué falta para terminar el trabajo.
+
+    sesiones_listas: hay una sesión hecha (o reservada para hoy o antes, que se
+    marca realizada al cerrar) y ninguna sesión futura pendiente.
+    puede_terminar: además, el pago final está confirmado (saldo en cero).
+    """
+    from .operaciones_agenda import _clp
+    hoy = timezone.localdate()
+    motivo = ""
+    reservadas = p.sesiones.filter(estado="RESERVADA")
+    futura = reservadas.filter(fecha__gt=hoy).order_by("fecha", "hora_inicio").first()
+    if p.estado not in ("ACEPTADA", "RESERVADA") or not p.sesiones.filter(estado__in=("REALIZADA", "RESERVADA")).exists():
+        motivo = "Debes registrar al menos una sesión realizada antes de terminar el trabajo."
+    elif futura:
+        motivo = f"Todavía hay sesiones reservadas: la del {futura.fecha:%d/%m/%Y} a las {futura.hora_inicio:%H:%M} aún no ocurre. Complétala, reprográmala o cancélala antes de cerrar."
+    sesiones_listas = not motivo
+    if sesiones_listas and p.saldo_pendiente > 0:
+        motivo = f"Falta confirmar el pago final: el saldo pendiente es {_clp(p.saldo_pendiente)} CLP. Regístralo en «Registrar pago final» antes de terminar el trabajo."
+    return {"sesiones_listas": sesiones_listas, "puede_terminar": not motivo, "motivo": motivo,
+            "por_marcar": list(reservadas.filter(fecha__lte=hoy)) if sesiones_listas else []}
+
+
 def _almacen():
     return FileSystemStorage(location=settings.MEDIA_ROOT)
 
@@ -104,7 +128,9 @@ def _aplicar(user, referencia, accion, datos, archivos, guardados):
         })
         detalle = f"Estilo revisado: {d['estilo'].nombre}. No inicia entrenamiento."
     elif accion == "cobro":
-        if p.estado not in ("ACEPTADA", "RESERVADA", "REALIZADA") or not p.precio_final:
+        if p.estado == "REALIZADA":
+            raise ValidationError("Este trabajo ya está terminado y la solicitud quedó cerrada: solo se pueden consultar sus datos.")
+        if p.estado not in ("ACEPTADA", "RESERVADA") or not p.precio_final:
             raise ValidationError("Registra primero el acuerdo con su precio total.")
         neto = p.total_cobrado
         if d["tipo"] == "DEVOLUCION" and d["monto"] > neto:
@@ -119,10 +145,15 @@ def _aplicar(user, referencia, accion, datos, archivos, guardados):
         MovimientoCobro.objects.create(postulacion=p, tipo=d["tipo"], monto=d["monto"], detalle=detalle, verificado_por=user, comprobante=ruta)
         detalle = f"{d['tipo']}: {d['monto']} CLP. {detalle}"
     elif accion == "terminar":
-        if p.estado not in ("ACEPTADA", "RESERVADA") or not p.sesiones.filter(estado="REALIZADA").exists():
-            raise ValidationError("Debes registrar al menos una sesión realizada antes de terminar el trabajo.")
-        if p.sesiones.filter(estado="RESERVADA").exists():
-            raise ValidationError("Todavía hay sesiones reservadas. Complétalas o cancélalas antes de cerrar.")
+        cierre = estado_cierre(p)
+        if not cierre["puede_terminar"]:
+            raise ValidationError(cierre["motivo"])
+        # Una sesión de hoy (o anterior) aún marcada como reservada se da por realizada:
+        # al terminar, la tatuadora confirma que el tatuaje está hecho.
+        for bloque in cierre["por_marcar"]:
+            bloque.estado = "REALIZADA"
+            bloque.save(update_fields=["estado", "actualizada_en"])
+            EventoSolicitud.objects.create(postulacion=p, actor=user, tipo="realizar", detalle=f"Sesión {bloque.fecha} {bloque.hora_inicio:%H:%M}. Marcada realizada al terminar el trabajo.")
         p.estado, p.realizada_en = "REALIZADA", timezone.now()
         detalle = f"Trabajo terminado. Cobrado: {p.total_cobrado} CLP; saldo: {p.saldo_pendiente} CLP."
     else:
@@ -150,6 +181,11 @@ def editar(request, referencia, accion):
     if accion not in clases:
         raise Http404
     clase, titulo = clases[accion]
+    if p.estado == "REALIZADA" and accion in ("cobro", "terminar", "inasistencia"):
+        messages.info(request, "Este trabajo ya está terminado: la solicitud quedó cerrada y solo se pueden consultar sus datos.")
+        return redirect("nucleo:cotizacion_detalle", referencia=referencia)
+    if accion == "cobro":
+        titulo = "Registrar pago final" if p.saldo_pendiente > 0 else "Registrar devolución o pago"
     inicial = {"version": p.actualizada_en.isoformat(), "destino_abono": p.destino_abono}
     resumen = _resumen_cobro(p) if accion == "cobro" else None
     if resumen and resumen["saldo"] > 0:
@@ -168,9 +204,18 @@ def editar(request, referencia, accion):
                 form.add_error(None, "No se guardó el cambio. Recarga antes de reintentar.")
                 status = 409
             else:
-                messages.success(request, "Cambio registrado en el historial.")
-                return redirect("nucleo:cotizacion_detalle", referencia=referencia)
-    return render(request, "flujo/formulario.html", {"form": form, "titulo": titulo, "propuesta": p, "resumen_cobro": resumen}, status=status)
+                destino = reverse("nucleo:cotizacion_detalle", args=[referencia])
+                if accion == "terminar":
+                    messages.success(request, "Trabajo terminado. La solicitud quedó cerrada; sus datos siguen disponibles para consulta.")
+                elif accion == "cobro" and estado_cierre(Postulacion.objects.get(pk=p.pk))["puede_terminar"]:
+                    # Pago final completo: se ofrece terminar ahora o más tarde.
+                    messages.success(request, "Pago final registrado. No queda saldo pendiente.")
+                    destino += "?cerrar=1"
+                else:
+                    messages.success(request, "Cambio registrado en el historial.")
+                return redirect(destino)
+    aviso_cierre = estado_cierre(p)["motivo"] if accion == "terminar" else ""
+    return render(request, "flujo/formulario.html", {"form": form, "titulo": titulo, "propuesta": p, "resumen_cobro": resumen, "aviso_cierre": aviso_cierre}, status=status)
 
 
 @rol_requerido(Rol.ADMIN)

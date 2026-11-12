@@ -16,10 +16,10 @@
   <p class="metricas-periodo">Actividad del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}</p>
 
   <div class="kpis">
-    <section class="kpi"><span>Solicitudes recibidas</span><strong>{{ recibidas }}</strong><small>en el período</small></section>
-    <section class="kpi"><span>Trabajos terminados</span><strong>{{ terminados }}</strong><small>en el período</small></section>
-    <section class="kpi"><span>Rechazadas</span><strong>{{ rechazadas }}</strong><small>de las recibidas</small></section>
-    <section class="kpi"><span>Sesiones sin asistencia</span><strong>{{ ausencias }}</strong><small>no retiene el abono por sí sola</small></section>
+    <section class="kpi"><span>Solicitudes recibidas</span><strong><span data-contar="{{ recibidas }}">{{ recibidas }}</span></strong><small>en el período</small></section>
+    <section class="kpi"><span>Trabajos terminados</span><strong><span data-contar="{{ terminados }}">{{ terminados }}</span></strong><small>en el período</small></section>
+    <section class="kpi"><span>Rechazadas</span><strong><span data-contar="{{ rechazadas }}">{{ rechazadas }}</span></strong><small>de las recibidas</small></section>
+    <section class="kpi"><span>Sesiones sin asistencia</span><strong><span data-contar="{{ ausencias }}">{{ ausencias }}</span></strong><small>no retiene el abono por sí sola</small></section>
   </div>
 
   <section class="tarjeta">
@@ -52,10 +52,10 @@
   <h2 class="metricas-seccion">Dinero registrado · acumulado histórico</h2>
   <p class="nota">Importes en CLP. Son cobros registrados, no ganancias: no se descuentan costos. Abarcan todo el historial, sin importar el período elegido.</p>
   <div class="kpis kpis-dinero">
-    <section class="kpi kpi-principal"><span>Total recibido neto</span><strong>{{ totales.recibido }} <small>CLP</small></strong><small>Abonos y pagos adicionales, menos devoluciones.</small></section>
-    <section class="kpi"><span>Abonos recibidos</span><strong>{{ totales.abonos }} <small>CLP</small></strong><small>Depósitos antes de devoluciones.</small></section>
-    <section class="kpi"><span>Saldo por cobrar</span><strong>{{ totales.saldo }} <small>CLP</small></strong><small>De trabajos aceptados o agendados.</small></section>
-    <section class="kpi"><span>Abonos retenidos</span><strong>{{ totales.retencion }} <small>CLP</small></strong><small>Ya incluidos en el total recibido.</small></section>
+    <section class="kpi kpi-principal"><span>Total recibido neto</span><strong><span data-contar="{{ totales.recibido }}" data-miles>{{ totales.recibido }}</span> <small>CLP</small></strong><small>Abonos y pagos adicionales, menos devoluciones.</small></section>
+    <section class="kpi"><span>Abonos recibidos</span><strong><span data-contar="{{ totales.abonos }}" data-miles>{{ totales.abonos }}</span> <small>CLP</small></strong><small>Depósitos antes de devoluciones.</small></section>
+    <section class="kpi"><span>Saldo por cobrar</span><strong><span data-contar="{{ totales.saldo }}" data-miles>{{ totales.saldo }}</span> <small>CLP</small></strong><small>De trabajos aceptados o agendados.</small></section>
+    <section class="kpi"><span>Abonos retenidos</span><strong><span data-contar="{{ totales.retencion }}" data-miles>{{ totales.retencion }}</span> <small>CLP</small></strong><small>Ya incluidos en el total recibido.</small></section>
   </div>
 
   <section class="tarjeta">
@@ -65,5 +65,16 @@
     <p class="nota">Las predicciones sin revisión humana permanecen en «Sin revisión humana».</p>
   </section>
 </div>
+
+<section class="tarjeta grafico-tendencia" aria-labelledby="tendencia-titulo">
+  <div class="tarjeta-titulo"><h2 id="tendencia-titulo">Tendencia · últimas 12 semanas</h2></div>
+  <p class="nota">Solicitudes recibidas y trabajos terminados por semana (cada barra empieza el lunes indicado).</p>
+  <div class="grafico-lienzo"><canvas id="grafico-tendencia" role="img" aria-label="Solicitudes recibidas y trabajos terminados por semana en las últimas 12 semanas. El detalle está en la tabla siguiente."></canvas></div>
+  <details class="grafico-tabla"><summary>Ver como tabla</summary>
+    <table><thead><tr><th scope="col">Semana del</th><th scope="col">Recibidas</th><th scope="col">Terminados</th></tr></thead>
+    <tbody>{% for semana, recibidas, terminados in serie_filas %}<tr><th scope="row">{{ semana }}</th><td>{{ recibidas }}</td><td>{{ terminados }}</td></tr>{% endfor %}</tbody></table>
+  </details>
+  {{ serie|json_script:"datos-tendencia" }}
+</section>
 {% endblock %}
-{% block page_scripts %}<script src="{% static 'js/metricas.js' %}" defer></script>{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/metricas.js' %}" defer></script><script src="{% static 'vendor/chartjs/chart.umd.min.js' %}" defer></script><script src="{% static 'js/grafico-tendencia.js' %}" defer></script><script src="{% static 'vendor/countup/countup.umd.min.js' %}" defer></script><script src="{% static 'js/contador.js' %}" defer></script>{% endblock %}

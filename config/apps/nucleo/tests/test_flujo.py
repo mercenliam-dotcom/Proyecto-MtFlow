@@ -133,17 +133,84 @@ class FlujoCompleto(TestCase):
         self.accion("inasistencia", destino_abono="RETENIDO", detalle="Confirmado con el cliente")
         self.assertEqual(self.p.total_cobrado, 30000)
 
-    def test_cierre_exige_sesion_realizada_y_no_anticipa_pago(self):
+    def test_cierre_exige_sesion_realizada_y_pago_final(self):
         self.aceptar()
         with self.assertRaises(ValidationError):
             self.accion("terminar", confirmado=True)
         self.sesion("REALIZADA")
+        # Sin el pago final no se puede terminar: queda el saldo pendiente.
+        with self.assertRaisesMessage(ValidationError, "Falta confirmar el pago final"):
+            self.accion("terminar", confirmado=True)
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.estado, "ACEPTADA")
+        self.accion("cobro", tipo="PAGO", monto=40000, verificado=True, detalle="Pago parcial")
+        with self.assertRaisesMessage(ValidationError, "30.000"):
+            self.accion("terminar", confirmado=True)
+        self.accion("cobro", tipo="PAGO", monto=30000, verificado=True, detalle="Pago final")
         self.accion("terminar", confirmado=True)
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "REALIZADA")
-        self.assertEqual(self.p.saldo_pendiente, 70000)
-        self.accion("cobro", tipo="PAGO", monto=70000, verificado=True, detalle="Pago final")
         self.assertEqual(self.p.saldo_pendiente, 0)
+
+    def test_detalle_pide_pago_final_antes_de_terminar(self):
+        self.aceptar()
+        self.sesion("REALIZADA")
+        self.client.force_login(self.a.usuario)
+        url = reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])
+        r = self.client.get(url)
+        self.assertContains(r, "Confirma el pago final")
+        self.assertContains(r, "70.000")
+        self.assertNotContains(r, reverse("nucleo:flujo", args=[self.p.referencia, "terminar"]))
+        r = self.client.get(reverse("nucleo:flujo", args=[self.p.referencia, "terminar"]))
+        self.assertContains(r, "Falta confirmar el pago final")
+        self.accion("cobro", tipo="PAGO", monto=70000, verificado=True, detalle="Pago final")
+        r = self.client.get(url)
+        self.assertContains(r, "Pago final confirmado")
+        self.assertContains(r, reverse("nucleo:flujo", args=[self.p.referencia, "terminar"]))
+
+    def sesion_en(self, dias, estado="RESERVADA"):
+        b = BloqueHorario.objects.create(tatuadora=self.a, tipo="CITA", fecha=timezone.localdate()+timedelta(days=dias), hora_inicio=time(10), hora_fin=time(12), estado=estado)
+        Sesion.objects.create(bloque=b, postulacion=self.p)
+        Postulacion.objects.filter(pk=self.p.pk).update(estado="RESERVADA")
+        return b
+
+    def test_pago_final_ofrece_terminar_y_cerrar_deja_solo_lectura(self):
+        self.aceptar()
+        hoy = self.sesion_en(0)
+        url = reverse("nucleo:flujo", args=[self.p.referencia, "cobro"])
+        self.p.refresh_from_db()
+        r = self.client.get(url)
+        self.assertContains(r, "Registrar pago final")
+        r = self.client.post(url, {"version": self.p.actualizada_en.isoformat(), "tipo": "PAGO", "monto": 70000, "verificado": "on", "detalle": "Pago final"})
+        detalle = reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])
+        self.assertRedirects(r, detalle + "?cerrar=1")
+        r = self.client.get(detalle + "?cerrar=1")
+        self.assertContains(r, "¿Deseas terminar los pasos ahora o continuar después?")
+        self.assertContains(r, "data-abrir-al-cargar")
+        self.assertNotContains(self.client.get(detalle), "data-abrir-al-cargar")  # «continuar después»
+        # «Terminar ahora» envía el formulario del diálogo.
+        self.p.refresh_from_db()
+        r = self.client.post(reverse("nucleo:flujo", args=[self.p.referencia, "terminar"]), {"version": self.p.actualizada_en.isoformat(), "confirmado": "on"})
+        self.assertRedirects(r, detalle)
+        self.p.refresh_from_db(); hoy.refresh_from_db()
+        self.assertEqual((self.p.estado, hoy.estado), ("REALIZADA", "REALIZADA"))
+        # Cerrada: solo lectura.
+        r = self.client.get(detalle)
+        self.assertContains(r, "Trabajo terminado")
+        self.assertNotContains(r, "Todas las acciones de esta solicitud")
+        self.assertNotContains(r, url)
+        self.assertRedirects(self.client.get(url), detalle)
+        with self.assertRaisesMessage(ValidationError, "solicitud quedó cerrada"):
+            self.accion("cobro", tipo="DEVOLUCION", monto=1000, verificado=True, detalle="Después del cierre")
+
+    def test_no_termina_con_sesion_futura(self):
+        self.aceptar()
+        self.sesion_en(3)
+        self.accion("cobro", tipo="PAGO", monto=70000, verificado=True, detalle="Pago adelantado")
+        with self.assertRaisesMessage(ValidationError, "aún no ocurre"):
+            self.accion("terminar", confirmado=True)
+        r = self.client.get(reverse("nucleo:cotizacion_detalle", args=[self.p.referencia]))
+        self.assertNotContains(r, 'id="dialogo-cierre"')
 
     def test_revision_conserva_prediccion_y_no_habilita_entrenamiento(self):
         im = Imagen.objects.create(postulacion=self.p, url="privada.jpg", orden=1, es_principal=True, formato="JPEG", ancho_px=300, alto_px=300, tamano_bytes=1000)

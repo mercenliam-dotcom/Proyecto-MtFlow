@@ -1,6 +1,5 @@
 """Recepción atómica de propuestas e imágenes privadas."""
 import logging
-import uuid
 from dataclasses import dataclass
 from decimal import Decimal
 from time import perf_counter
@@ -12,6 +11,7 @@ from django.db import IntegrityError, transaction
 from apps.clasificacion.catalogo import ESTILOS, recomendar
 from apps.clasificacion.cliente_ml import ServicioMLNoDisponible
 from .models import Cliente, ContactoSolicitud, ConfianzaEstilo, Estilo, Imagen, Postulacion, Prediccion, Tatuadora
+from .almacen_referencias import ruta_referencia
 from .precios import estimar
 
 log = logging.getLogger("mtflow.seguridad")
@@ -73,12 +73,15 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
         tiempo_ms = max(0, round((perf_counter() - inicio) * 1000))
 
     storage = FileSystemStorage(location=settings.MEDIA_ROOT)
-    # Un directorio por intento evita colisiones y permite limpiar incluso una
-    # escritura parcial que falle antes de que storage.save devuelva el nombre.
-    ruta = f"postulaciones/{referencia}/{uuid.uuid4().hex}/{validada.archivo.name}"
+    # referencias/<tatuadora>/MT-XXXXXXXX_<cliente>_<fecha>.<ext> (ver almacen_referencias).
+    ruta = ruta_referencia(tatuadora, referencia, f"{datos['nombre']} {datos.get('primer_apellido', '')}", validada.archivo.name)
+    # Si el nombre ya existe, storage.save elige otro; solo se limpia lo que
+    # escribió este intento (nunca un archivo previo con el nombre pedido).
+    ocupada = storage.exists(ruta)
     try:
         validada.archivo.seek(0)
         ruta = storage.save(ruta, validada.archivo)
+        ocupada = False
         # Esta transacción es dueña del commit. La vista desactiva ATOMIC_REQUESTS
         # para poder borrar el archivo también si el commit falla.
         with transaction.atomic(durable=True):
@@ -137,7 +140,7 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
                 ])
         return Recepcion(postulacion, estimacion, resultado)
     except Exception:
-        if ruta:
+        if ruta and not ocupada:
             try:
                 storage.delete(ruta)
             except OSError:

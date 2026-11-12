@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block titulo %}Inicio{% endblock %}
 {% block contenido %}
 <div class="encabezado inicio-encabezado">
@@ -9,9 +9,9 @@
 
 {% if user.es_tatuadora %}
 <div class="kpis inicio-kpis">
-  <a class="kpi kpi-enlace{% if cuenta.por_decidir %} kpi-alerta{% endif %}" href="{% url 'nucleo:cotizaciones' %}"><span>Por decidir</span><strong>{{ cuenta.por_decidir }}</strong><small>Solicitudes nuevas o en revisión →</small></a>
-  <a class="kpi kpi-enlace" href="{% url 'nucleo:registro' %}?bandeja=por_agendar"><span>Aceptadas en curso</span><strong>{{ cuenta.aceptadas }}</strong><small>Confirmar abono o agendar →</small></a>
-  <a class="kpi kpi-enlace" href="{% url 'nucleo:registro' %}?bandeja=agendadas"><span>Agendadas</span><strong>{{ cuenta.agendadas }}</strong><small>Sesiones por realizar →</small></a>
+  <a class="kpi kpi-enlace{% if cuenta.por_decidir %} kpi-alerta{% endif %}" href="{% url 'nucleo:cotizaciones' %}"><span>Por decidir</span><strong><span data-contar="{{ cuenta.por_decidir }}">{{ cuenta.por_decidir }}</span></strong><small>Solicitudes nuevas o en revisión →</small></a>
+  <a class="kpi kpi-enlace" href="{% url 'nucleo:registro' %}?bandeja=por_agendar"><span>Aceptadas en curso</span><strong><span data-contar="{{ cuenta.aceptadas }}">{{ cuenta.aceptadas }}</span></strong><small>Confirmar abono o agendar →</small></a>
+  <a class="kpi kpi-enlace" href="{% url 'nucleo:registro' %}?bandeja=agendadas"><span>Agendadas</span><strong><span data-contar="{{ cuenta.agendadas }}">{{ cuenta.agendadas }}</span></strong><small>Sesiones por realizar →</small></a>
 </div>
 
 <div class="inicio-rejilla">
@@ -40,3 +40,4 @@
   <a class="tarjeta acceso" href="{% url 'cuentas:lista' %}"><span class="acceso-icono" aria-hidden="true">⚙</span><h3>Gestionar cuentas</h3><p>Crear cuentas, roles, accesos y contraseñas.</p></a>{% endif %}
 </div>
 {% endblock %}
+{% block page_scripts %}<script src="{% static 'vendor/countup/countup.umd.min.js' %}" defer></script><script src="{% static 'js/contador.js' %}" defer></script>{% endblock %}

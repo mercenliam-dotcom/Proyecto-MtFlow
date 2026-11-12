@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% load static %}
+{% block titulo %}Imágenes de referencia{% endblock %}
+{% block styles %}{{ block.super }}<link rel="stylesheet" href="{% static 'vendor/photoswipe/photoswipe.css' %}">{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <p class="eyebrow">ARCHIVO PRIVADO</p>
+    <h1>Imágenes de referencia</h1>
+    <p class="bajada">Todas las referencias que te enviaron tus clientes, de la más reciente a la más antigua. Solo tú las ves; no se publican.</p>
+  </div>
+</div>
+
+<form method="get" class="tarjeta referencias-busqueda" role="search">
+  <label for="buscar-referencia">Buscar por nombre o código</label>
+  <div class="referencias-busqueda-fila">
+    <input id="buscar-referencia" type="search" name="q" value="{{ texto }}" maxlength="80" placeholder="Ej.: Valentina o MT-1A2B3C4D">
+    <button type="submit" class="boton">Buscar</button>
+    {% if texto %}<a class="boton secundario" href="{% url 'nucleo:referencias' %}">Ver todas</a>{% endif %}
+  </div>
+  <p class="nota">{% if texto %}{{ pagina.paginator.count }} resultado{{ pagina.paginator.count|pluralize }} de {{ total }} imágenes{% else %}{{ total }} imagen{{ total|pluralize:"es" }}{% endif %} · Guardadas en <code>{{ carpeta }}</code></p>
+</form>
+
+{% if tarjetas %}
+<div class="referencias-galeria" data-galeria-zoom>
+  {% for t in tarjetas %}
+  <article class="referencia-tarjeta">
+    {% if t.url %}
+    <a class="referencia-foto" href="{{ t.url }}" data-zoom data-pswp-width="{{ t.imagen.ancho_px }}" data-pswp-height="{{ t.imagen.alto_px }}" aria-label="Ampliar la referencia de {{ t.cliente }}">
+      <img src="{{ t.url }}" alt="Referencia de {{ t.cliente }}, {{ t.postulacion.codigo }}" loading="lazy" width="{{ t.imagen.ancho_px }}" height="{{ t.imagen.alto_px }}">
+    </a>
+    {% else %}
+    <div class="referencia-foto referencia-sin-archivo"><span>Archivo no disponible</span></div>
+    {% endif %}
+    <div class="referencia-texto">
+      <div class="referencia-titulo"><strong>{{ t.cliente }}</strong><span class="chip chip-estado chip-{{ t.postulacion.estado|lower }}">{{ t.postulacion.estado_comercial }}</span></div>
+      <p>{{ t.postulacion.codigo }} · {{ t.imagen.cargada_en|date:"d/m/Y" }} · {{ t.imagen.ancho_px }}×{{ t.imagen.alto_px }} px</p>
+      <div class="referencia-acciones">
+        <a href="{% url 'nucleo:cotizacion_detalle' t.postulacion.referencia %}">Ver solicitud</a>
+        {% if t.url %}<a href="{{ t.url }}" download="{{ t.nombre_archivo }}">Descargar</a>{% endif %}
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% if pagina.has_other_pages %}
+<nav class="acciones cotizaciones-paginacion" aria-label="Páginas de referencias">
+  {% if pagina.has_previous %}<a class="boton secundario" href="?pagina={{ pagina.previous_page_number }}{% if texto %}&amp;q={{ texto|urlencode }}{% endif %}">Anterior</a>{% endif %}
+  <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+  {% if pagina.has_next %}<a class="boton secundario" href="?pagina={{ pagina.next_page_number }}{% if texto %}&amp;q={{ texto|urlencode }}{% endif %}">Siguiente</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<section class="tarjeta portafolio-vacio">
+  <h2>{% if texto %}Sin resultados{% else %}Aún no hay referencias{% endif %}</h2>
+  <p>{% if texto %}Prueba con otro nombre o con el código de la solicitud.{% else %}Cuando un cliente te envíe una propuesta, su imagen aparecerá aquí.{% endif %}</p>
+</section>
+{% endif %}
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'js/zoom-fotos.js' %}" data-lightbox="{% static 'vendor/photoswipe/photoswipe-lightbox.esm.min.js' %}" data-core="{% static 'vendor/photoswipe/photoswipe.esm.min.js' %}" defer></script>{% endblock %}

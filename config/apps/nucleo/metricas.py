@@ -44,6 +44,21 @@ def calcular(artista, inicio, fin):
     return {"totales": totales, "recibidas": recibidas, "estados": sorted(estados.items()), "zonas": zonas.most_common(), "estilos": estilos.most_common(), "rechazados": rechazados.most_common(), "ingresos": sorted(ingresos.items()), "ausencias": ausencias}
 
 
+def serie_semanal(artista, hoy, semanas=12):
+    """Solicitudes recibidas y trabajos terminados por semana (lunes a domingo), las últimas N semanas."""
+    lunes = hoy - timedelta(days=hoy.weekday())
+    inicios = [lunes - timedelta(weeks=n) for n in range(semanas - 1, -1, -1)]
+    recibidas, terminados = [0] * semanas, [0] * semanas
+    desde = inicios[0]
+    for creada, realizada in Postulacion.objects.filter(tatuadora=artista).values_list("creada_en", "realizada_en"):
+        for fecha, serie in ((creada, recibidas), (realizada, terminados)):
+            if fecha:
+                dia = timezone.localtime(fecha).date()
+                if desde <= dia <= hoy:
+                    serie[(dia - desde).days // 7] += 1
+    return {"etiquetas": [f"{d:%d/%m}" for d in inicios], "recibidas": recibidas, "terminados": terminados}
+
+
 ETAPAS = [("RECIBIDA", "Recibidas"), ("EN_REVISION", "En revisión"), ("ACEPTADA", "Aceptadas"),
           ("RESERVADA", "Agendadas"), ("REALIZADA", "Terminadas"), ("RECHAZADA", "Rechazadas")]
 
@@ -75,4 +90,6 @@ def inicio(request):
     contexto = calcular(artista, desde, hoy)
     contexto.update(desde=desde, hasta=hoy, periodo=periodo)
     contexto.update(presentar(contexto))
+    contexto["serie"] = serie = serie_semanal(artista, hoy)
+    contexto["serie_filas"] = list(zip(serie["etiquetas"], serie["recibidas"], serie["terminados"]))
     return render(request, "flujo/metricas.html", contexto)

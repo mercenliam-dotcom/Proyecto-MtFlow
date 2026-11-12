@@ -6,6 +6,9 @@
 {% endblock %}
 
 
+{# FullCalendar inserta sus estilos con este nonce; sin él la CSP los bloquea y el calendario queda vacío. #}
+{% block styles %}{{ block.super }}<meta name="csp-nonce" content="{{ request.csp_nonce }}">{% endblock %}
+
 {% block contenido %}
     <p class="miga"><a href="{% url 'nucleo:agenda' %}">← Mi agenda</a></p>
     
@@ -61,7 +64,7 @@
             
             <section class="tarjeta reserva-calendario" aria-label="Agenda al reservar">
                 <h2>Tu agenda</h2>
-                <p class="nota">Revisa tus citas y bloqueos antes de guardar. Selecciona un día para completar la fecha del formulario. Los horarios de trabajo aparecen al fondo.</p>
+                <p class="nota">Revisa tus citas y bloqueos antes de guardar. Arrastra sobre las horas para completar fecha, inicio y término; en «Mes», un clic elige el día. Los horarios de trabajo aparecen al fondo.</p>
                 <div id="agenda-calendar" data-mode="reserva" data-today="{{ hoy }}" data-events="{% url 'nucleo:agenda_eventos' %}"></div>
                 <p id="agenda-error" role="status"></p>
             </section>
@@ -78,4 +81,4 @@
 
     <!-- NUEVO: Script para validar la fecha actual vs la fecha de término del bloque -->
     <script src="{% static 'js/confirmar-sesion.js' %}" defer></script>
-{% endblock %}
+{% endblock %}
