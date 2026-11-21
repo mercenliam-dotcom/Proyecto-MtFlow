@@ -9,10 +9,13 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from web.models import Tatuadora, Postulacion, TrabajoPortafolio
+from web.campos import TelefonoChileField
 from .forms_cliente import DatosClienteForm
 
 
 class ContactoArtistaForm(forms.ModelForm):
+    telefono = TelefonoChileField(label="Teléfono de contacto", required=False)
+
     class Meta:
         model = Tatuadora
         fields = ['telefono']

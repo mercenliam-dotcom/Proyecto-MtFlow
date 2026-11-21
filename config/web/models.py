@@ -145,7 +145,8 @@ class Postulacion(models.Model):
     estado = models.CharField(max_length=20)
     alerta_ml = models.CharField(max_length=20, null=True, blank=True)
     motivo_rechazo = models.TextField(null=True, blank=True)
-    precio_sugerido = models.IntegerField(null=True, blank=True)
+    precio_sugerido = models.IntegerField(null=True, blank=True)  # mínimo de la estimación que vio el cliente
+    precio_sugerido_maximo = models.IntegerField(null=True, blank=True)  # máximo de esa estimación
     precio_final = models.IntegerField(null=True, blank=True)
     monto_abono = models.IntegerField(null=True, blank=True)
     creada_en = models.DateTimeField(auto_now_add=True)
@@ -381,3 +382,30 @@ class EventoSolicitud(models.Model):
 
     class Meta:
         ordering = ["-creado_en", "-pk"]
+
+
+class Consentimiento(models.Model):
+    """Consentimiento informado de un trabajo: ficha firmada por el cliente y
+    declaración firmada por la tatuadora. Sin ambas firmas no se marca una sesión
+    como realizada. Contiene datos de salud: solo lo ve la tatuadora del trabajo."""
+    postulacion = models.OneToOneField(Postulacion, primary_key=True, on_delete=models.RESTRICT, related_name="consentimiento")
+    version_texto = models.CharField(max_length=20)
+    # Ficha del cliente
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    alergias = models.CharField(max_length=500, blank=True)
+    condiciones = models.CharField(max_length=500, blank=True)
+    medicamentos = models.CharField(max_length=500, blank=True)
+    embarazo = models.BooleanField(default=False)
+    alcohol_24h = models.BooleanField(default=False)
+    autoriza_fotos = models.BooleanField(default=False)
+    firma_cliente = models.CharField(max_length=160, blank=True)
+    cliente_firmo_en = models.DateTimeField(null=True, blank=True)
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="consentimientos_registrados")
+    # Declaración de la tatuadora
+    firma_tatuadora = models.CharField(max_length=160, blank=True)
+    tatuadora_firmo_en = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def completo(self):
+        return bool(self.cliente_firmo_en and self.tatuadora_firmo_en)

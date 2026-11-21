@@ -341,6 +341,27 @@ COTIZACION_VENTANA_SEGUNDOS = int(env("COTIZACION_VENTANA_SEGUNDOS", "600"))
 ANALISIS_MAX_INTENTOS = int(env("ANALISIS_MAX_INTENTOS", "20"))
 ANALISIS_VENTANA_SEGUNDOS = int(env("ANALISIS_VENTANA_SEGUNDOS", "600"))
 
+# Revisión automática de correos: se consulta el DNS para confirmar que el dominio
+# recibe correo (registros MX). Las pruebas automáticas no dependen de internet.
+_EN_PRUEBAS = len(sys.argv) > 1 and sys.argv[1] == "test"
+VERIFICACION_DNS_ACTIVA = env_bool("VERIFICACION_DNS_ACTIVA", not _EN_PRUEBAS)
+
+# Envío de correos. En desarrollo, por defecto se muestran en la consola de Django.
+# Para enviarlos de verdad (p. ej. Gmail con «contraseña de aplicación»), en .env:
+#   EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+#   EMAIL_HOST=smtp.gmail.com  EMAIL_PORT=587  EMAIL_USE_TLS=1
+#   EMAIL_HOST_USER=estudio@gmail.com  EMAIL_HOST_PASSWORD=<contraseña de aplicación>
+EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
+# Enlace para recuperar la contraseña (clientes): vence en 2 horas y sirve una sola vez.
+PASSWORD_RESET_TIMEOUT = 2 * 3600
+EMAIL_TIMEOUT = 15
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", f"MTFlow <{EMAIL_HOST_USER or 'no-responder@mtflow.local'}>")
+
 # Cuenta demo admin/admin únicamente mediante activación explícita local.
 ADMIN_DESARROLLO_HABILITADO = env_bool("ADMIN_DESARROLLO_HABILITADO", False)
 

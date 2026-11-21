@@ -37,13 +37,18 @@ class FlujoCompleto(TestCase):
         gestionar(self.a.usuario, self.p.referencia, {"accion": "abono", "monto_abono": 30000, "verificado": True})
         self.p.refresh_from_db()
 
+    def firmar(self):
+        from datetime import date
+        from apps.nucleo.consentimiento import firmar_por_sistema
+        firmar_por_sistema(self.p, self.a.usuario, date(1995, 5, 5), "Cliente Prueba")
+
     def sesion(self, estado="RESERVADA", inicio=10):
         b = BloqueHorario.objects.create(tatuadora=self.a, tipo="CITA", fecha=timezone.localdate()-timedelta(days=1), hora_inicio=time(inicio), hora_fin=time(inicio+1), estado=estado)
         Sesion.objects.create(bloque=b, postulacion=self.p)
         return b
 
     def test_propuesta_guarda_contacto_preferencia_ignora_presupuesto_sin_reservar(self):
-        r = Client().post(reverse("web:cotizacion"), propuesta(self.a, primer_apellido="Pérez", segundo_apellido="Soto", canal_preferido="instagram", usuario_social="@cliente", presupuesto=90000, fecha_propuesta=(timezone.localdate()+timedelta(days=5)).isoformat(), hora_propuesta="11:00"))
+        r = Client().post(reverse("web:cotizacion"), propuesta(self.a, primer_apellido="Pérez", segundo_apellido="Soto", canal_preferido="instagram", usuario_social="@cliente", presupuesto=90000, fecha_propuesta=(timezone.localdate()+timedelta(days=5)).isoformat(), hora_propuesta="11:00"), follow=True)
         self.assertEqual(r.status_code, 200)
         p = Postulacion.objects.latest("pk")
         self.assertEqual((p.contacto.apellidos, p.contacto.segundo_apellido), ("Pérez", "Soto"))
@@ -52,7 +57,7 @@ class FlujoCompleto(TestCase):
         self.assertFalse(p.sesiones.exists())
 
     def test_preferencia_incompleta_y_contacto_sin_numero_se_rechazan(self):
-        r = Client().post(reverse("web:cotizacion"), propuesta(self.a, fecha_propuesta="2030-01-10", canal_preferido="whatsapp"))
+        r = Client().post(reverse("web:cotizacion"), propuesta(self.a, fecha_propuesta="2030-01-10", canal_preferido="whatsapp"), follow=True)
         self.assertEqual(r.status_code, 400)
         self.assertEqual(Postulacion.objects.count(), 1)
 
@@ -135,6 +140,7 @@ class FlujoCompleto(TestCase):
 
     def test_cierre_exige_sesion_realizada_y_pago_final(self):
         self.aceptar()
+        self.firmar()
         with self.assertRaises(ValidationError):
             self.accion("terminar", confirmado=True)
         self.sesion("REALIZADA")
@@ -154,6 +160,7 @@ class FlujoCompleto(TestCase):
 
     def test_detalle_pide_pago_final_antes_de_terminar(self):
         self.aceptar()
+        self.firmar()
         self.sesion("REALIZADA")
         self.client.force_login(self.a.usuario)
         url = reverse("nucleo:cotizacion_detalle", args=[self.p.referencia])
@@ -176,6 +183,7 @@ class FlujoCompleto(TestCase):
 
     def test_pago_final_ofrece_terminar_y_cerrar_deja_solo_lectura(self):
         self.aceptar()
+        self.firmar()
         hoy = self.sesion_en(0)
         url = reverse("nucleo:flujo", args=[self.p.referencia, "cobro"])
         self.p.refresh_from_db()
@@ -323,3 +331,19 @@ class FlujoCompleto(TestCase):
         c = Client(enforce_csrf_checks=True)
         c.force_login(self.a.usuario)
         self.assertEqual(c.post(reverse("nucleo:flujo", args=[self.p.referencia, "cobro"]), {}).status_code, 403)
+
+
+class AceptarPrecargaDatosDeLaSolicitud(TestCase):
+    def test_formulario_de_aceptar_trae_precio_y_medidas_de_la_solicitud(self):
+        from decimal import Decimal
+        from web.models import Postulacion
+        from apps.nucleo.forms_agenda import GestionForm
+        p = Postulacion(alto_cm=Decimal("12.50"), ancho_cm=Decimal("8.00"), precio_sugerido=90000, precio_sugerido_maximo=150000, presupuesto_estimado=120000, estado="RECIBIDA")
+        p.actualizada_en = __import__("django.utils.timezone", fromlist=["now"]).now()
+        form = GestionForm(solicitud=p, accion="aceptar")
+        self.assertEqual(form["precio_final"].value(), 90000)
+        self.assertEqual(form["alto_final_cm"].value(), "12.5")
+        self.assertEqual(form["ancho_final_cm"].value(), "8")
+        self.assertIn("entre $90.000 y $150.000", form.fields["precio_final"].help_text)
+        self.assertIn("$120.000", form.fields["precio_final"].help_text)
+        self.assertIn("12,5 cm", form.fields["alto_final_cm"].help_text)

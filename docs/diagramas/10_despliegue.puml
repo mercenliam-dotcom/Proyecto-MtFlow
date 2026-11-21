@@ -1,0 +1,65 @@
+@startuml 10_despliegue
+!include _estilo.iuml
+skinparam NodeBorderColor #4A3B5C
+skinparam NodeBackgroundColor #FFFFFF
+skinparam ArtifactBackgroundColor #F5F2FA
+skinparam nodesep 40
+skinparam ranksep 60
+title MTFlow — Diagrama de despliegue (producción objetivo)
+
+node "Dispositivo del usuario" <<device>> {
+  node "Navegador web" <<executionEnvironment>> {
+    artifact "Interfaz web\nHTML · CSS · JavaScript\n(librerías y fuentes copiadas\nal proyecto por la CSP)" as UI
+  }
+}
+
+node "Render — Web Service" <<executionEnvironment>> {
+  node "gunicorn + Django 5.2" <<executionEnvironment>> as APP {
+    artifact "MTFlow — monolito modular\n----\nweb: portafolio, catálogo, solicitudes, imagen pendiente\ncuentas: usuarios y roles, registro, recuperar contraseña,\n            revisión del correo\nnucleo: agenda y disponibilidad, acuerdo y abono,\n            consentimiento, cobros y cierre, portafolio,\n            referencias, métricas, historial\nclasificacion: integración con el servicio ML\n----\nWhiteNoise: archivos estáticos" as MTF
+  }
+  folder "Disco persistente\n(MEDIA_ROOT · media_privado/)" as DISCO {
+    artifact "referencias/<tatuadora>/\npendientes/ (24 h)\ncomprobantes/\nportafolio/\navatares/" as CARP
+  }
+}
+
+node "Supabase" <<executionEnvironment>> {
+  database "PostgreSQL 16\n(20 tablas, ver diagrama 04)" as PG
+}
+
+node "Render — Servicio privado" <<executionEnvironment>> {
+  node "uvicorn + FastAPI (Python 3.12)" <<executionEnvironment>> {
+    artifact "API: POST /clasificar · GET /salud\nModelo: EfficientNetB0 v3 (.keras, TensorFlow 2.21)\n7 estilos + detección fuera de distribución" as ML
+  }
+}
+
+node "Servidor SMTP\n(correo del estudio)" as SMTP
+node "Servidor DNS" as DNS
+
+UI --> MTF : HTTPS
+MTF --> PG : SQL sobre SSL\n(DATABASE_URL)
+MTF --> DISCO : leer / escribir imágenes
+MTF --> ML : HTTP · red privada · multipart\nX-API-Key → JSON
+MTF --> SMTP : SMTP + TLS (587)\nenlace para recuperar contraseña
+MTF --> DNS : consulta MX\n(revisión del dominio del correo)
+
+note right of APP
+  Una sola aplicación Django: los módulos
+  comparten proceso y base de datos
+  (no son microservicios). Sin Django REST
+  Framework: vistas HTML y JSON propias.
+end note
+note bottom of DISCO
+  Almacenamiento de archivos de Django.
+  Las imágenes no tienen URL pública:
+  se entregan por vistas con permiso.
+  Supabase Storage: mejora futura.
+end note
+note bottom of ML
+  Servicio separado: el modelo se cambia
+  sin tocar Django. Si no responde, la
+  solicitud se guarda y queda para revisión.
+end note
+legend bottom
+  Desarrollo local: runserver + SQLite (o PostgreSQL con docker compose) y servicio ML en 127.0.0.1:8001.
+endlegend
+@enduml

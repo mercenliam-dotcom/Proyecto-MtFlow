@@ -50,7 +50,7 @@ class PortafolioForm(forms.ModelForm):
     class Meta:
         model = TrabajoPortafolio
         fields = ["titulo", "tipo", "estilo", "postulacion", "visible", "en_carrusel", "autorizacion_publicacion"]
-        labels = {"postulacion": "Solicitud relacionada (opcional)", "visible": "Publicar en el portafolio", "en_carrusel": "Mostrar también en el carrusel", "autorizacion_publicacion": "Tengo autorización para publicar esta fotografía"}
+        labels = {"titulo": "Título", "postulacion": "Solicitud relacionada (opcional)", "visible": "Publicar en el portafolio", "en_carrusel": "Mostrar también en el carrusel", "autorizacion_publicacion": "Tengo autorización para publicar esta fotografía"}
 
     def __init__(self, *args, artista, **kwargs):
         super().__init__(*args, **kwargs)

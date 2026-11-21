@@ -20,6 +20,7 @@ NOMBRES = {
     'web.ConfianzaEstilo': 'confianza_estilo', 'web.EtiquetaConsolidada': 'etiqueta_consolidada',
     'web.TatuadoraEstilo': 'tatuadora_estilo', 'web.TrabajoPortafolio': 'trabajo_portafolio',
     'web.MovimientoCobro': 'movimiento_cobro', 'web.EventoSolicitud': 'evento_solicitud',
+    'web.Consentimiento': 'consentimiento',
 }
 NOTAS = {
     'identidad_social': 'Vinculo OAuth/OIDC por proveedor e identificador estable. Una identidad pertenece a una sola cuenta y cada cuenta vincula como maximo una identidad por proveedor. No almacena tokens, contrasenas externas ni copias del perfil.',
@@ -40,6 +41,7 @@ NOTAS = {
     'tatuadora_estilo': 'Relación entre profesional y estilo. Se conserva la pareja única; Django utiliza además una PK id.',
     'trabajo_portafolio': 'Fotografía final o del estudio, distinta de la referencia privada. Publicación y carrusel explícitos. Solicitud relacionada opcional y propia. Publicar exige autorización; una foto de tatuaje requiere estilo.',
     'movimiento_cobro': 'Pagos adicionales y devoluciones verificadas fuera del sistema. No repite el abono acumulado de postulacion. Neto = abono verificado + pagos - devoluciones. Sin pasarela de pago.',
+    'consentimiento': 'Consentimiento informado de una solicitud (1 a 1). Dos firmas por nombre escrito y en orden: ficha de salud del cliente y luego declaración de la tatuadora. Sin ambas no se puede realizar la sesión ni terminar el trabajo. Datos de salud: no se copian al historial.',
     'evento_solicitud': 'Historial interno de decisiones y operaciones, con actor y fecha. No se expone al cliente ni sustituye las columnas monetarias.',
 }
 CHECKS = {
@@ -66,7 +68,7 @@ CHECKS = {
     'confianza_estilo': [("confianza >= 0 AND confianza <= 1", 'confianza_estilo_valida')],
     'movimiento_cobro': [("monto > 0 AND monto <= 100000000", 'cobro_monto_valido'), ("tipo IN ('PAGO','DEVOLUCION')", 'cobro_tipo_valido')],
 }
-GRUPOS = {'Acceso_y_profesionales': ['usuario','identidad_social','perfil_cliente','cliente','tatuadora','tatuadora_estilo'], 'Solicitudes_y_agenda':['postulacion','contacto_solicitud','sesion','horario_trabajo','bloque_horario','movimiento_cobro','evento_solicitud'], 'Imagenes_estilos_y_portafolio':['imagen','estilo','prediccion','confianza_estilo','etiqueta_consolidada','trabajo_portafolio']}
+GRUPOS = {'Acceso_y_profesionales': ['usuario','identidad_social','perfil_cliente','cliente','tatuadora','tatuadora_estilo'], 'Solicitudes_y_agenda':['postulacion','contacto_solicitud','sesion','horario_trabajo','bloque_horario','movimiento_cobro','evento_solicitud','consentimiento'], 'Imagenes_estilos_y_portafolio':['imagen','estilo','prediccion','confianza_estilo','etiqueta_consolidada','trabajo_portafolio']}
 
 def texto(s):
     return "'"+str(s).replace('\\','\\\\').replace("'","\\'").replace('\n',' ') + "'"
@@ -87,6 +89,8 @@ def tipo(f):
     if t=='TimeField': return 'time'
     if t=='TextField': return 'text'
     if t in ('CharField','EmailField'): return f'varchar({f.max_length})'
+    if t=='JSONField': return 'jsonb'
+    if t in ('FileField','ImageField'): return f'varchar({f.max_length})'
     raise ValueError(t)
 
 def generar(fisico=False):

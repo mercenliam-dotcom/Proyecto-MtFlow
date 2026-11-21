@@ -28,7 +28,7 @@ class AlmacenReferencias(TestCase):
 
     def enviar(self, **extra):
         with mock.patch("web.views.clasificar", side_effect=ServicioMLNoDisponible):
-            r = Client().post(reverse("web:cotizacion"), propuesta(self.artista, **extra))
+            r = Client().post(reverse("web:cotizacion"), propuesta(self.artista, **extra), follow=True)
         self.assertEqual(r.status_code, 200)
         return Postulacion.objects.latest("pk")
 

@@ -27,7 +27,7 @@ class DatosDeCuentaBloqueados(TestCase):
 
     def enviar(self, **extra):
         with mock.patch("web.views.clasificar", side_effect=ServicioMLNoDisponible):
-            return self.client.post(reverse("web:cotizacion"), propuesta(self.artista, **extra))
+            return self.client.post(reverse("web:cotizacion"), propuesta(self.artista, **extra), follow=True)
 
     def test_formulario_muestra_datos_de_la_cuenta_bloqueados(self):
         r = self.client.get(reverse("web:cotizacion"))

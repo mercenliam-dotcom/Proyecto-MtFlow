@@ -1,0 +1,76 @@
+@startuml 02_casos_uso_equipo
+!include _estilo.iuml
+left to right direction
+title MTFlow — Casos de uso: Tatuadora y Administradora
+
+actor "Administradora\n(cuenta ADMIN)" as A
+actor "Tatuadora\n(ADMIN con función\nde tatuadora)" as T
+A <|-- T
+actor "Cliente\n(presencial)" as C
+
+rectangle "MTFlow — panel del estudio" {
+  usecase "CU-11 Revisar bandeja\nde solicitudes" as CU11
+  usecase "CU-12 Confirmar o corregir\nestilo sugerido" as CU12
+  usecase "CU-13 Registrar acuerdo y aceptar\n(precio desde el rango estimado)" as CU13
+  usecase "CU-14 Rechazar solicitud\ncon motivo" as CU14
+  usecase "CU-15 Registrar abono verificado\n(30 % a 40 %)" as CU15
+  usecase "CU-16 Gestionar agenda\n(jornada, bloqueos, citas)" as CU16
+  usecase "Agendar sesión sin solapamiento" as AGE
+  usecase "CU-17 Firmar consentimiento\ninformado" as CU17
+  usecase "Firmar ficha de salud\ndel cliente" as FC
+  usecase "Firmar declaración\nde la tatuadora" as FT
+  usecase "CU-18 Cerrar sesión\n(realizada o inasistencia)" as CU18
+  usecase "Verificar consentimiento\ncompleto" as VC
+  usecase "Registrar destino del abono\npor inasistencia" as INA
+  usecase "CU-19 Registrar pago final\no devolución" as CU19
+  usecase "CU-20 Terminar trabajo\n(queda solo lectura)" as CU20
+  usecase "Verificar saldo en cero" as VS
+  usecase "CU-21 Gestionar portafolio" as CU21
+  usecase "CU-22 Consultar imágenes\nde referencia" as CU22
+  usecase "CU-23 Consultar métricas\ndel estudio" as CU23
+  usecase "CU-24 Consultar historial\nde operaciones" as CU24
+  usecase "CU-25 Gestionar cuentas\ndel equipo" as CU25
+  usecase "CU-26 Consultar solicitudes\nde todo el equipo" as CU26
+}
+
+T --> CU11
+T --> CU12
+T --> CU13
+T --> CU14
+T --> CU15
+T --> CU16
+T --> CU17
+T --> CU18
+T --> CU19
+T --> CU20
+T --> CU21
+T --> CU22
+T --> CU23
+T --> CU24
+A --> CU25
+A --> CU26
+C --> FC
+
+CU16 ..> AGE : <<include>>
+CU17 ..> FC : <<include>>
+CU17 ..> FT : <<include>>
+CU18 ..> VC : <<include>>
+INA ..> CU18 : <<extend>>
+CU20 ..> VC : <<include>>
+CU20 ..> VS : <<include>>
+
+note right of CU17
+  Firma por nombre escrito, en orden:
+  primero el cliente, luego la tatuadora.
+  Sin ambas firmas no se puede realizar
+  la sesión ni terminar el trabajo.
+end note
+note left of A
+  Toda tatuadora es Administradora;
+  una Administradora puede no tatuar.
+end note
+note right of CU13
+  Se precarga el rango que vio el cliente
+  (mínimo–máximo) y sus medidas; todo editable.
+end note
+@enduml

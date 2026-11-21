@@ -106,7 +106,7 @@ def recibir(datos, validada, referencia, clasificador, cuenta_cliente=None):
                 zona_cuerpo=datos["zona"], alto_cm=alto, ancho_cm=ancho,
                 descripcion=datos["idea"], color=datos["color"], nivel_detalle=datos["detalle"], cobertura=datos["cobertura"],
                 estado="RECIBIDA", estado_ml=estado_ml,
-                precio_sugerido=estimacion.get("minimo"),
+                precio_sugerido=estimacion.get("minimo"), precio_sugerido_maximo=estimacion.get("maximo"),
                 presupuesto_estimado=datos.get("presupuesto"), fecha_propuesta=datos.get("fecha_propuesta"), hora_propuesta=datos.get("hora_propuesta"),
                 alerta_ml=recomendar(resultado.estilo_sugerido, resultado.confianza_maxima,
                                      resultado.motivo_abstencion).alerta_ml if resultado else None,

@@ -1,0 +1,11 @@
+{% autoescape off %}Hola {{ user.nombre }}:
+
+Pediste crear una nueva contraseña para tu cuenta de MTFlow (usuario: {{ user.nombre_usuario }}).
+Abre este enlace para hacerlo:
+
+{{ protocol }}://{{ domain }}{% url 'clientes:recuperar_nueva' uidb64=uid token=token %}
+
+El enlace vence en 2 horas y sirve una sola vez. Si no lo pediste, ignora este mensaje: tu contraseña sigue igual.
+
+Maldita Ternura Estudio
+{% endautoescape %}

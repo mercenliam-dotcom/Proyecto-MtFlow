@@ -3,3 +3,6 @@ config/static/vendor/** -text
 # Preservar las huellas SHA-256 del modelo y su calibración OOD.
 ml_service/modelos/efficientnet_b0_v3/** -text whitespace=cr-at-eol
 ml_service/calibracion_ood_v2.json -text whitespace=cr-at-eol
+
+# Los lanzadores de Windows necesitan fin de línea CRLF.
+*.bat text eol=crlf

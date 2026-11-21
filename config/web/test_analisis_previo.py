@@ -28,7 +28,9 @@ class AnalisisPrevio(TestCase):
     def assert_sin_guardado(self):
         for modelo in (Cliente, Imagen, Postulacion, Prediccion, ConfianzaEstilo):
             self.assertFalse(modelo.objects.exists())
-        self.assertFalse(any(Path(self.tmp.name).rglob("*")))
+        # Solo puede quedar la copia temporal de la imagen (web/imagen_pendiente.py),
+        # que se conserva para no pedirla de nuevo; nunca una solicitud ni un archivo definitivo.
+        self.assertFalse([p for p in Path(self.tmp.name).rglob("*") if p.is_file() and p.parent.name != "pendientes"])
 
     def test_clasifica_antes_de_completar_contacto_sin_guardar(self):
         vector = {"E-01": .64, **{f"E-{i:02}": .36 / 6 for i in range(2, 8)}}
@@ -88,7 +90,8 @@ class AnalisisPrevio(TestCase):
     def test_fallo_del_modelo_permite_continuar_sin_datos_guardados(self):
         with patch("web.views.clasificar", side_effect=ServicioMLNoDisponible):
             r = self.analizar()
-        self.assertEqual(r.status_code, 503)
+        self.assertEqual(r.status_code, 200)  # la imagen quedó guardada; el aviso va en «error»
+        self.assertFalse(r.json()["analisis_disponible"])
         self.assertIn("reintentarlo", r.json()["error"])
         self.assert_sin_guardado()
 
@@ -107,7 +110,7 @@ class AnalisisPrevio(TestCase):
         self.assertIn("Retry-After", r)
         self.assert_sin_guardado()
         artista = profesional()
-        r = self.client.post(reverse("web:cotizacion"), propuesta(artista))
+        r = self.client.post(reverse("web:cotizacion"), propuesta(artista), follow=True)
         self.assertEqual(r.status_code, 200)
 
     def test_formulario_ofrece_analisis_automatico_y_url_del_endpoint(self):

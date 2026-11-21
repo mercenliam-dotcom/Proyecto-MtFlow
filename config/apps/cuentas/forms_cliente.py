@@ -1,5 +1,5 @@
 from django import forms
-from web.validadores import nombre_contacto, telefono_contacto
+from web.campos import NombrePersonaField, TelefonoChileField
 from .models import Usuario, PerfilCliente, Rol
 from .forms import _NormalizarTextoMixin, _ContrasenaNuevaMixin, _campo_contrasena
 
@@ -49,9 +49,11 @@ class DatosClienteForm(_NormalizarTextoMixin, forms.ModelForm):
 
 
 class ContactoClienteForm(forms.ModelForm):
-    segundo_apellido = forms.CharField(label="Segundo apellido", max_length=80, required=False, validators=[nombre_contacto])
-    telefono = forms.CharField(label="Teléfono", max_length=25, required=False, validators=[telefono_contacto])
-    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok (opcional)", max_length=61, required=False)
+    segundo_apellido = NombrePersonaField(label="Segundo apellido", required=False)
+    telefono = TelefonoChileField(label="Teléfono", required=False)
+    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok (opcional)", max_length=61, required=False,
+                                      error_messages={"invalid": "Usa solo letras, números, punto o guion bajo, sin espacios (por ejemplo @maria.tattoo)."},
+                                      widget=forms.TextInput(attrs={"data-solo": "social", "autocomplete": "off", "spellcheck": "false"}))
 
     class Meta:
         model = PerfilCliente

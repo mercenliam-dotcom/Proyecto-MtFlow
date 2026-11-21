@@ -1,0 +1,204 @@
+/* Tema oscuro de MTFlow (mockups de la entrega final).
+   Se carga al final: primero tema-oscuro-colores.css (equivalentes oscuros generados
+   de los colores fijos) y después esta hoja con la identidad visual del mockup.
+   Fuente Inter e íconos Lucide copiados en static/ (la CSP no permite CDN). */
+
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Inter"; font-style: italic; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin-wght-italic.woff2") format("woff2"); }
+
+:root {
+  color-scheme: dark;
+  --ink: #ece9f3; --muted: #a29cb0; --paper: #0d0b12; --card: #16131e;
+  --border: #2a2536; --purple: #8b5cf6; --accent-light: #221a36;
+  --acento-oscuro: #7c3aed; --acento-texto: #b9a3fb; --acento-suave: rgba(139, 92, 246, .16);
+  --superficie-2: #1c1827; --campo: #13101b; --borde-campo: #332d43; --barra: #110f17;
+  --ok: #6fd6a0; --ok-fondo: #12261c; --medio: #e9bc6a; --medio-fondo: #2b2213;
+  --mal: #f590a3; --mal-fondo: #2e131b;
+  --radio: 12px;
+  --fuente: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+html { background: var(--paper); }
+body { background: var(--paper); color: var(--ink); font-family: var(--fuente); font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+::selection { background: rgba(139, 92, 246, .45); color: #fff; }
+a { color: var(--acento-texto); }
+:focus-visible { outline-color: #a78bfa; }
+* { scrollbar-color: #3a3350 transparent; }
+
+/* Tipografía: titulares sans en negrita, como el mockup */
+h1 { font: 700 clamp(28px, 2.5vw, 40px)/1.15 var(--fuente); letter-spacing: -.025em; color: #f6f3fb; }
+h1 em { font-style: normal; font-weight: 700; color: var(--acento-texto); }
+h2, h3 { color: #f1eef7; letter-spacing: -.01em; }
+.eyebrow { color: var(--acento-texto); letter-spacing: .14em; }
+.subtitle, .bajada { color: var(--muted); }
+/* La serifa clásica se reemplaza por Inter (la firma escrita conserva su estilo manuscrito) */
+.sidebar-footer p, .reference-preview p, .price, .placeholder-mark, .card-caption h2, .estilo-texto strong { font-family: var(--fuente); letter-spacing: -.01em; }
+.card-caption h2, .estilo-texto strong { font-weight: 600; }
+
+/* Íconos */
+.icono { width: 18px; height: 18px; flex-shrink: 0; vertical-align: -3px; }
+
+/* ------------------------------------------------------------ */
+/* Barra lateral                                                 */
+/* ------------------------------------------------------------ */
+.sidebar { background: var(--barra); border-right: 1px solid #1f1b29; color: #d9d4e3; padding-top: 24px; }
+.brand { gap: 10px; align-items: flex-start; flex-direction: column; padding: 0 10px; }
+.logo-mtflow { display: inline-flex; align-items: center; gap: 0; font: italic 800 27px/1 var(--fuente); letter-spacing: -.03em; color: #fff; }
+.logo-mtflow em { color: var(--purple); font-style: italic; }
+.logo-mtflow .icono { margin-left: 5px; width: 20px; height: 20px; color: #d9cdf9; transform: rotate(-8deg); }
+.brand small { margin: 0; font-size: 9px; letter-spacing: .2em; color: #8f88a0; }
+.nav-label { margin: 30px 12px 10px; font-size: 10px; letter-spacing: .16em; color: #7d768d; }
+.navigation { gap: 4px; }
+.sidebar .nav-item { gap: 12px; min-height: 40px; padding: 9px 12px; border-radius: 8px; color: #cfc9da; font-size: 13.5px; font-weight: 500; }
+.sidebar .nav-item > span[aria-hidden="true"] { display: none; }
+.navigation .nav-item .icono { color: #9b94ab; width: 18px; height: 18px; }
+.sidebar .nav-item:hover { background: #1d1928; color: #fff; }
+.sidebar .nav-item:hover .icono { color: #d9cdf9; }
+.sidebar .nav-item[aria-current="page"] { background: #6d3fe0; background: linear-gradient(180deg, #8b5cf6, #7444e8); color: #fff; box-shadow: 0 6px 18px rgba(124, 58, 237, .28); }
+.sidebar .nav-item[aria-current="page"] .icono { color: #fff; }
+.navigation .nav-item.nav-sub { padding-left: 42px; min-height: 34px; font-size: 12.5px; color: #aca5bb; }
+.navigation .nav-item.nav-sub .icono { width: 15px; height: 15px; }
+.navigation .nav-item.nav-sub[aria-current="page"] { color: #fff; }
+.sidebar-footer { border-top-color: #1f1b29; color: #8f88a0; }
+.team-access { color: #cfc9da; border-top-color: #1f1b29; }
+
+/* Tarjeta de la persona arriba de la barra (como el mockup) */
+.sidebar-persona { margin: 22px 0 0; }
+.sidebar-persona .menu-cuenta summary { padding: 8px 10px; border-radius: 10px; }
+.sidebar-persona .menu-cuenta summary:hover { background: #1d1928; }
+.sidebar-persona .menu-cuenta-opciones { top: calc(100% + 6px); bottom: auto; }
+.menu-cuenta-opciones { background: #1c1827; border: 1px solid #2e2840; box-shadow: 0 18px 40px rgba(0, 0, 0, .5); }
+.menu-cuenta-opciones a, .menu-cuenta-opciones button { color: #e3deec; }
+.menu-cuenta-opciones a:hover, .menu-cuenta-opciones button:hover { background: #262033; }
+.cuenta-avatar { background: linear-gradient(135deg, #8b5cf6, #5b2fc9); color: #fff; border: 2px solid #2e2840; }
+.cuenta-identidad strong { color: #f3f0f8; }
+.cuenta-identidad small { color: #8f88a0; }
+
+/* ------------------------------------------------------------ */
+/* Barra superior                                                */
+/* ------------------------------------------------------------ */
+.topbar { background: rgba(13, 11, 18, .82); border-bottom: 1px solid #1f1b29; color: #8f88a0; min-height: 64px; }
+.topbar > span { font-weight: 500; }
+.topbar a { color: var(--acento-texto); }
+#alternar-menu { background: #16131e; border: 1px solid #2a2536; color: #d9d4e3; border-radius: 8px; }
+.campana summary { color: #d9d4e3; }
+.campana-panel { background: #1c1827; border-color: #2e2840; }
+.site-footer { border-top-color: #1f1b29; color: #6f6880; }
+
+/* ------------------------------------------------------------ */
+/* Superficies                                                    */
+/* ------------------------------------------------------------ */
+.surface, .tarjeta, .card, .estimate-card { background: var(--card); border-color: var(--border); border-radius: var(--radio); }
+.notice, .demo-note { background: #17132a; border-color: #2e2745; border-left-color: var(--purple); color: #c9c1db; }
+hr { border-color: var(--border); }
+table { color: var(--ink); }
+th { color: #8f88a0; font-weight: 600; }
+th, td { border-color: #241f30 !important; }
+tbody tr:hover { background: rgba(139, 92, 246, .05); }
+details > summary { color: var(--acento-texto); }
+code, kbd { background: #1f1a2b; color: #e6defa; }
+
+/* ------------------------------------------------------------ */
+/* Botones                                                        */
+/* ------------------------------------------------------------ */
+.primary-button, .boton, .main-panel .boton, .main-panel .primary-button { background: var(--purple); border: 1px solid var(--purple); color: #fff; border-radius: 8px; font-weight: 600; box-shadow: 0 6px 16px rgba(124, 58, 237, .22); }
+.primary-button:hover, .boton:hover, .primary-button:hover:not(:disabled), .boton:not(.secundario):hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); color: #fff; }
+.secondary-button, .boton.secundario, .main-panel .secondary-button, .main-panel .boton.secundario { background: transparent; border: 1px solid #3a3350; color: #e6e1ef; box-shadow: none; }
+.secondary-button:hover, .boton.secundario:hover { background: #1f1a2b; border-color: #574b75; color: #fff; }
+.text-button, .enlace { color: var(--acento-texto); }
+input[type="file"]::file-selector-button { background: #1f1a2b; border: 1px solid #3a3350; color: #e6e1ef; border-radius: 8px; }
+
+/* Filtros tipo píldora (Todos / Realismo / Blackwork…) */
+.filter { background: #1a1623; border: 1px solid #2e2840; color: #d4cee0; border-radius: 999px; }
+.filter:hover { border-color: #574b75; color: #fff; }
+.filter.active, .filter[aria-pressed="true"], .catalogo-filtros .filter.active, section[aria-label="Galería de estilos"] .filter.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+/* ------------------------------------------------------------ */
+/* Formularios                                                    */
+/* ------------------------------------------------------------ */
+.form-control, .campo input:not([type="checkbox"]):not([type="radio"]), .campo select, .campo textarea,
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="tel"], input[type="search"], input[type="time"], input[type="date"], select, textarea {
+  background-color: var(--campo); border: 1px solid var(--borde-campo); color: var(--ink); border-radius: 8px; }
+input::placeholder, textarea::placeholder { color: #6f6880; }
+.form-control:focus, input:focus, select:focus, textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(139, 92, 246, .22); outline: none; }
+input:-webkit-autofill { -webkit-text-fill-color: var(--ink); box-shadow: 0 0 0 40px var(--campo) inset; caret-color: var(--ink); }
+select option { background: #16131e; color: var(--ink); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--purple); }
+label, legend { color: #e3deec; }
+.help, .helptext, .campo small, .ayuda { color: #8f88a0; }
+.error, .errorlist, .error-es { color: var(--mal); }
+.upload-box { background: #120f19; border: 1px dashed #3a3350; border-radius: 12px; }
+.upload-box:hover { border-color: var(--purple); }
+.telefono-cl .telefono-prefijo { background: #1f1a2b; border-color: var(--borde-campo); color: var(--acento-texto); }
+.aviso-tecleo { color: var(--medio); }
+
+/* Pasos de la solicitud (1 Detalles — 2 Referencia — 3 Confirmación) */
+.pasos-barra span { background: var(--purple); }
+.pasos-lista button span { background: #1f1a2b; border: 1px solid #3a3350; color: #cfc9da; }
+.pasos-lista button[aria-current="step"] span { background: var(--purple); border-color: var(--purple); color: #fff; box-shadow: 0 0 0 4px rgba(139, 92, 246, .22); }
+
+/* Opciones en tarjeta (zona, color, tatuadora…) */
+.opcion { background: var(--campo); border-color: var(--borde-campo); color: var(--ink); }
+.opcion:hover { border-color: #574b75; }
+.opcion[aria-checked="true"] { background: var(--acento-suave); border-color: var(--purple); }
+
+/* Diálogos propios */
+dialog, .dialogo-cierre, .dialogo { background: #17141f; color: var(--ink); border-color: #2e2840; }
+.dialogo-cierre { border-top-color: var(--purple); }
+.dialogo-cierre p { color: #b4adc2; }
+dialog::backdrop { background: rgba(5, 4, 8, .7); backdrop-filter: blur(3px); }
+
+/* Avisos */
+.aviso, .alerta { border-radius: 10px; }
+.aviso-success, .alerta-exito { background: var(--ok-fondo); color: var(--ok); border-color: #22513a; }
+.aviso-error, .alerta-error { background: var(--mal-fondo); color: var(--mal); border-color: #5a2232; }
+.aviso-warning { background: var(--medio-fondo); color: var(--medio); border-color: #5a4520; }
+.aviso-info { background: #17132a; color: #cdbffa; border-color: #2e2745; }
+
+/* ------------------------------------------------------------ */
+/* Calendario (FullCalendar usa variables propias)                */
+/* ------------------------------------------------------------ */
+.fc {
+  --fc-border-color: #262132; --fc-page-bg-color: var(--card); --fc-neutral-bg-color: #1a1623;
+  --fc-neutral-text-color: #8f88a0; --fc-today-bg-color: rgba(139, 92, 246, .10);
+  --fc-event-bg-color: #6d45e0; --fc-event-border-color: #6d45e0; --fc-event-text-color: #fff;
+  --fc-button-text-color: #e6e1ef; --fc-button-bg-color: #1a1623; --fc-button-border-color: #2e2840;
+  --fc-button-hover-bg-color: #262033; --fc-button-hover-border-color: #574b75;
+  --fc-button-active-bg-color: var(--purple); --fc-button-active-border-color: var(--purple);
+  --fc-highlight-color: rgba(139, 92, 246, .25); --fc-non-business-color: rgba(255, 255, 255, .025);
+  --fc-list-event-hover-bg-color: #1f1a2b; --fc-now-indicator-color: #f590a3;
+  color: var(--ink);
+}
+.fc .fc-toolbar-title { font-weight: 700; letter-spacing: -.01em; color: #f6f3fb; }
+.fc .fc-button { border-radius: 8px; font-weight: 600; box-shadow: none !important; }
+.fc .fc-col-header-cell-cushion { color: #a29cb0; font-weight: 600; text-decoration: none; }
+.fc .fc-daygrid-day-number { color: #cfc9da; text-decoration: none; }
+.fc .fc-day-other .fc-daygrid-day-number { color: #4f4860; }
+.fc .fc-day-today .fc-daygrid-day-number { color: #fff; background: var(--purple); border-radius: 999px; min-width: 24px; text-align: center; }
+.fc .fc-event { border-radius: 6px; padding: 1px 4px; }
+.fc-theme-standard .fc-scrollgrid { border-radius: 10px; overflow: hidden; }
+#agenda-calendar { --fc-bg-event-color: #8b5cf6; --fc-bg-event-opacity: .14; --fc-today-bg-color: rgba(139, 92, 246, .10); --fc-neutral-bg-color: #1a1623; }
+#agenda-calendar .fc-col-header-cell { background: #1a1623; }
+
+/* Galerías y fotos: marco oscuro */
+.portfolio-card, .card-estilo { background: var(--card); border-color: var(--border); }
+.portfolio-card img, .card-estilo img { background: #0a090e; }
+.chip, [class^="chip-"], [class*=" chip-"] { border-radius: 999px; }
+
+/* Tablas de datos / KPIs */
+.kpi, .metrica { background: var(--card); border-color: var(--border); }
+
+@media (max-width: 850px) {
+  .sidebar { background: var(--barra); box-shadow: 8px 0 30px rgba(0, 0, 0, .55); }
+}
+
+/* Ingreso: enlace «¿Olvidaste tu contraseña?» alineado a la derecha, como el mockup */
+.olvido { margin: -6px 0 16px; text-align: right; font-size: 13px; }
+.olvido a { text-decoration: none; }
+.olvido a:hover { text-decoration: underline; }

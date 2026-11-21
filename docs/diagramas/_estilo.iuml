@@ -1,0 +1,12 @@
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam roundcorner 8
+skinparam ArrowColor #4A3B5C
+skinparam ActorBorderColor #4A3B5C
+skinparam UsecaseBorderColor #4A3B5C
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam PackageBorderColor #4A3B5C
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #B7A97A
+skinparam stereotypeCBackgroundColor #EDE7F6

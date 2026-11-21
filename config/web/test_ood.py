@@ -64,7 +64,7 @@ class FlujoOOD(TestCase):
 
     def test_recepcion_guarda_ood_sin_rechazar_ni_asignar_otra_profesional(self):
         with patch('requests.post', return_value=self.respuesta):
-            r = self.client.post(reverse('web:cotizacion'), propuesta(self.artista, analizar='on'))
+            r = self.client.post(reverse('web:cotizacion'), propuesta(self.artista, analizar='on'), follow=True)
         self.assertContains(r, 'La referencia se aleja')
         p = Prediccion.objects.get()
         self.assertEqual(p.ood, respuesta_ood()['ood'])

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva contraseña{% endblock %}
+{% block nav_label %}ACCESO A MTFLOW{% endblock %}
+{% block area %}Acceso{% endblock %}
+{% block navigation %}<a class="nav-item" href="{% url 'cuentas:login' %}">{% include "_icono.html" with n="entrar" %} Ingresar</a><a class="nav-item" href="{% url 'clientes:registro' %}">{% include "_icono.html" with n="usuario" %} Crear cuenta de cliente</a>{% endblock %}
+{% block contenido %}
+<section class="tarjeta angosta centrada">
+  <p class="eyebrow">CUENTA DE CLIENTE</p>
+  {% if validlink %}
+  <h1>Crea tu nueva contraseña</h1>
+  {% include "_errores_form.html" %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}{% include "_campo.html" %}{% endfor %}
+    <p class="ayuda">Mínimo 10 caracteres, con al menos una letra y un número. Puedes usar símbolos.</p>
+    <button type="submit" class="boton ancho">Guardar contraseña</button>
+  </form>
+  {% else %}
+  <h1>El enlace ya no sirve</h1>
+  <p class="bajada">Venció, ya se usó o no está completo. Pide uno nuevo; llega en un par de minutos.</p>
+  <a class="boton" href="{% url 'clientes:recuperar' %}">Pedir otro enlace</a>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,78 @@
+@startuml 07_secuencia_sesion_y_cierre
+!include _estilo.iuml
+skinparam sequenceMessageAlign center
+skinparam ParticipantBorderColor #4A3B5C
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam SequenceLifeLineBorderColor #9E9E9E
+autonumber
+title MTFlow — Secuencia: acuerdo y reserva, consentimiento, sesión, pago final y término del trabajo
+
+actor "Cliente\n(presencial)" as C
+actor Tatuadora as T
+participant ":PanelSolicitud" as P
+participant ":Consentimiento" as CO
+participant ":Agenda" as AG
+participant ":FlujoCierre" as FL
+database "BD_MTFlow" as BD
+
+== Acuerdo, abono y reserva de la sesión ==
+T -> P : aceptar solicitud
+P --> T : formulario con el rango estimado\ny las medidas de la solicitud (editables)
+T -> FL : registrar acuerdo (precio, abono 30–40 %, medidas)
+FL -> BD : UPDATE postulacion.estado = ACEPTADA
+ref over C, T : negociación y transferencia del abono\n(fuera del sistema: WhatsApp, Instagram, banco)
+T -> FL : registrar abono verificado
+FL -> BD : INSERT movimiento_cobro (ABONO)
+T -> AG : agendar sesión (fecha y hora)
+group critical [transacción con bloqueo de fila (RNF-11)]
+  AG -> BD : SELECT … FOR UPDATE (solicitud y bloques de la tatuadora)
+  alt horario libre y abono verificado
+    AG -> BD : INSERT bloque_horario (RESERVADA)\nUPDATE postulacion.estado = RESERVADA
+    AG --> T : sesión agendada
+  else solapamiento u otra condición
+    AG --> T : error con el motivo (no se guarda nada)
+  end
+end
+
+== Consentimiento informado (antes de tatuar) ==
+T -> CO : abrir consentimiento de la solicitud\n[estado ACEPTADA o RESERVADA]
+C -> CO : completar ficha de salud y firmar\n(nombre escrito, fecha DD/MM/AAAA)
+CO -> CO : validar edad ≥ 18, firma con nombre y apellido,\nsin alcohol en las últimas 24 h
+CO -> BD : INSERT consentimiento (ficha + firma del cliente)
+CO -> BD : INSERT evento_solicitud («ficha firmada», sin datos de salud)
+T -> CO : marcar declaraciones y firmar\n(nombre igual al de su cuenta)
+CO -> BD : UPDATE consentimiento (firma de la tatuadora)
+CO --> T : consentimiento completo
+
+== Cerrar la sesión agendada ==
+T -> AG : marcar sesión «realizada»
+AG -> CO : consentimiento_completo(solicitud)?
+alt falta alguna firma
+  AG --> T : bloqueado: «falta el consentimiento firmado»
+else completo
+  AG -> BD : UPDATE bloque_horario.estado = REALIZADA
+  opt no quedan otras sesiones reservadas
+    AG -> BD : UPDATE postulacion.estado = ACEPTADA
+  end
+  AG --> T : sesión realizada
+end
+
+== Pago final ==
+T -> P : «Registrar pago final · $saldo»
+P -> FL : registrar cobro (PAGO, monto, comprobante opcional)
+FL -> FL : validar: no supera el precio acordado
+FL -> BD : INSERT movimiento_cobro, evento_solicitud
+FL --> P : saldo = 0
+P --> T : diálogo «¿Terminar el trabajo ahora o seguir después?»
+
+== Terminar el trabajo ==
+T -> FL : terminar
+FL -> FL : estado_cierre(): ≥ 1 sesión realizada, sin sesiones futuras,\nconsentimiento completo y saldo = 0
+alt falta una condición
+  FL --> T : motivo concreto (p. ej. «saldo pendiente $40.000»)
+else todo cumplido
+  FL -> BD : UPDATE postulacion.estado = REALIZADA, realizada_en
+  FL -> BD : INSERT evento_solicitud («trabajo terminado»)
+  FL --> T : solicitud cerrada: solo consulta
+end
+@enduml

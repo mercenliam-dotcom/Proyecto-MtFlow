@@ -5,7 +5,9 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from apps.nucleo.imagenes import validar_imagen, TIPOS_ACEPTADOS_HTML
 from .models import Tatuadora
-from .validadores import nombre_contacto, telefono_contacto, texto_sin_controles
+from . import imagen_pendiente as pendientes
+from .campos import FechaEspejoInput, NombrePersonaField, TelefonoChileField, TelefonoChileInput
+from .validadores import nombre_contacto, texto_sin_controles
 
 
 def token_envio():
@@ -13,15 +15,17 @@ def token_envio():
 
 class CotizacionForm(forms.Form):
     envio = forms.CharField(widget=forms.HiddenInput, initial=token_envio)
-    nombre = forms.CharField(label="Nombres", max_length=80, validators=[nombre_contacto], widget=forms.TextInput(attrs={"id": "client-name", "autocomplete": "name"}))
-    primer_apellido = forms.CharField(label="Primer apellido", max_length=80, required=False, validators=[nombre_contacto])
-    segundo_apellido = forms.CharField(label="Segundo apellido (opcional)", max_length=80, required=False, validators=[nombre_contacto])
+    nombre = NombrePersonaField(label="Nombres", validators=[nombre_contacto], widget=forms.TextInput(attrs={"id": "client-name", "autocomplete": "given-name"}))
+    primer_apellido = NombrePersonaField(label="Primer apellido", required=False, widget=forms.TextInput(attrs={"autocomplete": "family-name"}))
+    segundo_apellido = NombrePersonaField(label="Segundo apellido (opcional)", required=False)
     canal_preferido = forms.ChoiceField(label="Medio de contacto preferido", required=False, choices=[("correo", "Correo"), ("whatsapp", "WhatsApp"), ("instagram", "Instagram"), ("tiktok", "TikTok")], initial="correo")
-    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok (opcional)", max_length=61, required=False)
-    fecha_propuesta = forms.DateField(label="Fecha que propones (opcional)", required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    usuario_social = forms.RegexField(r"^@?[A-Za-z0-9_.]{1,60}$", label="Usuario de Instagram o TikTok (opcional)", max_length=61, required=False,
+                                      error_messages={"invalid": "Usa solo letras, números, punto o guion bajo, sin espacios (por ejemplo @maria.tattoo)."},
+                                      widget=forms.TextInput(attrs={"data-solo": "social", "autocomplete": "off", "spellcheck": "false"}))
+    fecha_propuesta = forms.DateField(label="Fecha que propones (opcional)", required=False, widget=FechaEspejoInput)
     hora_propuesta = forms.TimeField(label="Hora que propones (opcional)", required=False, widget=forms.TimeInput(attrs={"type": "time"}))
     email = forms.EmailField(label="Correo electrónico", max_length=254, widget=forms.EmailInput(attrs={"id": "client-email", "autocomplete": "email"}))
-    telefono = forms.CharField(label="Teléfono (opcional)", max_length=25, required=False, validators=[telefono_contacto], widget=forms.TextInput(attrs={"id": "client-phone", "type": "tel", "autocomplete": "tel"}))
+    telefono = TelefonoChileField(label="Teléfono (opcional)", required=False, widget=TelefonoChileInput(attrs={"id": "client-phone"}))
     
     # 1. Selector dinámico conectado a la Base de Datos
     tatuadora = forms.ModelChoiceField(
@@ -42,14 +46,20 @@ class CotizacionForm(forms.Form):
     detalle = forms.ChoiceField(label="Detalle que buscas", choices=[("normal", "Simple o intermedio"), ("alto", "Alto: muchos elementos o trazos")])
     idea = forms.CharField(label="Cuéntanos tu idea", max_length=1500, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"id": "idea", "rows": 4, "placeholder": "Motivo, ubicación y detalles que imaginas…"}))
     cobertura = forms.BooleanField(label="Quiero cubrir un tatuaje existente", required=False)
-    imagen = forms.FileField(label="Imagen de referencia", help_text="JPG o PNG · máximo 10 MB · mínimo 224 píxeles por lado.", widget=forms.FileInput(attrs={"id": "reference", "accept": TIPOS_ACEPTADOS_HTML}))
+    imagen = forms.FileField(label="Imagen de referencia", required=False, help_text="JPG o PNG · máximo 10 MB · mínimo 224 píxeles por lado.", widget=forms.FileInput(attrs={"id": "reference", "accept": TIPOS_ACEPTADOS_HTML}))
+    # Token de la imagen ya subida en esta sesión (ver web/imagen_pendiente.py): conserva
+    # la imagen entre envíos fallidos hasta que se envíe, se quite o se reemplace.
+    imagen_pendiente = forms.CharField(required=False, max_length=64, widget=forms.HiddenInput(attrs={"id": "imagen-pendiente"}))
 
     # Con sesión de cliente, estos datos salen de su cuenta y no se pueden cambiar en el envío.
     CAMPOS_DE_CUENTA = ("nombre", "primer_apellido", "segundo_apellido", "email", "telefono", "canal_preferido", "usuario_social")
 
-    def __init__(self, *args, cuenta=None, **kwargs):
+    def __init__(self, *args, cuenta=None, request=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.cuenta = cuenta
+        self.request = request
+        self.validada = None
+        self.token_pendiente = ""
         if cuenta is not None:
             # disabled: Django ignora lo que llegue en el POST y usa el valor inicial (el de la cuenta).
             for nombre in self.CAMPOS_DE_CUENTA:
@@ -92,6 +102,34 @@ class CotizacionForm(forms.Form):
             datos["canal_preferido"] = "correo"  # Sin usuario social, el correo obligatorio permite contactar.
         return datos
 
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if self.cuenta is not None:
+            return email  # el de la cuenta
+        from apps.cuentas.verificacion_correo import validar_dominio_correo
+        validar_dominio_correo(email)
+        return email
+
     def clean_imagen(self):
-        self.validada = validar_imagen(self.cleaned_data["imagen"])
+        archivo = self.cleaned_data.get("imagen")
+        if not archivo:
+            return None
+        self.validada = validar_imagen(archivo)
+        if self.request is not None:
+            # Se guarda ya, aunque otro campo falle: el reintento no pide la imagen de nuevo.
+            self.token_pendiente = pendientes.guardar(self.request, self.validada)
         return self.validada.archivo
+
+    def clean_imagen_pendiente(self):
+        token = self.cleaned_data.get("imagen_pendiente", "")
+        if self.validada is None and token and self.request is not None:
+            self.validada = pendientes.cargar(self.request, token)
+            if self.validada is not None:
+                self.token_pendiente = token
+        if self.validada is None and "imagen" not in self.errors:
+            self.add_error("imagen", "Selecciona una imagen JPG o PNG para tu referencia.")
+        if self.token_pendiente and self.token_pendiente != token:
+            # El reintento mostrará y enviará el token nuevo.
+            self.data = self.data.copy()
+            self.data["imagen_pendiente"] = self.token_pendiente
+        return self.token_pendiente

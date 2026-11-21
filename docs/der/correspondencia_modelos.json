@@ -49,6 +49,7 @@
       "is_active",
       "es_admin_desarrollo",
       "creado_en",
+      "avatar",
       "creado_por_id",
       "debe_cambiar_contrasena"
     ],
@@ -143,6 +144,7 @@
       "abono_verificado_por_id",
       "referencia",
       "estado_ml",
+      "vista_en",
       "cliente_id",
       "tatuadora_id",
       "zona_cuerpo",
@@ -158,6 +160,7 @@
       "alerta_ml",
       "motivo_rechazo",
       "precio_sugerido",
+      "precio_sugerido_maximo",
       "precio_final",
       "monto_abono",
       "creada_en",
@@ -247,6 +250,8 @@
       "confianza_maxima",
       "umbral_confianza",
       "tiempo_inferencia_ms",
+      "ood",
+      "motivo_abstencion",
       "generada_en"
     ],
     "fk": [
@@ -340,7 +345,8 @@
       "monto",
       "detalle",
       "verificado_por_id",
-      "creado_en"
+      "creado_en",
+      "comprobante"
     ],
     "fk": [
       "postulacion_id",
@@ -363,5 +369,31 @@
       "postulacion_id",
       "actor_id"
     ]
+  },
+  {
+    "modelo": "web.Consentimiento",
+    "tabla_der": "consentimiento",
+    "tabla_fisica": "web_consentimiento",
+    "columnas": [
+      "postulacion_id",
+      "version_texto",
+      "fecha_nacimiento",
+      "alergias",
+      "condiciones",
+      "medicamentos",
+      "embarazo",
+      "alcohol_24h",
+      "autoriza_fotos",
+      "firma_cliente",
+      "cliente_firmo_en",
+      "registrado_por_id",
+      "firma_tatuadora",
+      "tatuadora_firmo_en",
+      "creado_en"
+    ],
+    "fk": [
+      "postulacion_id",
+      "registrado_por_id"
+    ]
   }
-]
+]

@@ -39,7 +39,7 @@ class NormalizacionYValidaciones(TestCase):
 
     def test_nuevo_envio_guarda_cliente_y_contacto_historico(self):
         identidades = Cliente.objects.count()
-        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, nombre="Persona nueva", color="color", detalle="alto", cobertura="on"))
+        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, nombre="Persona nueva", color="color", detalle="alto", cobertura="on"), follow=True)
         self.assertContains(r, "Propuesta recibida")
         p = Postulacion.objects.latest("pk")
         self.assertIsNotNone(p.cliente_id)
@@ -61,7 +61,7 @@ class NormalizacionYValidaciones(TestCase):
     def test_formulario_rechaza_controles_telefono_y_dimensiones_invalidas(self):
         for extra in ({"nombre": "Persona\nOtra"}, {"idea": "texto\x00oculto"}, {"telefono": "https://malicioso"}, {"alto_cm": "NaN"}, {"ancho_cm": "0"}, {"alto_cm": "1000"}):
             with self.subTest(extra=extra), patch("web.views.clasificar") as ml:
-                r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, **extra))
+                r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, **extra), follow=True)
                 self.assertEqual(r.status_code, 400)
                 ml.assert_not_called()
         self.assertEqual(Postulacion.objects.count(), 1)

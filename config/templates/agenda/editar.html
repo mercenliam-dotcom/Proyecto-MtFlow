@@ -52,6 +52,9 @@
                         
                         <button name="accion" value="cancelar" class="boton secundario">Cancelar horario</button>
                         
+                        {% if bloque.tipo == 'CITA' and falta_consentimiento %}
+                            <p class="alerta alerta-info">Falta el consentimiento firmado de este trabajo. <a href="{% url 'nucleo:consentimiento' bloque.postulacion.referencia %}">Abrir consentimiento</a> antes de marcar la sesión como realizada.</p>
+                        {% endif %}
                         {% if bloque.tipo == 'CITA' %}
                             <button name="accion" value="realizar" class="boton" data-confirmar-antes-de="{{ bloque.fecha|date:'Y-m-d' }}T{{ bloque.hora_fin|time:'H:i' }}">
                                 Marcar sesión realizada

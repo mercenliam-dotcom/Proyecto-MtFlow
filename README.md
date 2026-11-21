@@ -76,9 +76,21 @@ cp .env.example .env    # usar la misma ML_SERVICE_API_KEY de config/.env
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-Abre http://127.0.0.1:8001/salud y comprueba que muestre `efficientnet_b0:v2:<SHA-256>` y `umbral_confianza: 0.6`. En Django, inicia sesión y sube un JPG o PNG en `/clasificacion/probar/`.
+Abre http://127.0.0.1:8001/salud y comprueba que muestre `efficientnet_b0:v3:<SHA-256>` y `umbral_confianza: 0.6`. En Django, inicia sesión y sube un JPG o PNG en `/clasificacion/probar/`.
 
 En PowerShell: `.\.venv\Scripts\Activate.ps1` en vez de `source ...` y `copy` en vez de `cp`.
+
+### Iniciar en el día a día (Windows)
+
+Con los entornos ya creados, desde la raíz del proyecto (doble clic o en Git Bash):
+
+| Lanzador | Qué hace |
+|---|---|
+| `iniciar-todo.bat` | Abre el servicio ML y Django en dos ventanas y luego el navegador. |
+| `iniciar-django.bat` | Aplica migraciones pendientes y levanta Django en http://127.0.0.1:8000. |
+| `iniciar-ml.bat` | Levanta uvicorn en http://127.0.0.1:8001 con `.venv-ml`. |
+
+No hace falta activar los entornos. Para detener, `Ctrl+C` en cada ventana.
 
 ## Rutas
 

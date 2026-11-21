@@ -1,0 +1,227 @@
+@startuml 03_clases_dominio
+' GENERADO por scripts/generar_clases_plantuml.py desde los modelos Django.
+!include _estilo.iuml
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor white
+  BorderColor #4A3B5C
+}
+hide empty methods
+left to right direction
+title MTFlow — Diagrama de clases del dominio (vigente)
+
+class Usuario {
+  nombre_usuario : Texto
+  email : Texto
+  nombre : Texto
+  apellido : Texto
+  rol : Texto
+  es_tatuadora : Booleano
+  is_active : Booleano
+  avatar : Texto
+  debe_cambiar_contrasena : Booleano
+}
+class IdentidadSocial {
+  proveedor : Texto
+  identificador : Texto
+}
+class PerfilCliente {
+  segundo_apellido : Texto
+  telefono : Texto
+  canal_preferido : Texto
+  usuario_social : Texto
+}
+class Cliente {
+  rut : Texto [0..1]
+  nombres : Texto
+  primer_apellido : Texto
+  segundo_apellido : Texto
+  correo : Texto [0..1]
+  telefono : Texto [0..1]
+}
+class Tatuadora {
+  nombre_artistico : Texto [0..1]
+  telefono : Texto
+  activa : Booleano
+}
+class TatuadoraEstilo {
+  dominio : Texto
+}
+class Estilo {
+  codigo : Texto
+  nombre : Texto
+  descripcion : Texto [0..1]
+  es_catalogo : Booleano
+}
+class Postulacion {
+  fecha_propuesta : Fecha [0..1]
+  hora_propuesta : Hora [0..1]
+  abono_solicitado : Entero [0..1]
+  alto_final_cm : Decimal [0..1]
+  ancho_final_cm : Decimal [0..1]
+  destino_abono : Texto
+  abono_verificado_en : FechaHora [0..1]
+  estado_ml : Texto
+  zona_cuerpo : Texto
+  alto_cm : Decimal
+  ancho_cm : Decimal
+  presupuesto_estimado : Entero [0..1]
+  descripcion : Texto
+  color : Texto [0..1]
+  nivel_detalle : Texto [0..1]
+  cobertura : Booleano [0..1]
+  estado : EstadoPostulacion
+  alerta_ml : Texto [0..1]
+  motivo_rechazo : Texto [0..1]
+  precio_sugerido : Entero [0..1]
+  precio_sugerido_maximo : Entero [0..1] <color:#2E7D32>«nuevo»</color>
+  precio_final : Entero [0..1]
+  monto_abono : Entero [0..1]
+  realizada_en : FechaHora [0..1]
+  --
+  area_cm2() : Decimal
+  total_cobrado() : Entero
+  saldo_pendiente() : Entero
+  estado_comercial() : Texto
+}
+class ContactoSolicitud {
+  nombres : Texto
+  primer_apellido : Texto
+  segundo_apellido : Texto
+  canal_preferido : Texto
+  usuario_social : Texto
+  correo : Texto [0..1]
+  telefono : Texto [0..1]
+}
+class Consentimiento #E8F5E9 {
+  version_texto : Texto
+  fecha_nacimiento : Fecha [0..1]
+  alergias : Texto
+  condiciones : Texto
+  medicamentos : Texto
+  embarazo : Booleano
+  alcohol_24h : Booleano
+  autoriza_fotos : Booleano
+  firma_cliente : Texto
+  cliente_firmo_en : FechaHora [0..1]
+  firma_tatuadora : Texto
+  tatuadora_firmo_en : FechaHora [0..1]
+  --
+  completo() : Booleano
+}
+class Sesion {
+}
+class HorarioTrabajo {
+  dia : Entero
+  activo : Booleano
+  hora_inicio : Hora
+  hora_fin : Hora
+}
+class BloqueHorario {
+  tipo : Texto
+  nota : Texto
+  fecha : Fecha
+  hora_inicio : Hora
+  hora_fin : Hora
+  estado : Texto
+}
+class MovimientoCobro {
+  tipo : Texto
+  monto : Entero
+  detalle : Texto
+  comprobante : Texto
+}
+class EventoSolicitud {
+  tipo : Texto
+  detalle : Texto
+}
+class Imagen {
+  url : Texto
+  orden : Entero
+  es_principal : Booleano
+  formato : Texto
+  ancho_px : Entero
+  alto_px : Entero
+  tamano_bytes : Entero
+  nitidez : Real [0..1]
+  cargada_en : FechaHora
+}
+class Prediccion {
+  version_modelo : Texto
+  confianza_maxima : Decimal
+  umbral_confianza : Decimal [0..1]
+  tiempo_inferencia_ms : Entero
+  ood : JSON [0..1]
+  motivo_abstencion : Texto
+  generada_en : FechaHora
+}
+class ConfianzaEstilo {
+  confianza : Decimal
+}
+class EtiquetaConsolidada {
+  fue_corregida : Booleano
+  apta_entrenamiento : Booleano
+  confirmada_en : FechaHora
+}
+class TrabajoPortafolio {
+  visible : Booleano
+  en_carrusel : Booleano
+  autorizacion_publicacion : Booleano
+  tipo : Texto
+  titulo : Texto
+  url : Texto
+  publicado_en : Fecha
+  apto_entrenamiento : Booleano
+}
+
+enum EstadoPostulacion {
+  RECIBIDA
+  EN_REVISION
+  ACEPTADA
+  RESERVADA
+  REALIZADA
+  RECHAZADA
+}
+enum Rol {
+  ADMIN
+  USUARIO
+}
+
+Usuario "0..1" -- "*" Usuario : creado_por
+Usuario "1" -- "*" IdentidadSocial : usuario
+Usuario "1" *-- "0..1" PerfilCliente : usuario
+Usuario "0..1" -- "0..1" Cliente : usuario
+Usuario "1" -- "0..1" Tatuadora : usuario
+Tatuadora "1" -- "*" TatuadoraEstilo : tatuadora
+Estilo "1" -- "*" TatuadoraEstilo : estilo
+Usuario "0..1" -- "*" Postulacion : abono_verificado_por
+Cliente "1" -- "*" Postulacion : cliente
+Tatuadora "1" -- "*" Postulacion : tatuadora
+Postulacion "1" *-- "0..1" ContactoSolicitud : postulacion
+Postulacion "1" *-- "0..1" Consentimiento : postulacion
+Usuario "0..1" -- "*" Consentimiento : registrado_por
+BloqueHorario "1" *-- "0..1" Sesion : bloque
+Postulacion "1" -- "*" Sesion : postulacion
+Tatuadora "1" -- "*" HorarioTrabajo : tatuadora
+Tatuadora "1" -- "*" BloqueHorario : tatuadora
+Postulacion "1" -- "*" MovimientoCobro : postulacion
+Usuario "0..1" -- "*" MovimientoCobro : verificado_por
+Postulacion "1" -- "*" EventoSolicitud : postulacion
+Usuario "0..1" -- "*" EventoSolicitud : actor
+Postulacion "1" -- "*" Imagen : postulacion
+Imagen "1" -- "*" Prediccion : imagen
+Estilo "1" -- "*" Prediccion : estilo_sugerido
+Prediccion "1" -- "*" ConfianzaEstilo : prediccion
+Estilo "1" -- "*" ConfianzaEstilo : estilo
+Imagen "1" -- "0..1" EtiquetaConsolidada : imagen
+Estilo "1" -- "*" EtiquetaConsolidada : estilo
+Tatuadora "1" -- "*" EtiquetaConsolidada : tatuadora
+Tatuadora "1" -- "*" TrabajoPortafolio : tatuadora
+Estilo "0..1" -- "*" TrabajoPortafolio : estilo
+Postulacion "0..1" -- "*" TrabajoPortafolio : postulacion
+Postulacion ..> EstadoPostulacion
+Usuario ..> Rol
+
+note "Consentimiento: nueva en la entrega final (1 a 1 con Postulacion).\nprecio_sugerido_maximo: máximo de la estimación entregada.\nIdentidadSocial: preparada para Google/Facebook, desactivado (no se usa)." as N1
+N1 .. Consentimiento
+@enduml

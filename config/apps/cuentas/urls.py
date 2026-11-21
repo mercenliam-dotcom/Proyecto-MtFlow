@@ -2,7 +2,7 @@ from django.urls import path
 
 from . import views
 from . import perfil, avatar
-from . import social
+from . import social, verificacion_correo
 
 app_name = "cuentas"
 
@@ -16,6 +16,7 @@ urlpatterns = [
     path("perfil/foto/", avatar.subir, name="avatar_subir"),
     path("perfil/foto/quitar/", avatar.quitar, name="avatar_quitar"),
     path("foto/<uuid:usuario>/", avatar.imagen, name="avatar_imagen"),
+    path("correo/revisar/", verificacion_correo.vista_revisar, name="correo_revisar"),
     path("ingresar/", views.ingresar, name="login"),
     path("salir/", views.salir, name="logout"),
     path("mi-contrasena/", views.mi_contrasena, name="mi_contrasena"),

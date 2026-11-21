@@ -232,6 +232,9 @@ class Agenda(TestCase):
         ayer = timezone.localdate() - timedelta(days=1)
         BloqueHorario.objects.filter(pk=primero.pk).update(fecha=ayer)
         primero.refresh_from_db()
+        from datetime import date
+        from apps.nucleo.consentimiento import firmar_por_sistema
+        firmar_por_sistema(self.p, self.a.usuario, date(1995, 5, 5), "Cliente Prueba")
         cerrar_bloque(self.a.usuario, primero.referencia, "realizar", "", primero.actualizada_en.isoformat())
         self.p.refresh_from_db()
         self.assertEqual(self.p.estado, "ACEPTADA")

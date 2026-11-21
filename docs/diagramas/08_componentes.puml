@@ -1,0 +1,53 @@
+@startuml 08_componentes
+!include _estilo.iuml
+skinparam componentStyle uml2
+skinparam ComponentBorderColor #4A3B5C
+skinparam ComponentBackgroundColor #FFFFFF
+title MTFlow — Diagrama de componentes (implementación vigente)
+
+node "Navegador" {
+  [Sitio público y portal del cliente\n(HTML + JS propios: validación al escribir,\nrevisión de correo, pasos de la solicitud)] as UIP
+  [Panel del estudio\n(FullCalendar, Chart.js, PhotoSwipe\ncopiados localmente por la CSP)] as UIE
+}
+
+node "Aplicación web Django (monolito modular)" {
+  [web\nportafolio, catálogo, solicitud,\nimagen pendiente, consentimiento público] as WEB
+  [cuentas\nacceso, roles, registro de cliente,\nrecuperar contraseña, revisión de correo] as CUE
+  [nucleo\nbandejas, acuerdo y abono, agenda,\nconsentimiento, cobros y cierre,\nportafolio, referencias, métricas] as NUC
+  [clasificacion\ncliente HTTP del servicio ML] as CLA
+  [Seguridad\nCSP con nonce, CSRF, límites de intentos,\npáginas de error propias] as SEG
+  interface "HTTP/HTML" as IH
+  interface "Clasificar(imagen)" as IC
+}
+
+node "Servicio de clasificación (FastAPI)" {
+  [Inferencia EfficientNetB0 v3\n7 estilos + detección fuera de distribución\numbral de confianza → E-99] as INF
+  interface "POST /clasificar\n(clave compartida)" as IML
+}
+
+database "Base de datos\n(SQLite en desarrollo;\nPostgreSQL en producción)" as BD
+folder "Almacén privado de imágenes\n(referencias/<tatuadora>/, pendientes/,\ncomprobantes/)" as AL
+cloud "Servidor DNS" as DNS
+cloud "Servidor SMTP\n(correo del estudio)" as SMTP
+
+UIP --> IH
+UIE --> IH
+IH - WEB
+IH - CUE
+IH - NUC
+WEB --> CLA
+NUC --> CLA
+CLA --> IC
+IC - IML
+IML - INF
+WEB --> BD
+CUE --> BD
+NUC --> BD
+WEB --> AL
+NUC --> AL
+CUE --> DNS : registros MX
+CUE --> SMTP : enlace de recuperación
+SEG .. WEB
+SEG .. CUE
+SEG .. NUC
+@enduml

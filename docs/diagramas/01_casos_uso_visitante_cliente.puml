@@ -1,0 +1,65 @@
+@startuml 01_casos_uso_visitante_cliente
+!include _estilo.iuml
+left to right direction
+title MTFlow — Casos de uso: Visitante y Cliente
+
+actor "Visitante" as V
+actor "Cliente\n(cuenta USUARIO)" as C
+V <|-- C
+actor "Servicio de\nclasificación ML" as ML <<sistema>>
+actor "Servidor DNS" as DNS <<sistema>>
+actor "Servidor de correo\n(SMTP)" as SMTP <<sistema>>
+
+rectangle "MTFlow — sitio público y portal del cliente" {
+  usecase "CU-01 Consultar portafolio\npor estilo" as CU01
+  usecase "CU-02 Explorar catálogo\ncompleto con filtro" as CU02
+  usecase "CU-03 Consultar horarios\ndel estudio" as CU03
+  usecase "CU-04 Leer consentimiento\ninformado" as CU04
+  usecase "CU-05 Enviar solicitud\nde tatuaje" as CU05
+  usecase "Seleccionar tatuadora" as SEL
+  usecase "Validar datos de contacto\n(nombre, +56, DD/MM/AAAA)" as VAL
+  usecase "Revisar dominio del correo" as DOM
+  usecase "Adjuntar imagen de referencia\n(se conserva si el envío falla)" as IMG
+  usecase "Obtener estimación\n(rango mínimo–máximo)" as EST
+  usecase "Analizar imagen antes\nde enviar" as ANA
+  usecase "CU-06 Registrarse como cliente" as CU06
+  usecase "CU-07 Iniciar sesión" as CU07
+  usecase "CU-08 Recuperar contraseña" as CU08
+  usecase "CU-09 Consultar mis solicitudes\ny su estado" as CU09
+  usecase "CU-10 Gestionar mi perfil\n(datos y foto)" as CU10
+}
+
+V --> CU01
+V --> CU02
+V --> CU03
+V --> CU04
+V --> CU05
+V --> CU06
+C --> CU07
+C --> CU08
+C --> CU09
+C --> CU10
+
+CU05 ..> SEL : <<include>>
+CU05 ..> VAL : <<include>>
+CU05 ..> IMG : <<include>>
+CU05 ..> EST : <<include>>
+VAL ..> DOM : <<include>>
+ANA ..> CU05 : <<extend>>
+CU06 ..> VAL : <<include>>
+
+ANA -- ML
+CU05 -- ML
+DOM -- DNS
+CU08 -- SMTP
+
+note right of CU05
+  Un cliente con sesión iniciada envía la
+  solicitud con sus datos fijos de cuenta.
+  Tras enviar, el formulario queda vacío.
+end note
+note bottom of CU08
+  Solo cuentas de cliente. Enlace firmado,
+  de un uso, vence en 2 horas.
+end note
+@enduml

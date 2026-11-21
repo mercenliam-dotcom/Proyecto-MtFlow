@@ -1,16 +1,19 @@
+import json
 import logging
 
 from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import DatabaseError, transaction
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from apps.clasificacion.catalogo import ESTILOS
 from apps.clasificacion.cliente_ml import clasificar, ServicioMLNoDisponible
 from apps.clasificacion.forms import ImagenReferenciaForm
-from apps.clasificacion.views import _miniatura_data_uri
+from . import imagen_pendiente as pendientes
 from .forms import CotizacionForm
 from .limites import admitir_cotizacion, admitir_analisis
 from .recepcion import recibir_una_vez, TatuadoraNoDisponible, EnvioAjeno
@@ -31,16 +34,21 @@ def analizar_referencia(request):
     if not form.is_valid():
         return JsonResponse({"error": " ".join(str(error) for errores in form.errors.values() for error in errores)}, status=400)
     validada = form.validada
+    token = pendientes.guardar(request, validada)
     try:
         resultado = clasificar(validada.archivo.read(), validada.archivo.name,
                                "image/jpeg" if validada.formato == "JPEG" else "image/png")
     except ServicioMLNoDisponible:
-        return JsonResponse({"error": "El análisis no está disponible en este momento. Puedes reintentarlo o enviar tu propuesta para revisión."}, status=503)
+        # 200 y no 503: la imagen sí se recibió y quedó guardada (con 5xx Django no guarda la sesión
+        # y se perdería el token). El aviso va en «error» y la página ofrece reintentar.
+        return JsonResponse({"error": "El análisis no está disponible en este momento. Puedes reintentarlo o enviar tu propuesta para revisión.",
+                             "pendiente": token, "analisis_disponible": False})
     return JsonResponse({
         "estilo_sugerido": resultado.estilo_sugerido,
         "nombre": ESTILOS[resultado.estilo_sugerido],
         "simulado": resultado.version_modelo.startswith("simulado"),
         "motivo_abstencion": resultado.motivo_abstencion,
+        "pendiente": token,
     })
 
 
@@ -104,8 +112,17 @@ def catalogo(request):
     })
 
 
+def consentimiento(request):
+    """Página pública de solo lectura; el mismo texto se firma en el estudio."""
+    from .consentimiento import SECCIONES, VERSION
+    return render(request, "web/consentimiento.html", {"secciones": SECCIONES, "version": VERSION})
+
+
 def horarios(request):
     return redirect("nucleo:agenda")
+
+
+CLAVE_ENVIADA = "cotizacion_enviada"
 
 
 @transaction.non_atomic_requests
@@ -123,10 +140,10 @@ def cotizacion(request):
             inicial.update({campo: getattr(perfil, campo) for campo in ("segundo_apellido", "telefono", "canal_preferido", "usuario_social")})
     if request.method == "POST" and not admitir_cotizacion(request):
         contexto["limite"] = True
-        form = CotizacionForm(initial=inicial, cuenta=cuenta)
+        form = CotizacionForm(initial={**inicial, "imagen_pendiente": request.POST.get("imagen_pendiente", "")}, cuenta=cuenta, request=request)
         estado = 429
     else:
-        form = CotizacionForm(request.POST if request.method == "POST" else None, request.FILES or None, initial=inicial, cuenta=cuenta)
+        form = CotizacionForm(request.POST if request.method == "POST" else None, request.FILES or None, initial=inicial, cuenta=cuenta, request=request)
         if request.method == "POST" and form.is_valid():
             datos = form.cleaned_data
             try:
@@ -142,27 +159,40 @@ def cotizacion(request):
                 form.add_error(None, "No pudimos guardar tu propuesta. Inténtalo nuevamente con la misma página; no confirmaremos la recepción hasta guardarla completa.")
                 estado = 503
             else:
-                contexto.update(referencia=recepcion.postulacion.referencia, codigo=recepcion.postulacion.codigo, repetida=recepcion.repetida)
+                enviada = {"referencia": str(recepcion.postulacion.referencia), "codigo": recepcion.postulacion.codigo, "repetida": recepcion.repetida,
+                           "envio_enviado": request.POST.get("envio", "")}
+                if form.token_pendiente:
+                    pendientes.descartar(request, form.token_pendiente)  # ya quedó en la solicitud
                 if not recepcion.repetida:
-                    form.validada.archivo.seek(0)
-                    contexto.update(
+                    enviada.update(
                         estimacion=recepcion.estimacion,
-                        miniatura=_miniatura_data_uri(form.validada.archivo.read()),
                         resumen={clave: datos[clave] for clave in ("nombre", "email", "telefono", "idea")},
                         error_ml=recepcion.postulacion.estado_ml == "NO_DISPONIBLE",
                     )
-                    contexto["resumen"]["tatuadora"] = datos["tatuadora"].nombre_publico
+                    enviada["resumen"]["tatuadora"] = datos["tatuadora"].nombre_publico
                     resultado = recepcion.resultado_ml
                     if resultado:
-                        contexto.update(
+                        enviada.update(
                             estilo=ESTILOS[resultado.estilo_sugerido],
                             simulado=resultado.version_modelo.startswith("simulado"),
                             revision_ml=resultado.estilo_sugerido == "E-99" or resultado.confianza_maxima < settings.UMBRAL_REVISION,
                             motivo_abstencion=resultado.motivo_abstencion,
                         )
+                # Post/Redirect/Get: el resultado se muestra una sola vez en la página nueva
+                # (con el formulario vacío). Recargar no reenvía ni conserva los datos.
+                request.session[CLAVE_ENVIADA] = json.loads(json.dumps(enviada, cls=DjangoJSONEncoder))
+                return redirect("web:cotizacion")
         elif request.method == "POST":
             estado = 400
+        elif request.method == "GET":
+            contexto.update(request.session.pop(CLAVE_ENVIADA, None) or {})
     contexto["form"] = form
+    # Imagen ya subida en esta sesión: se muestra y se reutiliza en el próximo envío.
+    if "referencia" not in contexto:
+        token = form.token_pendiente or form["imagen_pendiente"].value() or ""
+        info = pendientes.datos(request, token)
+        if info:
+            contexto["pendiente"] = {"token": token, "nombre": info["nombre"], "url": reverse("web:imagen_pendiente", args=[token])}
     if cuenta:
         canal = form["canal_preferido"].value() or "correo"
         contexto["datos_cuenta"] = {

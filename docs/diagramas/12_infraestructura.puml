@@ -1,0 +1,42 @@
+@startuml 12_infraestructura
+!include _estilo.iuml
+skinparam NodeBorderColor #4A3B5C
+skinparam NodeBackgroundColor #FFFFFF
+title MTFlow — Infraestructura (despliegue UML, producción objetivo)
+
+node "Equipo de usuario" <<device>> {
+  node "Navegador web" <<executionEnvironment>> as NAV
+}
+
+node "Render" {
+  node "Servicio web Python\n(gunicorn + Django 5.2)" <<executionEnvironment>> as WEB {
+    artifact "Aplicación MTFlow" as APP
+  }
+  node "Servicio privado Python\n(uvicorn + FastAPI, Python 3.12)" <<executionEnvironment>> as PRIV {
+    artifact "Servicio de inferencia\nEfficientNetB0 v3 (TensorFlow)" as INF
+  }
+  node "Disco persistente" <<device>> as DISCO {
+    artifact "media_privado/\n(imágenes de referencia,\nportafolio, comprobantes)" as MED
+  }
+}
+
+node "Supabase" {
+  node "PostgreSQL 16" <<executionEnvironment>> as PG
+}
+
+node "Proveedor de correo\n(SMTP)" as SMTP
+
+NAV -- WEB : HTTPS
+WEB -- PRIV : HTTP / JSON\n(red privada, X-API-Key)
+WEB -- DISCO : sistema de archivos
+WEB -- PG : PostgreSQL / TLS
+WEB -- SMTP : SMTP / TLS
+
+note bottom of DISCO
+  Reemplaza a «Amazon S3 — bucket multimedia»:
+  el almacenamiento en la nube de objetos no está
+  implementado (mejora futura). En Render el disco
+  persistente es un complemento pagado; sin él,
+  las imágenes se perderían en cada reinicio.
+end note
+@enduml

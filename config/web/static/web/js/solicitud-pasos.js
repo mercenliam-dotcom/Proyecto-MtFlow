@@ -163,7 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (v.rangeUnderflow) return `Debe ser al menos ${control.min}.`;
         if (v.rangeOverflow) return `Debe ser como máximo ${control.max}.`;
         if (v.stepMismatch || v.badInput) return "Escribe solo números (usa punto para decimales).";
-        if (v.patternMismatch) return "Revisa el formato.";
+        if (v.patternMismatch) return control.dataset.mensajePatron || "Revisa el formato.";
+        if (v.tooShort) return `Escribe al menos ${control.minLength} caracteres.`;
         if (v.tooLong) return `Máximo ${control.maxLength} caracteres.`;
         return control.validationMessage || "Revisa este campo.";
     }
@@ -201,11 +202,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (n === 2) {
             const archivo = document.getElementById("reference");
             const preview = document.getElementById("reference-preview");
-            const lista = archivo.files.length && !preview.hidden && preview.getAttribute("src");
+            const guardada = document.getElementById("imagen-pendiente");
+            const lista = (archivo.files.length || (guardada && guardada.value)) && !preview.hidden && preview.getAttribute("src");
             if (!lista) {
                 document.getElementById("file-error").textContent = "Selecciona una imagen JPG o PNG para continuar.";
                 primero = primero || archivo;
             }
+        }
+        // Revisión automática del correo (revisar-correo.js): si el dominio no recibe correos, no avanza.
+        for (const email of paso.querySelectorAll("input[type=email][data-correo-estado='error']")) {
+            marcarError(email, email.dataset.correoMensaje || "Revisa el correo.");
+            primero = primero || email;
         }
         if (primero && enfocar) {
             const destino = primero.classList.contains("select-reemplazado") ? primero.tarjetas.querySelector(".opcion") : primero;
@@ -289,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, true);
     // Después de las comprobaciones de cotizacion.js: ventana de "enviando"
     form.addEventListener("submit", (e) => {
-        if (e.defaultPrevented) { if (!document.getElementById("reference").files.length) ir(2); return; }
+        if (e.defaultPrevented) { if (!document.getElementById("reference").files.length && !(document.getElementById("imagen-pendiente") || {}).value) ir(2); return; }
         abrir(enviando);
     });
     window.addEventListener("pageshow", () => cerrar(enviando));

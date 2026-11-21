@@ -1,13 +1,14 @@
 from django import forms
 
+from web.campos import FechaField
 from web.models import Tatuadora
 
 
 class FiltrosEquipo(forms.Form):
     tatuadora = forms.ChoiceField(label="Tatuadora", required=False)
     estado = forms.ChoiceField(label="Estado", required=False)
-    desde = forms.DateField(label="Desde", required=False, widget=forms.DateInput(attrs={"type": "date"}))
-    hasta = forms.DateField(label="Hasta", required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    desde = FechaField(label="Desde", required=False)
+    hasta = FechaField(label="Hasta", required=False)
 
     def __init__(self, *args, propuestas, estados, **kwargs):
         super().__init__(*args, **kwargs)

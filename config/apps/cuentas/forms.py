@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import authenticate, password_validation
 
+from web.campos import marcar_nombre
 from .models import Rol, Usuario
 from .seguridad import esta_bloqueado, limpiar_fallos, registrar_fallo
 
@@ -23,7 +24,17 @@ class _NormalizarTextoMixin:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
             raise forms.ValidationError("Ya existe una cuenta con ese correo.")
+        from .verificacion_correo import validar_dominio_correo
+        validar_dominio_correo(email)
         return email
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nombre in ("nombre", "apellido"):
+            if nombre in self.fields:
+                marcar_nombre(self.fields[nombre])
+        if "nombre_usuario" in self.fields:
+            self.fields["nombre_usuario"].widget.attrs.update({"data-solo": "usuario", "autocapitalize": "none", "spellcheck": "false"})
 
     def clean_nombre(self):
         return " ".join((self.cleaned_data.get("nombre") or "").split())
@@ -35,7 +46,7 @@ class _NormalizarTextoMixin:
 class LoginForm(forms.Form):
     nombre_usuario = forms.CharField(
         label="Nombre de usuario", max_length=30,
-        widget=forms.TextInput(attrs={"autocomplete": "username", "autofocus": True}),
+        widget=forms.TextInput(attrs={"autocomplete": "username", "autofocus": True, "data-solo": "usuario", "autocapitalize": "none", "spellcheck": "false"}),
     )
     password = forms.CharField(
         label="Contraseña", max_length=128, strip=False,

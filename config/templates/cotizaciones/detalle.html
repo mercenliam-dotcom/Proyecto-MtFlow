@@ -32,7 +32,11 @@
       <a class="boton secundario" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'rechazar' %}?guiado=1">Rechazar y registrar motivo</a>
     </div>
   {% elif cierre_disponible %}
-    {% if puede_terminar %}
+    {% if falta_consentimiento %}
+    <h2 id="siguiente-paso-titulo">Firma el consentimiento</h2>
+    <p>Antes de realizar la sesión, el cliente firma su ficha de salud y tú firmas tu declaración. Sin ambas firmas no se puede marcar la sesión como realizada ni terminar el trabajo.</p>
+    <div class="acciones"><a class="boton" href="{% url 'nucleo:consentimiento' propuesta.referencia %}">Abrir consentimiento</a>{% if propuesta.saldo_pendiente %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">Registrar pago final · {{ saldo_texto }}</a>{% endif %}</div>
+    {% elif puede_terminar %}
     <h2 id="siguiente-paso-titulo">Pago final confirmado: termina el trabajo</h2>
     <p>No queda saldo pendiente.{% for b in sesiones_por_marcar %} La sesión del {{ b.fecha|date:"d/m/Y" }} se marcará como realizada al terminar.{% endfor %} Si el trabajo necesita otra sesión, agéndala antes de terminarlo.</p>
     <div class="acciones"><a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'terminar' %}" data-abrir-dialogo="dialogo-cierre">Terminar trabajo</a>{% if puede_agendar %}<a class="boton secundario" href="{% url 'nucleo:agenda_nuevo' %}?solicitud={{ propuesta.referencia }}">Agendar otra sesión</a>{% endif %}</div>
@@ -51,8 +55,8 @@
     <div class="acciones"><a class="boton" href="{% url 'nucleo:gestion_paso' propuesta.referencia 'abono' %}">Confirmar abono recibido</a>{% if propuesta.precio_final %}<a class="boton secundario" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% endif %}</div>
   {% elif e == 'RESERVADA' %}
     <h2 id="siguiente-paso-titulo">Realiza la sesión y cierra el trabajo</h2>
-    <p>La sesión está agendada. Al terminarla, registra el pago final: el trabajo solo se puede cerrar sin saldo pendiente. Si necesita más sesiones, agenda otra antes de terminarlo.</p>
-    <div class="acciones">{% if propuesta.precio_final %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% endif %}<a class="boton secundario" href="{% url 'nucleo:agenda' %}">Ver mi agenda</a></div>
+    <p>La sesión está agendada. {% if not consentimiento.completo %}El día de la sesión, antes de empezar, firmen el consentimiento. {% endif %}Al terminarla, registra el pago final: el trabajo solo se puede cerrar sin saldo pendiente. Si necesita más sesiones, agenda otra antes de terminarlo.</p>
+    <div class="acciones">{% if not consentimiento.completo %}<a class="boton secundario" href="{% url 'nucleo:consentimiento' propuesta.referencia %}">Consentimiento</a>{% endif %}{% if propuesta.precio_final %}<a class="boton" href="{% url 'nucleo:flujo' propuesta.referencia 'cobro' %}">{% if propuesta.saldo_pendiente %}Registrar pago final · {{ saldo_texto }}{% else %}Registrar devolución{% endif %}</a>{% endif %}<a class="boton secundario" href="{% url 'nucleo:agenda' %}">Ver mi agenda</a></div>
   {% elif e == 'REALIZADA' %}
     <h2 id="siguiente-paso-titulo">Trabajo terminado</h2>
     <p>La solicitud quedó cerrada{% if propuesta.realizada_en %} el {{ propuesta.realizada_en|date:"d/m/Y" }}{% endif %}: sus datos, pagos e historial quedan solo para consulta. Si tienes autorización, comparte una fotografía del resultado en tu portafolio.</p>
@@ -122,6 +126,9 @@
 
     <section class="tarjeta">
       <h2>Sesiones e historial</h2>
+      {% if puede_gestionar and propuesta.estado != 'RECIBIDA' and propuesta.estado != 'EN_REVISION' and propuesta.estado != 'RECHAZADA' %}
+      <p class="consentimiento-estado">Consentimiento: {% if consentimiento.completo %}<span class="chip chip-estado chip-realizada">Firmado</span>{% elif consentimiento.cliente_firmo_en %}<span class="chip chip-estado chip-en_revision">Falta tu declaración</span>{% else %}<span class="chip chip-estado chip-en_revision">Pendiente</span>{% endif %} <a href="{% url 'nucleo:consentimiento' propuesta.referencia %}">{% if consentimiento.completo or e == 'REALIZADA' %}Ver{% else %}Abrir{% endif %}</a></p>
+      {% endif %}
       <h3>Sesiones registradas</h3>
       <ul class="lista-limpia">{% for sesion in sesiones %}<li>{{ sesion.fecha|date:"d/m/Y" }} · {{ sesion.hora_inicio|time:"H:i" }}–{{ sesion.hora_fin|time:"H:i" }} · {{ sesion.estado }}{% if puede_gestionar %} · <a href="{% url 'nucleo:agenda_editar' sesion.referencia %}">Ver horario</a>{% endif %}</li>{% empty %}<li class="nota">Aún no hay sesiones.</li>{% endfor %}</ul>
       <h3>Historial de la solicitud</h3>

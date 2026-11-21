@@ -6,20 +6,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!lienzo || !fuente || !window.Chart) return;
     const datos = JSON.parse(fuente.textContent);
     const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const tinta = "#696472", rejilla = "rgba(41, 38, 49, .08)";
-    // Paleta validada (daltonismo y contraste): morado de la marca + ámbar.
-    const MORADO = "#62418b", AMBAR = "#b07a2e";
+    const tinta = "#a29cb0", rejilla = "rgba(255, 255, 255, .07)";
+    // Paleta validada sobre el fondo oscuro (daltonismo y contraste): morado del tema + ámbar.
+    const MORADO = "#8b5cf6", AMBAR = "#b07a2e";
     Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
     Chart.defaults.color = tinta;
     new Chart(lienzo, {
         data: {
             labels: datos.etiquetas,
             datasets: [
-                { type: "bar", label: "Recibidas", data: datos.recibidas, backgroundColor: MORADO, hoverBackgroundColor: "#4d306f",
+                { type: "bar", label: "Recibidas", data: datos.recibidas, backgroundColor: MORADO, hoverBackgroundColor: "#7c3aed",
                   borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: "bottom", maxBarThickness: 26, order: 2 },
                 { type: "line", label: "Terminados", data: datos.terminados, borderColor: AMBAR, backgroundColor: AMBAR,
                   borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: AMBAR,
-                  pointBorderColor: "#fffefa", pointBorderWidth: 2, cubicInterpolationMode: "monotone", order: 1 },
+                  pointBorderColor: "#16131e", pointBorderWidth: 2, cubicInterpolationMode: "monotone", order: 1 },
             ],
         },
         options: {
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
             interaction: { mode: "index", intersect: false },
             plugins: {
                 legend: { position: "top", align: "end", labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 16, sort: (a, b) => a.datasetIndex - b.datasetIndex } },
-                tooltip: { backgroundColor: "#292631", padding: 10, cornerRadius: 8, boxPadding: 4, usePointStyle: true,
+                tooltip: { backgroundColor: "#241f30", borderColor: "#3a3350", borderWidth: 1, padding: 10, cornerRadius: 8, boxPadding: 4, usePointStyle: true,
                            callbacks: { title: items => `Semana del ${items[0].label}` } },
             },
             scales: {

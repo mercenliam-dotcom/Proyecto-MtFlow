@@ -1,0 +1,60 @@
+@startuml 09b_actividad_TO-BE
+!include _estilo.iuml
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #4A3B5C
+skinparam SwimlaneBorderColor #2B2433
+title Proceso propuesto (TO-BE): solicitud, clasificación asistida, agenda, consentimiento y cierre en MTFlow
+
+|Cliente|
+start
+:Enviar solicitud con imagen de referencia;
+|Sistema MTFlow|
+repeat
+  :Validar datos (nombres, teléfono +56,\nfechas) y revisar el dominio del correo;
+  backward:Corregir los datos (la imagen\ny lo escrito se conservan);
+repeat while (¿Datos válidos?) is (no) not (sí)
+:Validar y guardar la imagen en el almacén privado;
+:Clasificar la imagen (servicio de inferencia);
+if (¿Confianza ≥ umbral y dentro de distribución?) then (sí)
+  :Registrar clasificación sugerida;
+else (no)
+  :Registrar revisión requerida (E-99);
+endif
+:Calcular rango de precio (mínimo–máximo)\ny registrar la solicitud;
+:Mostrar código y estimación al cliente;
+|Tatuadora|
+:Revisar la solicitud y confirmar\no corregir el estilo;
+if (¿Acepta la solicitud?) then (sí)
+  :Registrar acuerdo: precio desde el rango,\nabono 30–40 % y medidas;
+  note right
+    El cobro del abono ocurre FUERA del sistema
+    (transferencia); MTFlow solo lo registra.
+  end note
+  :Verificar y registrar el abono;
+  |Sistema MTFlow|
+  repeat
+    :Agendar la sesión sin solapamiento\n(bloqueo de fila, RNF-11);
+    |Tatuadora|
+    :Firmar consentimiento: ficha del cliente\ny declaración de la tatuadora;
+    :Realizar la sesión de tatuaje;
+    if (¿El cliente asistió?) then (no)
+      :Registrar inasistencia y destino del abono;
+    else (sí)
+      :Marcar la sesión como realizada;
+    endif
+  repeat while (¿Faltan sesiones?) is (sí) not (no)
+  repeat
+    |Tatuadora|
+    :Registrar el pago final;
+    |Sistema MTFlow|
+    :Verificar saldo y consentimiento;
+  repeat while (¿Saldo = 0 y consentimiento completo?) is (no) not (sí)
+  :Cerrar la solicitud (queda solo para consulta);
+  |Tatuadora|
+  :Publicar en el portafolio (opcional, con autorización);
+  stop
+else (no)
+  :Rechazar con motivo;
+  stop
+endif
+@enduml

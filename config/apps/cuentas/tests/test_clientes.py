@@ -42,7 +42,7 @@ class PortalClientes(TestCase):
         anonimo = Client()
         ids = []
         for _ in range(2):
-            self.assertEqual(anonimo.post(reverse("web:cotizacion"), propuesta(self.a, email=self.u.email)).status_code, 200)
+            self.assertEqual(anonimo.post(reverse("web:cotizacion"), propuesta(self.a, email=self.u.email), follow=True).status_code, 200)
             p = Postulacion.objects.latest("pk")
             ids.append(p.cliente_id)
             self.assertIsNone(p.cliente.usuario_id)
@@ -68,7 +68,7 @@ class PortalClientes(TestCase):
         self.client.force_login(self.u)
 
     def envio(self, **extra):
-        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, **extra))
+        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, **extra), follow=True)
         self.assertEqual(r.status_code, 200)
         return Postulacion.objects.latest("pk")
 
@@ -159,7 +159,7 @@ class PortalClientes(TestCase):
 
     def test_correo_coincidente_no_recupera_solicitudes_anonimas(self):
         c = Client()
-        r = c.post(reverse("web:cotizacion"), propuesta(self.a, email=self.u.email, cuenta_cliente=self.u.pk))
+        r = c.post(reverse("web:cotizacion"), propuesta(self.a, email=self.u.email, cuenta_cliente=self.u.pk), follow=True)
         self.assertEqual(r.status_code, 200)
         p = Postulacion.objects.latest("pk")
         self.assertIsNone(p.cuenta_cliente_id)
@@ -170,7 +170,7 @@ class PortalClientes(TestCase):
         token = token_envio()
         p = self.envio(envio=token)
         self.client.force_login(self.otro)
-        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, envio=token))
+        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, envio=token), follow=True)
         self.assertEqual(r.status_code, 409)
         self.assertNotContains(r, str(p.referencia), status_code=409)
         self.assertEqual(Postulacion.objects.count(), 1)
@@ -181,7 +181,7 @@ class PortalClientes(TestCase):
         from web.forms import token_envio
         token = token_envio()
         p = self.envio(envio=token)
-        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, envio=token))
+        r = self.client.post(reverse("web:cotizacion"), propuesta(self.a, envio=token), follow=True)
         self.assertContains(r, "ya fue recibida")
         self.assertEqual(Postulacion.objects.count(), 1)
         self.assertContains(r, reverse("clientes:detalle", args=[p.referencia]))

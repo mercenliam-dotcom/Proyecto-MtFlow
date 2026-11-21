@@ -151,7 +151,11 @@ def editar(request, referencia=None):
             else:
                 messages.success(request, "Agenda actualizada.")
                 return redirect("nucleo:agenda")
-    return render(request, "agenda/editar.html", {"form": form, "bloque": bloque, "hoy": timezone.localdate().isoformat()}, status=status)
+    falta_consentimiento = False
+    if bloque and bloque.tipo == "CITA" and bloque.postulacion_id:
+        from .consentimiento import consentimiento_completo
+        falta_consentimiento = not consentimiento_completo(bloque.postulacion)
+    return render(request, "agenda/editar.html", {"form": form, "bloque": bloque, "hoy": timezone.localdate().isoformat(), "falta_consentimiento": falta_consentimiento}, status=status)
 
 
 @transaction.non_atomic_requests

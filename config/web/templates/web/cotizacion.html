@@ -80,19 +80,20 @@
                 <legend tabindex="-1"><span class="step">02</span> Una imagen para inspirarnos</legend>
                 <div class="upload-box">
                     {% include "_campo.html" with campo=form.imagen %}
+                    {{ form.imagen_pendiente }}
                 </div>
                 <p id="file-error" class="error-message" role="alert"></p>
 
                 <div class="reference-card">
                     <div class="reference-preview">
-                        <p id="preview-placeholder" {% if miniatura %}hidden{% endif %}>
+                        <p id="preview-placeholder" {% if miniatura or pendiente %}hidden{% endif %}>
                             Cada historia comienza<br>con una idea.<br>
                             <small>Tu imagen aparecerá aquí.</small>
                         </p>
-                        <img id="reference-preview" alt="Tu referencia de tatuaje" {% if miniatura %}src="{{ miniatura }}"{% else %}hidden{% endif %}>
+                        <img id="reference-preview" alt="Tu referencia de tatuaje" {% if miniatura %}src="{{ miniatura }}"{% elif pendiente %}src="{{ pendiente.url }}"{% else %}hidden{% endif %}>
                     </div>
-                    <div class="file-details" id="file-details" hidden>
-                        <span id="file-name"></span>
+                    <div class="file-details" id="file-details" {% if not pendiente %}hidden{% endif %}>
+                        <span id="file-name">{% if pendiente %}{{ pendiente.nombre }} · guardada{% endif %}</span>
                         <button type="button" class="text-button" id="remove-image">Quitar imagen</button>
                     </div>
                 </div>
@@ -148,6 +149,7 @@
                 <p class="field-help">Las redes son opcionales. Si no indicas un usuario, te contactaremos por correo.</p>
                 {% endif %}
                 <p class="field-help">Guardaremos tus datos de contacto, propuesta e imagen de referencia para que la tatuadora elegida los revise. La imagen no se publica en el portafolio.</p>
+                <p class="field-help">Antes de tatuarte firmarás un <a href="{% url 'web:consentimiento' %}" target="_blank" rel="noopener">consentimiento informado ↗</a> con tu tatuadora: debes ser mayor de 18 años.</p>
             </fieldset>
 
             <fieldset class="paso" data-paso="5" data-titulo="Revisar">
@@ -250,7 +252,7 @@
 </dialog>
 
 {% if referencia %}
-<dialog class="dialogo dialogo-exito" id="dialogo-exito" aria-labelledby="dialogo-exito-titulo">
+<dialog class="dialogo dialogo-exito" id="dialogo-exito" aria-labelledby="dialogo-exito-titulo" data-envio-enviado="{{ envio_enviado }}">
     <p class="dialogo-icono" aria-hidden="true">✓</p>
     <h2 id="dialogo-exito-titulo">{% if repetida %}Ya teníamos tu propuesta{% else %}¡Propuesta enviada!{% endif %}</h2>
     <p>Código de tu solicitud: <strong>{{ codigo }}</strong>. Guárdalo por si necesitas consultar por ella. La tatuadora la revisará y te contactará para confirmar el horario y el precio final.</p>

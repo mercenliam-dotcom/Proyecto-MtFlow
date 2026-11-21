@@ -1,0 +1,317 @@
+@startuml 04_DER
+' GENERADO por scripts/generar_der_plantuml.py desde los modelos Django. No editar a mano.
+' Notación IE (pata de gallo). * = obligatorio (NOT NULL). PK/FK/UQ = clave primaria, foránea, única.
+skinparam linetype ortho
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontName Arial
+skinparam entity {
+  BackgroundColor white
+  BorderColor #4A3B5C
+  FontSize 12
+}
+skinparam ArrowColor #4A3B5C
+hide circle
+left to right direction
+title MTFlow — Diagrama entidad-relación (modelo físico vigente, noviembre 2026)
+
+package "Cuentas y profesionales" #EDE7F6 {
+  entity "usuario" as usuario {
+    * **id** : bigint <<PK>>
+    --
+     last_login : timestamptz
+    * is_superuser : bool
+    * uuid : uuid <<UQ>>
+    * nombre_usuario : varchar(30) <<UQ>>
+    * email : varchar(254) <<UQ>>
+    * nombre : varchar(60)
+    * apellido : varchar(60)
+    * rol : varchar(10)
+    * es_tatuadora : bool
+    * is_active : bool
+    * es_admin_desarrollo : bool
+    * creado_en : timestamptz
+    * avatar : varchar(300)
+     creado_por_id : bigint <<FK>>
+    * debe_cambiar_contrasena : bool
+    * password : varchar(128) <<hash>>
+  }
+  entity "identidad_social" as identidad_social {
+    * **id** : bigint <<PK>>
+    --
+    * usuario_id : bigint <<FK>>
+    * proveedor : varchar(10)
+    * identificador : varchar(255)
+    * creada_en : timestamptz
+  }
+  entity "perfil_cliente" as perfil_cliente {
+    * **usuario_id** : bigint <<PK, FK>>
+    --
+    * segundo_apellido : varchar(80)
+    * telefono : varchar(25)
+    * canal_preferido : varchar(12)
+    * usuario_social : varchar(61)
+  }
+  entity "cliente" as cliente {
+    * **id** : bigint <<PK>>
+    --
+     usuario_id : bigint <<FK, UQ>>
+     rut : varchar(12) <<UQ>>
+    * nombres : varchar(80)
+    * primer_apellido : varchar(160)
+    * segundo_apellido : varchar(80)
+     correo : varchar(254)
+     telefono : varchar(25)
+    * creado_en : timestamptz
+    * actualizado_en : timestamptz
+  }
+  entity "tatuadora" as tatuadora {
+    * **id** : bigint <<PK>>
+    --
+    * usuario_id : bigint <<FK, UQ>>
+     nombre_artistico : varchar(120)
+    * telefono : varchar(25)
+    * activa : bool
+    * creado_en : timestamptz
+  }
+  entity "tatuadora_estilo" as tatuadora_estilo {
+    * **id** : bigint <<PK>>
+    --
+    * tatuadora_id : bigint <<FK>>
+    * estilo_id : bigint <<FK>>
+    * dominio : varchar(12)
+  }
+}
+
+package "Solicitudes, agenda y cobros" #FFF3E0 {
+  entity "postulacion" as postulacion {
+    * **id** : bigint <<PK>>
+    --
+     fecha_propuesta : date
+     hora_propuesta : time
+     abono_solicitado : int
+     alto_final_cm : numeric(5,2)
+     ancho_final_cm : numeric(5,2)
+    * destino_abono : varchar(15)
+     abono_verificado_en : timestamptz
+     abono_verificado_por_id : bigint <<FK>>
+    * referencia : uuid <<UQ>>
+    * estado_ml : varchar(20)
+     vista_en : timestamptz
+    * cliente_id : bigint <<FK>>
+    * tatuadora_id : bigint <<FK>>
+    * zona_cuerpo : varchar(100)
+    * alto_cm : numeric(5,2)
+    * ancho_cm : numeric(5,2)
+     presupuesto_estimado : int
+    * descripcion : text
+     color : varchar(10)
+     nivel_detalle : varchar(10)
+     cobertura : bool
+     ciclo_de_vida : varchar(15)
+    * estado : varchar(20)
+     alerta_ml : varchar(20)
+     motivo_rechazo : text
+     precio_sugerido : int
+     precio_sugerido_maximo : int <color:#2E7D32>(nuevo)</color>
+     precio_final : int
+     monto_abono : int
+    * creada_en : timestamptz
+    * actualizada_en : timestamptz
+     realizada_en : timestamptz
+  }
+  entity "contacto_solicitud" as contacto_solicitud {
+    * **postulacion_id** : bigint <<PK, FK>>
+    --
+    * nombres : varchar(80)
+    * primer_apellido : varchar(160)
+    * segundo_apellido : varchar(80)
+    * canal_preferido : varchar(12)
+    * usuario_social : varchar(80)
+     correo : varchar(254)
+     telefono : varchar(25)
+  }
+  entity "consentimiento" as consentimiento #E8F5E9 {
+    * **postulacion_id** : bigint <<PK, FK>>
+    --
+    * version_texto : varchar(20)
+     fecha_nacimiento : date
+    * alergias : varchar(500)
+    * condiciones : varchar(500)
+    * medicamentos : varchar(500)
+    * embarazo : bool
+    * alcohol_24h : bool
+    * autoriza_fotos : bool
+    * firma_cliente : varchar(160)
+     cliente_firmo_en : timestamptz
+     registrado_por_id : bigint <<FK>>
+    * firma_tatuadora : varchar(160)
+     tatuadora_firmo_en : timestamptz
+    * creado_en : timestamptz
+  }
+  entity "sesion" as sesion {
+    * **bloque_id** : bigint <<PK, FK>>
+    --
+    * postulacion_id : bigint <<FK>>
+  }
+  entity "horario_trabajo" as horario_trabajo {
+    * **id** : bigint <<PK>>
+    --
+    * tatuadora_id : bigint <<FK>>
+    * dia : int
+    * activo : bool
+    * hora_inicio : time
+    * hora_fin : time
+  }
+  entity "bloque_horario" as bloque_horario {
+    * **id** : bigint <<PK>>
+    --
+    * referencia : uuid <<UQ>>
+    * tipo : varchar(15)
+    * nota : varchar(300)
+    * actualizada_en : timestamptz
+    * tatuadora_id : bigint <<FK>>
+    * fecha : date
+    * hora_inicio : time
+    * hora_fin : time
+    * estado : varchar(15)
+  }
+  entity "movimiento_cobro" as movimiento_cobro {
+    * **id** : bigint <<PK>>
+    --
+    * postulacion_id : bigint <<FK>>
+    * tipo : varchar(10)
+    * monto : int
+    * detalle : varchar(300)
+     verificado_por_id : bigint <<FK>>
+    * creado_en : timestamptz
+    * comprobante : varchar(300)
+  }
+  entity "evento_solicitud" as evento_solicitud {
+    * **id** : bigint <<PK>>
+    --
+    * postulacion_id : bigint <<FK>>
+     actor_id : bigint <<FK>>
+    * tipo : varchar(40)
+    * detalle : varchar(500)
+    * creado_en : timestamptz
+  }
+}
+
+package "Imágenes, clasificación y portafolio" #E3F2FD {
+  entity "imagen" as imagen {
+    * **id** : bigint <<PK>>
+    --
+    * postulacion_id : bigint <<FK>>
+    * url : text <<UQ>>
+    * orden : smallint
+    * es_principal : bool
+    * formato : varchar(10)
+    * ancho_px : int
+    * alto_px : int
+    * tamano_bytes : int
+     nitidez : float
+    * cargada_en : timestamptz
+  }
+  entity "estilo" as estilo {
+    * **id** : bigint <<PK>>
+    --
+    * codigo : varchar(10) <<UQ>>
+    * nombre : varchar(80)
+     descripcion : text
+    * es_catalogo : bool
+  }
+  entity "prediccion" as prediccion {
+    * **id** : bigint <<PK>>
+    --
+    * imagen_id : bigint <<FK>>
+    * version_modelo : varchar(120)
+    * estilo_sugerido_id : bigint <<FK>>
+    * confianza_maxima : numeric(17,16)
+     umbral_confianza : numeric(3,2)
+    * tiempo_inferencia_ms : int
+     ood : jsonb
+    * motivo_abstencion : varchar(32)
+    * generada_en : timestamptz
+  }
+  entity "confianza_estilo" as confianza_estilo {
+    * **id** : bigint <<PK>>
+    --
+    * prediccion_id : bigint <<FK>>
+    * estilo_id : bigint <<FK>>
+    * confianza : numeric(17,16)
+  }
+  entity "etiqueta_consolidada" as etiqueta_consolidada {
+    * **id** : bigint <<PK>>
+    --
+    * imagen_id : bigint <<FK, UQ>>
+    * estilo_id : bigint <<FK>>
+    * tatuadora_id : bigint <<FK>>
+    * fue_corregida : bool
+    * apta_entrenamiento : bool
+    * confirmada_en : timestamptz
+  }
+  entity "trabajo_portafolio" as trabajo_portafolio {
+    * **id** : bigint <<PK>>
+    --
+    * tatuadora_id : bigint <<FK>>
+     estilo_id : bigint <<FK>>
+    * referencia : uuid <<UQ>>
+     postulacion_id : bigint <<FK>>
+    * visible : bool
+    * en_carrusel : bool
+    * autorizacion_publicacion : bool
+    * tipo : varchar(10)
+    * actualizada_en : timestamptz
+    * titulo : varchar(120)
+    * url : text
+    * publicado_en : date
+    * apto_entrenamiento : bool
+  }
+}
+
+usuario |o--o{ usuario
+usuario ||--o{ identidad_social
+usuario ||--o| perfil_cliente
+usuario |o--o| cliente
+usuario ||--o| tatuadora
+tatuadora ||--o{ tatuadora_estilo
+estilo ||--o{ tatuadora_estilo
+usuario |o--o{ postulacion
+cliente ||--o{ postulacion
+tatuadora ||--o{ postulacion
+postulacion ||--o| contacto_solicitud
+postulacion ||--o| consentimiento
+usuario |o--o{ consentimiento
+bloque_horario ||--o| sesion
+postulacion ||--o{ sesion
+tatuadora ||--o{ horario_trabajo
+tatuadora ||--o{ bloque_horario
+postulacion ||--o{ movimiento_cobro
+usuario |o--o{ movimiento_cobro
+postulacion ||--o{ evento_solicitud
+usuario |o--o{ evento_solicitud
+postulacion ||--o{ imagen
+imagen ||--o{ prediccion
+estilo ||--o{ prediccion
+prediccion ||--o{ confianza_estilo
+estilo ||--o{ confianza_estilo
+imagen ||--o| etiqueta_consolidada
+estilo ||--o{ etiqueta_consolidada
+tatuadora ||--o{ etiqueta_consolidada
+tatuadora ||--o{ trabajo_portafolio
+estilo |o--o{ trabajo_portafolio
+postulacion |o--o{ trabajo_portafolio
+
+legend right
+  <b>Cambios de la entrega final</b>
+  <back:#E8F5E9>consentimiento</back>: tabla nueva (1 a 1 con postulacion),
+  ficha de salud del cliente + declaración de la tatuadora.
+  postulacion.<b>precio_sugerido_maximo</b>: máximo de la estimación
+  entregada al cliente (antes solo se guardaba el mínimo).
+  identidad_social: tabla preparada para el acceso con
+  Google/Facebook, que está desactivado (no se usa).
+  Área, saldo, total cobrado y estado comercial mostrado
+  se calculan: no son columnas.
+endlegend
+@enduml

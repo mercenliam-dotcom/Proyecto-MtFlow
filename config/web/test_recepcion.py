@@ -41,7 +41,8 @@ class RecepcionPersistente(TestCase):
         self.url = reverse("web:cotizacion")
 
     def archivos(self):
-        return [p for p in Path(self.tmp.name).rglob("*") if p.is_file()]
+        # Archivos definitivos; la copia temporal de la imagen (pendientes/) se conserva a propósito.
+        return [p for p in Path(self.tmp.name).rglob("*") if p.is_file() and p.parent.name != "pendientes"]
 
     def test_json_bajo_60_guarda_e99_y_siete_confianzas_originales(self):
         from unittest.mock import Mock
@@ -51,7 +52,7 @@ class RecepcionPersistente(TestCase):
             "estilo_sugerido": "E-99", "confianza_maxima": .59999998, "umbral_confianza": .60,
         })
         with patch("requests.post", return_value=respuesta):
-            r = self.client.post(self.url, propuesta(self.artista, analizar="on"))
+            r = self.client.post(self.url, propuesta(self.artista, analizar="on"), follow=True)
         self.assertEqual(r.status_code, 200)
         p = Prediccion.objects.get()
         self.assertEqual(p.estilo_sugerido.codigo, "E-99")
@@ -70,7 +71,7 @@ class RecepcionPersistente(TestCase):
             "estilo_sugerido": "E-01", "confianza_maxima": .60, "umbral_confianza": .60,
         })
         with patch("requests.post", return_value=respuesta):
-            r = self.client.post(self.url, propuesta(self.artista, analizar="on"))
+            r = self.client.post(self.url, propuesta(self.artista, analizar="on"), follow=True)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(Prediccion.objects.get().estilo_sugerido.codigo, "E-01")
         self.assertEqual(Postulacion.objects.get().estado, "RECIBIDA")
@@ -80,7 +81,7 @@ class RecepcionPersistente(TestCase):
         contenido_original = original.read()
         original.seek(0)
         with patch("web.views.clasificar", side_effect=ServicioMLNoDisponible) as ml:
-            r = self.client.post(self.url, propuesta(self.artista, imagen=original, alto_cm="5.25", ancho_cm="3.10", analizar=""))
+            r = self.client.post(self.url, propuesta(self.artista, imagen=original, alto_cm="5.25", ancho_cm="3.10", analizar=""), follow=True)
         ml.assert_called_once()
         self.assertContains(r, "Propuesta recibida")
         p = Postulacion.objects.get()
@@ -100,14 +101,14 @@ class RecepcionPersistente(TestCase):
         self.assertFalse(Prediccion.objects.exists())
 
     def test_png_se_guarda_como_png(self):
-        self.assertEqual(self.client.post(self.url, propuesta(self.artista, imagen=png_valido())).status_code, 200)
+        self.assertEqual(self.client.post(self.url, propuesta(self.artista, imagen=png_valido()), follow=True).status_code, 200)
         imagen = Imagen.objects.get()
         self.assertEqual(imagen.formato, "PNG")
         self.assertTrue((Path(self.tmp.name) / imagen.url).read_bytes().startswith(b"\x89PNG"))
 
     def test_sin_eleccion_no_asigna_automaticamente(self):
         with patch("web.views.clasificar") as ml:
-            r = self.client.post(self.url, propuesta(self.artista, tatuadora="", analizar="on"))
+            r = self.client.post(self.url, propuesta(self.artista, tatuadora="", analizar="on"), follow=True)
         self.assertEqual(r.status_code, 400)
         self.assertFalse(Postulacion.objects.exists())
         self.assertEqual(self.archivos(), [])
@@ -115,20 +116,20 @@ class RecepcionPersistente(TestCase):
 
     def test_sin_tatuadoras_no_guarda_contacto_ni_archivo(self):
         Tatuadora.objects.update(activa=False)
-        r = self.client.post(self.url, propuesta(self.artista))
+        r = self.client.post(self.url, propuesta(self.artista), follow=True)
         self.assertContains(r, "No hay tatuadoras habilitadas", status_code=400)
         self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertEqual(self.archivos(), [])
 
     def test_tatuadora_con_cuenta_desactivada_no_se_puede_elegir(self):
         Usuario.objects.filter(pk=self.artista.usuario_id).update(is_active=False)
-        self.assertEqual(self.client.post(self.url, propuesta(self.artista)).status_code, 400)
+        self.assertEqual(self.client.post(self.url, propuesta(self.artista), follow=True).status_code, 400)
         self.assertFalse(Postulacion.objects.exists())
 
     def test_tatuadora_desactivada_durante_envio_no_se_reemplaza(self):
         with patch("web.recepcion.Tatuadora.objects.select_for_update") as consulta:
             consulta.return_value.filter.return_value.first.return_value = None
-            r = self.client.post(self.url, propuesta(self.artista))
+            r = self.client.post(self.url, propuesta(self.artista), follow=True)
         self.assertEqual(r.status_code, 400)
         self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertEqual(self.archivos(), [])
@@ -137,8 +138,8 @@ class RecepcionPersistente(TestCase):
         token = token_envio()
         resultado = ResultadoClasificacion({"E-05": .92}, "E-05", .92, "simulado-0.2")
         with patch("web.views.clasificar", return_value=resultado) as ml:
-            self.client.post(self.url, propuesta(self.artista, envio=token, analizar="on"))
-            r = self.client.post(self.url, propuesta(self.artista, envio=token, analizar="on"))
+            self.client.post(self.url, propuesta(self.artista, envio=token, analizar="on"), follow=True)
+            r = self.client.post(self.url, propuesta(self.artista, envio=token, analizar="on"), follow=True)
         self.assertContains(r, "Esta propuesta ya fue recibida")
         self.assertEqual(Postulacion.objects.count(), 1)
         self.assertEqual(ContactoSolicitud.objects.count(), 1)
@@ -146,13 +147,13 @@ class RecepcionPersistente(TestCase):
         ml.assert_called_once()
 
     def test_token_manipulado_no_guarda(self):
-        r = self.client.post(self.url, propuesta(self.artista, envio="inventado"))
+        r = self.client.post(self.url, propuesta(self.artista, envio="inventado"), follow=True)
         self.assertEqual(r.status_code, 400)
         self.assertFalse(Postulacion.objects.exists())
 
     def test_ml_caido_conserva_solicitud_y_marca_pendiente(self):
         with patch("web.views.clasificar", side_effect=ServicioMLNoDisponible):
-            r = self.client.post(self.url, propuesta(self.artista, analizar="on"))
+            r = self.client.post(self.url, propuesta(self.artista, analizar="on"), follow=True)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(Postulacion.objects.get().estado_ml, "NO_DISPONIBLE")
         self.assertEqual(len(self.archivos()), 1)
@@ -162,7 +163,7 @@ class RecepcionPersistente(TestCase):
         version = "roboflow-workflow:" + "v" * 100
         resultado = ResultadoClasificacion({"E-05": .4182, "E-02": .12}, "E-05", .4182, version)
         with patch("web.views.clasificar", return_value=resultado), patch("web.recepcion.perf_counter", side_effect=[10, 10.321]):
-            r = self.client.post(self.url, propuesta(self.artista, analizar="on"))
+            r = self.client.post(self.url, propuesta(self.artista, analizar="on"), follow=True)
         self.assertEqual(r.status_code, 200)
         prediccion = Prediccion.objects.get()
         self.assertEqual(prediccion.version_modelo, version)
@@ -173,7 +174,7 @@ class RecepcionPersistente(TestCase):
 
     def test_fallo_bd_revierte_registros_y_borra_archivo(self):
         with patch("web.recepcion.Imagen.objects.create", side_effect=IntegrityError("prueba")):
-            r = self.client.post(self.url, propuesta(self.artista))
+            r = self.client.post(self.url, propuesta(self.artista), follow=True)
         self.assertEqual(r.status_code, 503)
         self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertFalse(Postulacion.objects.exists())
@@ -182,7 +183,7 @@ class RecepcionPersistente(TestCase):
 
     def test_fallo_disco_no_crea_registros(self):
         with patch("web.recepcion.FileSystemStorage.save", side_effect=OSError("disco lleno")):
-            r = self.client.post(self.url, propuesta(self.artista))
+            r = self.client.post(self.url, propuesta(self.artista), follow=True)
         self.assertEqual(r.status_code, 503)
         self.assertFalse(ContactoSolicitud.objects.exists())
         self.assertFalse(Postulacion.objects.exists())
@@ -195,22 +196,28 @@ class RecepcionPersistente(TestCase):
             raise OSError("disco lleno durante escritura")
 
         with patch("web.recepcion.FileSystemStorage.save", autospec=True, side_effect=escritura_interrumpida):
-            r = self.client.post(self.url, propuesta(self.artista))
+            r = self.client.post(self.url, propuesta(self.artista), follow=True)
         self.assertEqual(r.status_code, 503)
         self.assertEqual(self.archivos(), [])
         self.assertFalse(Postulacion.objects.exists())
 
     def test_solicitud_manual_no_guarda_precio_cero(self):
-        self.client.post(self.url, propuesta(self.artista, cobertura="on"))
+        self.client.post(self.url, propuesta(self.artista, cobertura="on"), follow=True)
         self.assertIsNone(Postulacion.objects.get().precio_sugerido)
+        self.assertIsNone(Postulacion.objects.get().precio_sugerido_maximo)
+
+    def test_guarda_el_rango_completo_de_la_estimacion(self):
+        self.client.post(self.url, propuesta(self.artista), follow=True)
+        p = Postulacion.objects.get()
+        self.assertTrue(p.precio_sugerido < p.precio_sugerido_maximo)
 
     def test_contacto_nuevo_no_sobrescribe_solicitudes_anteriores(self):
-        self.client.post(self.url, propuesta(self.artista, nombre="Primero"))
-        self.client.post(self.url, propuesta(self.artista, nombre="Segundo"))
+        self.client.post(self.url, propuesta(self.artista, nombre="Primero"), follow=True)
+        self.client.post(self.url, propuesta(self.artista, nombre="Segundo"), follow=True)
         self.assertEqual(list(Postulacion.objects.order_by("pk").values_list("contacto__nombres", flat=True)), ["Primero", "Segundo"])
 
     def test_imagen_privada_solo_para_tatuadora_elegida_o_admin(self):
-        self.client.post(self.url, propuesta(self.artista))
+        self.client.post(self.url, propuesta(self.artista), follow=True)
         imagen = Imagen.objects.get()
         url = url_archivo(imagen.url)
         self.assertEqual(self.client.get(url).status_code, 302)
@@ -236,8 +243,8 @@ class CommitDeRecepcion(TransactionTestCase):
         artista = profesional()
         with tempfile.TemporaryDirectory() as media, self.settings(MEDIA_ROOT=media):
             with patch.object(connection, "commit", side_effect=OperationalError("commit fallido")):
-                r = self.client.post(reverse("web:cotizacion"), propuesta(artista))
+                r = self.client.post(reverse("web:cotizacion"), propuesta(artista), follow=True)
             self.assertEqual(r.status_code, 503)
             self.assertFalse(Postulacion.objects.exists())
             self.assertFalse(ContactoSolicitud.objects.exists())
-            self.assertEqual([p for p in Path(media).rglob("*") if p.is_file()], [])
+            self.assertEqual([p for p in Path(media).rglob("*") if p.is_file() and p.parent.name != "pendientes"], [])  # la copia temporal se conserva para reintentar

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}Recuperar contraseña{% endblock %}
+{% block nav_label %}ACCESO A MTFLOW{% endblock %}
+{% block area %}Acceso{% endblock %}
+{% block navigation %}<a class="nav-item" href="{% url 'cuentas:login' %}">{% include "_icono.html" with n="entrar" %} Ingresar</a><a class="nav-item" href="{% url 'clientes:registro' %}">{% include "_icono.html" with n="usuario" %} Crear cuenta de cliente</a>{% endblock %}
+{% block contenido %}
+<section class="tarjeta angosta centrada">
+  <p class="eyebrow">CUENTA DE CLIENTE</p>
+  <h1>¿Olvidaste tu contraseña?</h1>
+  <p class="bajada">Escribe el correo de tu cuenta y te enviaremos un enlace para crear una nueva. El enlace vence en 2 horas y sirve una sola vez.</p>
+  {% include "_errores_form.html" %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}{% include "_campo.html" %}{% endfor %}
+    <button type="submit" class="boton ancho">Enviar enlace</button>
+  </form>
+  <p class="nota"><a href="{% url 'cuentas:login' %}">Volver a ingresar</a></p>
+  <p class="nota">¿Eres del equipo del estudio? Pide a la administración una contraseña temporal.</p>
+</section>
+{% endblock %}

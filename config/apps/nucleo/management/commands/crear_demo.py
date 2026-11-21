@@ -235,6 +235,10 @@ class Command(BaseCommand):
         fecha, inicio, fin = pasados.pop(indice)
         BloqueHorario.objects.filter(pk=bloque.pk).update(fecha=fecha, hora_inicio=inicio, hora_fin=fin)
         bloque.refresh_from_db()
+        from apps.nucleo.consentimiento import firmar_por_sistema
+        contacto = p.contacto
+        firmar_por_sistema(p, user, date(1985 + p.pk % 15, 1 + p.pk % 12, 1 + p.pk % 28),
+                           f"{contacto.nombres} {contacto.primer_apellido}".strip())
         cerrar_bloque(user, bloque.referencia, "realizar", "", bloque.actualizada_en.isoformat())
         p = Postulacion.objects.get(pk=p.pk)
         if saldo > 0:
@@ -265,7 +269,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def borrar(self):
         from web.models import (Postulacion, Cliente, ContactoSolicitud, Sesion, BloqueHorario, Imagen, Prediccion,
-                                ConfianzaEstilo, EtiquetaConsolidada, MovimientoCobro, EventoSolicitud, TrabajoPortafolio)
+                                ConfianzaEstilo, EtiquetaConsolidada, MovimientoCobro, EventoSolicitud, TrabajoPortafolio, Consentimiento)
         ids = list(Postulacion.objects.filter(contacto__correo__endswith=DOMINIO).values_list("pk", flat=True))
         if not ids:
             return 0
@@ -273,6 +277,7 @@ class Command(BaseCommand):
         TrabajoPortafolio.objects.filter(postulacion_id__in=ids).update(postulacion=None)
         rutas_cobros = [r for r in MovimientoCobro.objects.filter(postulacion_id__in=ids).values_list("comprobante", flat=True) if r]
         MovimientoCobro.objects.filter(postulacion_id__in=ids).delete()
+        Consentimiento.objects.filter(postulacion_id__in=ids).delete()
         EventoSolicitud.objects.filter(postulacion_id__in=ids).delete()
         bloques = list(Sesion.objects.filter(postulacion_id__in=ids).values_list("bloque_id", flat=True))
         Sesion.objects.filter(postulacion_id__in=ids).delete()

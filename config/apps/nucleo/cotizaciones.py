@@ -31,7 +31,10 @@ def nombre_estado(estado):
 def precio_legible(propuesta):
     if propuesta.precio_sugerido is None:
         return "Revisión personalizada"
-    return "$" + f"{propuesta.precio_sugerido:,}".replace(",", ".") + " CLP"
+    clp = lambda n: "$" + f"{n:,}".replace(",", ".")
+    if propuesta.precio_sugerido_maximo:
+        return f"{clp(propuesta.precio_sugerido)} – {clp(propuesta.precio_sugerido_maximo)} CLP"
+    return clp(propuesta.precio_sugerido) + " CLP"
 
 
 @rol_requerido(Rol.ADMIN)
@@ -210,6 +213,7 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
     sugerido = principal["prediccion"].estilo_sugerido if principal else None
     revision_form = RevisionForm(initial={"version": propuesta.actualizada_en.isoformat(), "estilo": sugerido.pk if sugerido and sugerido.codigo != "E-99" else None})
     from .flujo import estado_cierre
+    from web.models import Consentimiento
     from .operaciones_agenda import _clp
     cierre = estado_cierre(propuesta)
     return render(request, "cotizaciones/detalle.html", {
@@ -224,6 +228,8 @@ def _detalle(request, referencia, propuestas, es_equipo=False, gestion_form=None
         "sesiones": propuesta.sesiones.all(), "eventos": propuesta.eventos.select_related("actor")[:50],
         "tiene_inasistencias": propuesta.sesiones.filter(estado="NO_ASISTIO").exists(),
         "cierre_disponible": cierre["sesiones_listas"],
+        "falta_consentimiento": cierre["falta_consentimiento"],
+        "consentimiento": Consentimiento.objects.filter(postulacion=propuesta).first(),
         # Terminar exige el pago final confirmado: sin saldo pendiente.
         "puede_terminar": cierre["puede_terminar"],
         "sesiones_por_marcar": cierre["por_marcar"],

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titulo %}Contraseña actualizada{% endblock %}
+{% block nav_label %}ACCESO A MTFLOW{% endblock %}
+{% block area %}Acceso{% endblock %}
+{% block navigation %}<a class="nav-item" href="{% url 'cuentas:login' %}">{% include "_icono.html" with n="entrar" %} Ingresar</a><a class="nav-item" href="{% url 'clientes:registro' %}">{% include "_icono.html" with n="usuario" %} Crear cuenta de cliente</a>{% endblock %}
+{% block contenido %}
+<section class="tarjeta angosta centrada">
+  <p class="eyebrow">CUENTA DE CLIENTE</p>
+  <h1>Contraseña actualizada</h1>
+  <p class="bajada">Ya puedes ingresar con tu nueva contraseña.</p>
+  <a class="boton" href="{% url 'cuentas:login' %}">Ingresar</a>
+</section>
+{% endblock %}

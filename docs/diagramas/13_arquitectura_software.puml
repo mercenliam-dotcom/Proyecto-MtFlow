@@ -1,0 +1,33 @@
+@startuml 13_arquitectura_software
+!include _estilo.iuml
+skinparam componentStyle uml2
+skinparam ComponentBorderColor #4A3B5C
+skinparam ComponentBackgroundColor #FFFFFF
+title MTFlow — Arquitectura de software (componentes UML)
+
+component "Interfaz pública\nnavegador web" as PUB
+component "Panel profesional\nnavegador web" as PAN
+
+package "MTFlow" {
+  component "Aplicación web MTFlow\nDjango 5.2 (vistas HTML + JSON propias)\n----\nUsuarios y roles · Solicitudes · Agenda y disponibilidad\nAcuerdo, abono y cobros · Consentimiento informado\nPortafolio y catálogo · Referencias · Métricas" as APP
+  component "Servicio de inferencia\nFastAPI · TensorFlow / Keras\nEfficientNetB0 v3 + OOD" as INF
+  database "PostgreSQL 16" as PG
+  folder "Almacenamiento privado\nde imágenes (disco)" as ALM
+}
+component "Servidor de correo\n(SMTP)" as SMTP
+component "Servidor DNS" as DNS
+
+PUB ..> APP : HTTPS
+PAN ..> APP : HTTPS
+APP ..> INF : HTTP / JSON\n(X-API-Key)
+APP ..> PG : SQL / TLS
+APP ..> ALM : archivos
+APP ..> SMTP : SMTP / TLS
+APP ..> DNS : consulta MX
+
+note bottom of APP
+  El contacto con el cliente por WhatsApp, Instagram
+  o TikTok ocurre fuera del sistema: MTFlow solo guarda
+  el usuario de red social que el cliente escribe.
+end note
+@enduml

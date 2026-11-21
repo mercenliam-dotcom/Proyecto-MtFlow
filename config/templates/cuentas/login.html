@@ -12,6 +12,7 @@
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
     {% for campo in form %}{% include "_campo.html" %}{% endfor %}
+    <p class="olvido"><a href="{% url 'clientes:recuperar' %}">¿Olvidaste tu contraseña?</a></p>
     <button type="submit" class="boton ancho">Ingresar</button>
   </form>
   {% include "cuentas/_acceso_social.html" %}

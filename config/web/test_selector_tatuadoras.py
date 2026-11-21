@@ -52,7 +52,7 @@ class SelectorTatuadoras(TestCase):
     def test_propuesta_llega_a_la_cuenta_elegida_y_no_a_otra(self):
         elegida = profesional("elegida")
         Tatuadora.objects.filter(pk=elegida.pk).update(nombre_artistico="Nombre antiguo")
-        r = self.client.post(self.url, propuesta(elegida))
+        r = self.client.post(self.url, propuesta(elegida), follow=True)
         self.assertEqual(r.status_code, 200)
         postulacion = Postulacion.objects.get()
         self.assertEqual(postulacion.tatuadora.usuario_id, elegida.usuario_id)
@@ -67,7 +67,7 @@ class SelectorTatuadoras(TestCase):
         admin = Usuario.objects.create_superuser("admin01", "admin@example.com", "Tinta2026segura", nombre="Amanda", apellido="Rojas", es_tatuadora=True)
         perfil = Tatuadora.objects.get(usuario=admin)
         self.assertIn(perfil, CotizacionForm().fields["tatuadora"].queryset)
-        self.assertEqual(self.client.post(self.url, propuesta(perfil)).status_code, 200)
+        self.assertEqual(self.client.post(self.url, propuesta(perfil), follow=True).status_code, 200)
         p = Postulacion.objects.get()
         self.client.force_login(admin)
         self.assertContains(self.client.get(reverse("nucleo:cotizaciones")), str(p.referencia))
@@ -89,7 +89,7 @@ class SelectorTatuadoras(TestCase):
         self.assertEqual(Tatuadora.objects.filter(usuario=admin).count(), 1)
 
     def test_quitar_funcion_oculta_selector_y_conserva_historial(self):
-        self.client.post(self.url, propuesta(self.artista))
+        self.client.post(self.url, propuesta(self.artista), follow=True)
         user = self.artista.usuario
         user.es_tatuadora = False
         user.save(update_fields=["es_tatuadora"])

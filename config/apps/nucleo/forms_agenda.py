@@ -40,7 +40,7 @@ class HoraField(forms.TypedChoiceField):
 
 class BloqueForm(forms.Form):
     tipo = forms.ChoiceField(label="Qué quieres agendar", choices=BloqueHorario.Tipo.choices)
-    fecha = forms.DateField(label="Fecha (DD/MM/AAAA)", input_formats=["%d/%m/%Y", "%Y-%m-%d"], widget=forms.DateInput(attrs={"placeholder": "DD/MM/AAAA", "inputmode": "numeric", "pattern": r"[0-9]{2}/[0-9]{2}/[0-9]{4}"}, format="%d/%m/%Y"))
+    fecha = forms.DateField(label="Fecha (DD/MM/AAAA)", input_formats=["%d/%m/%Y", "%Y-%m-%d"], widget=forms.DateInput(attrs={"placeholder": "DD/MM/AAAA", "inputmode": "numeric", "maxlength": "10", "data-mascara": "fecha", "pattern": r"[0-9]{2}/[0-9]{2}/[0-9]{4}", "data-mensaje-patron": "Escribe la fecha con el formato DD/MM/AAAA."}, format="%d/%m/%Y"))
     
     hora_inicio = HoraField(label="Inicio", choices=OPCIONES_HORA, coerce=parse_hora, widget=forms.Select)
     hora_fin = HoraField(label="Término", choices=OPCIONES_HORA, coerce=parse_hora, widget=forms.Select)
@@ -178,6 +178,25 @@ class GestionForm(forms.Form):
     verificado = forms.BooleanField(label="Verifiqué el pago recibido fuera de la plataforma", required=False)
     motivo = forms.CharField(label="Observación / motivo de rechazo", max_length=500, required=False, validators=[texto_sin_controles], widget=forms.Textarea(attrs={"rows": 2}))
 
+    def _precargar_desde_solicitud(self, p):
+        """Al aceptar, el acuerdo parte de lo que pidió el cliente (editable): no hay que volver atrás a mirarlo."""
+        from .operaciones_agenda import _clp
+        if not p.precio_final and p.precio_sugerido:
+            self.initial["precio_final"] = p.precio_sugerido
+        sin_ceros = lambda v: format(v.normalize(), "f") if v is not None else None  # 8.00 → 8 ; 8.50 → 8.5
+        self.initial["alto_final_cm"] = sin_ceros(p.alto_final_cm or p.alto_cm)
+        self.initial["ancho_final_cm"] = sin_ceros(p.ancho_final_cm or p.ancho_cm)
+        referencia_precio = []
+        if p.precio_sugerido and p.precio_sugerido_maximo:
+            referencia_precio.append(f"estimación entregada al cliente entre {_clp(p.precio_sugerido)} y {_clp(p.precio_sugerido_maximo)}")
+        elif p.precio_sugerido:
+            referencia_precio.append(f"estimación entregada al cliente desde {_clp(p.precio_sugerido)}")
+        if p.presupuesto_estimado:
+            referencia_precio.append(f"presupuesto que indicó el cliente: {_clp(p.presupuesto_estimado)}")
+        self.fields["precio_final"].help_text = ("Referencia de la solicitud: " + "; ".join(referencia_precio) + ". Puedes cambiarlo.") if referencia_precio else "La solicitud no trae estimación: por tamaño, zona o cobertura quedó para tu revisión."
+        self.fields["alto_final_cm"].help_text = f"La solicitud pidió {_cm(p.alto_cm)} cm de alto. Puedes cambiarlo."
+        self.fields["ancho_final_cm"].help_text = f"La solicitud pidió {_cm(p.ancho_cm)} cm de ancho. Puedes cambiarlo."
+
     def __init__(self, *args, solicitud=None, accion=None, **kwargs):
         super().__init__(*args, **kwargs)
         if solicitud is not None:
@@ -207,6 +226,8 @@ class GestionForm(forms.Form):
                     self.fields["monto_abono"].widget.attrs.update(min=minimo, max=maximo)
             if accion == "aceptar":
                 self.fields["abono_solicitado"].help_text = "Entre 30 % y 40 % del precio total acordado."
+                if solicitud is not None:
+                    self._precargar_desde_solicitud(solicitud)
             self.fields["accion"].widget = forms.HiddenInput()
             campos = {"aceptar": {"precio_final", "abono_solicitado", "alto_final_cm", "ancho_final_cm", "motivo"},
                       "abono": {"monto_abono", "verificado", "motivo"}, "revisar": set(), "rechazar": {"motivo"}}
@@ -222,4 +243,4 @@ class GestionForm(forms.Form):
             raise forms.ValidationError("Indica el abono y confirma que lo verificaste. Aquí no se procesan pagos.")
         if d.get("accion") == "rechazar" and not d.get("motivo"):
             self.add_error("motivo", "Registra el motivo; la solicitud se conserva en el historial.")
-        return d
+        return d

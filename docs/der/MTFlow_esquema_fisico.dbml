@@ -53,6 +53,7 @@ Table usuario {
   is_active boolean [not null, note: 'Valor inicial en Django: True']
   es_admin_desarrollo boolean [not null, note: 'Valor inicial en Django: False']
   creado_en timestamptz [not null, note: 'Valor inicial en Django: generado por aplicación']
+  avatar varchar(300) [not null, note: 'Valor inicial en Django: ']
   creado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
   debe_cambiar_contrasena boolean [not null, note: 'Valor inicial en Django: True']
   checks {
@@ -129,6 +130,7 @@ Table web_postulacion {
   abono_verificado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
   referencia uuid [not null, unique, note: 'Valor inicial en Django: generado por aplicación']
   estado_ml varchar(20) [not null, note: 'Valores de aplicación: LEGADO, NO_SOLICITADO, COMPLETADO, NO_DISPONIBLE; Valor inicial en Django: LEGADO']
+  vista_en timestamptz [null]
   cliente_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
   tatuadora_id bigint [not null, note: 'Al eliminar referente: RESTRICT en Django']
   zona_cuerpo varchar(100) [not null]
@@ -144,6 +146,7 @@ Table web_postulacion {
   alerta_ml varchar(20) [null]
   motivo_rechazo text [null]
   precio_sugerido integer [null]
+  precio_sugerido_maximo integer [null]
   precio_final integer [null]
   monto_abono integer [null]
   creada_en timestamptz [not null, note: 'Fecha asignada por Django']
@@ -223,6 +226,8 @@ Table web_prediccion {
   confianza_maxima numeric(17,16) [not null]
   umbral_confianza numeric(3,2) [null]
   tiempo_inferencia_ms integer [not null]
+  ood jsonb [null]
+  motivo_abstencion varchar(32) [not null, note: 'Valores de aplicación: , fuera_distribucion, confianza_insuficiente; Valor inicial en Django: ']
   generada_en timestamptz [not null, note: 'Fecha asignada por Django']
   indexes {
     (imagen_id, version_modelo) [unique]
@@ -296,6 +301,7 @@ Table web_movimientocobro {
   detalle varchar(300) [not null]
   verificado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
   creado_en timestamptz [not null, note: 'Fecha asignada por Django']
+  comprobante varchar(300) [not null, note: 'Valor inicial en Django: ']
   checks {
     `monto > 0 AND monto <= 100000000` [name: 'cobro_monto_valido']
     `tipo IN ('PAGO','DEVOLUCION')` [name: 'cobro_tipo_valido']
@@ -309,6 +315,25 @@ Table web_eventosolicitud {
   actor_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
   tipo varchar(40) [not null]
   detalle varchar(500) [not null]
+  creado_en timestamptz [not null, note: 'Fecha asignada por Django']
+}
+
+Table web_consentimiento {
+  Note: 'Consentimiento informado de una solicitud (1 a 1). Dos firmas por nombre escrito y en orden: ficha de salud del cliente y luego declaración de la tatuadora. Sin ambas no se puede realizar la sesión ni terminar el trabajo. Datos de salud: no se copian al historial. Tabla física Django: web_consentimiento.'
+  postulacion_id bigint [pk, not null, note: 'Al eliminar referente: RESTRICT en Django']
+  version_texto varchar(20) [not null]
+  fecha_nacimiento date [null]
+  alergias varchar(500) [not null]
+  condiciones varchar(500) [not null]
+  medicamentos varchar(500) [not null]
+  embarazo boolean [not null, note: 'Valor inicial en Django: False']
+  alcohol_24h boolean [not null, note: 'Valor inicial en Django: False']
+  autoriza_fotos boolean [not null, note: 'Valor inicial en Django: False']
+  firma_cliente varchar(160) [not null]
+  cliente_firmo_en timestamptz [null]
+  registrado_por_id bigint [null, note: 'Al eliminar referente: SET_NULL en Django']
+  firma_tatuadora varchar(160) [not null]
+  tatuadora_firmo_en timestamptz [null]
   creado_en timestamptz [not null, note: 'Fecha asignada por Django']
 }
 
@@ -342,6 +367,8 @@ Ref: web_movimientocobro.postulacion_id > web_postulacion.id
 Ref: web_movimientocobro.verificado_por_id > usuario.id
 Ref: web_eventosolicitud.postulacion_id > web_postulacion.id
 Ref: web_eventosolicitud.actor_id > usuario.id
+Ref: web_postulacion.id - web_consentimiento.postulacion_id
+Ref: web_consentimiento.registrado_por_id > usuario.id
 
 TableGroup Acceso_y_profesionales {
   usuario
@@ -360,6 +387,7 @@ TableGroup Solicitudes_y_agenda {
   web_bloquehorario
   web_movimientocobro
   web_eventosolicitud
+  web_consentimiento
 }
 
 TableGroup Imagenes_estilos_y_portafolio {

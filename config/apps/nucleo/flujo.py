@@ -83,9 +83,13 @@ def estado_cierre(p):
     elif futura:
         motivo = f"Todavía hay sesiones reservadas: la del {futura.fecha:%d/%m/%Y} a las {futura.hora_inicio:%H:%M} aún no ocurre. Complétala, reprográmala o cancélala antes de cerrar."
     sesiones_listas = not motivo
-    if sesiones_listas and p.saldo_pendiente > 0:
+    from .consentimiento import consentimiento_completo
+    falta_consentimiento = sesiones_listas and not consentimiento_completo(p)
+    if falta_consentimiento:
+        motivo = "Falta el consentimiento firmado de este trabajo (ficha del cliente y declaración de la tatuadora)."
+    elif sesiones_listas and p.saldo_pendiente > 0:
         motivo = f"Falta confirmar el pago final: el saldo pendiente es {_clp(p.saldo_pendiente)} CLP. Regístralo en «Registrar pago final» antes de terminar el trabajo."
-    return {"sesiones_listas": sesiones_listas, "puede_terminar": not motivo, "motivo": motivo,
+    return {"sesiones_listas": sesiones_listas, "puede_terminar": not motivo, "motivo": motivo, "falta_consentimiento": falta_consentimiento,
             "por_marcar": list(reservadas.filter(fecha__lte=hoy)) if sesiones_listas else []}
 
 

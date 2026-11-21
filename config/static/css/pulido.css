@@ -710,3 +710,35 @@ a.card-estilo:hover { background: #e5dbf1; }
 .catalogo-paginacion { justify-content: center; align-items: center; margin-top: 26px; }
 @media (max-width: 640px) { .estilos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .estilo-texto strong { font-size: 16px; } .estilo-texto small { display: none; } }
 @media (prefers-reduced-motion: reduce) { .estilo-tarjeta, .estilo-portada img { transition: none; } a.estilo-tarjeta:hover { transform: none; } a.estilo-tarjeta:hover .estilo-portada img { transform: none; } }
+
+/* Consentimiento informado (panel) */
+.alerta-ok { background: var(--ok-fondo); color: var(--ok); }
+.consentimiento-pasos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0 0 18px; padding: 0; list-style: none; }
+.consentimiento-pasos li { display: grid; gap: 2px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.consentimiento-pasos li small { color: var(--muted); }
+.consentimiento-pasos li.actual { border-color: #c9b3da; background: #faf7fc; }
+.consentimiento-pasos li.hecho { border-color: #bcd9c6; background: var(--ok-fondo); }
+.consentimiento-pasos li.hecho small { color: var(--ok); }
+.consentimiento-completo { margin-bottom: 18px; }
+.consentimiento-rejilla { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.consentimiento-principal { display: grid; gap: 20px; min-width: 0; }
+.consentimiento-bloqueado { opacity: .7; }
+.consentimiento-form { display: grid; gap: 4px; }
+.consentimiento-form .campo:has(input[type="checkbox"]) { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: flex-start; gap: 10px; }
+.consentimiento-form .campo:has(input[type="checkbox"]) label { font-weight: 500; }
+.consentimiento-form .boton { justify-self: start; margin-top: 8px; }
+.consentimiento-ficha { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.firma-escrita { font: italic 20px/1.3 Georgia, serif; color: var(--ink); }
+.consentimiento-declarado li { padding: 4px 0; }
+.consentimiento-texto { position: sticky; top: 92px; max-height: calc(100vh - 120px); overflow: auto; font-size: 14px; }
+.consentimiento-texto h3 { margin: 16px 0 4px; font-size: 14px; }
+.consentimiento-texto ul { margin: 0; padding-left: 18px; color: #4c4456; }
+.consentimiento-estado { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+@media (max-width: 900px) { .consentimiento-rejilla { grid-template-columns: 1fr; } .consentimiento-texto { position: static; max-height: none; } }
+/* Consentimiento (página pública) */
+.consentimiento-publico { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.consentimiento-seccion h2 { margin: 0 0 8px; font-size: 18px; }
+.consentimiento-seccion ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.consentimiento-seccion .demo-note { margin: 12px 0 0; }
+.consentimiento-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.consentimiento-cta a { width: auto; margin: 0; text-decoration: none; display: inline-flex; align-items: center; }

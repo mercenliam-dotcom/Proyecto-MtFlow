@@ -196,6 +196,10 @@ def cerrar_bloque(user, referencia, accion, motivo, version):
         
         if accion == "inasistencia" and not motivo.strip():
             raise ValidationError("Registra una observación sobre la inasistencia.")
+        if accion == "realizar" and b.postulacion_id:
+            from .consentimiento import FALTA_CONSENTIMIENTO, consentimiento_completo
+            if not consentimiento_completo(b.postulacion):
+                raise ValidationError(FALTA_CONSENTIMIENTO)
         
         b.estado = "REALIZADA" if accion == "realizar" else "NO_ASISTIO"
     elif accion == "cancelar":

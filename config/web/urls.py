@@ -1,7 +1,7 @@
 
 from django.urls import path
 from django.views.generic import RedirectView
-from . import views
+from . import imagen_pendiente, views
 from .disponibilidad import calendario_publico
 from apps.nucleo.portafolio import imagen
 
@@ -15,7 +15,9 @@ urlpatterns = [
     path("portafolio/", RedirectView.as_view(pattern_name="web:portafolio")),
     path("", views.portafolio, name="portafolio"),
     path("catalogo/", views.catalogo, name="catalogo"),
+    path("consentimiento/", views.consentimiento, name="consentimiento"),
     path("horarios/", views.horarios, name="horarios"),
     path("cotizacion/", views.cotizacion, name="cotizacion"),
     path("cotizacion/analizar/", views.analizar_referencia, name="analizar_referencia"),
+    path("cotizacion/imagen/<str:token>/", imagen_pendiente.ver, name="imagen_pendiente"),
 ]

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block titulo %}Consentimiento · {{ propuesta.codigo }}{% endblock %}
+{% block contenido %}
+<p class="miga"><a href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}">← Solicitud</a></p>
+<div class="encabezado">
+  <div>
+    <p class="eyebrow">ANTES DE LA SESIÓN</p>
+    <h1>Consentimiento informado</h1>
+    <p class="bajada">{{ propuesta.contacto }} · Código {{ propuesta.codigo }} · Texto versión {{ version }}. Se firma una vez por trabajo: primero el cliente y después tú.</p>
+  </div>
+</div>
+
+<ol class="consentimiento-pasos" aria-label="Estado del consentimiento">
+  <li class="{% if c.cliente_firmo_en %}hecho{% else %}actual{% endif %}"><strong>1 · Ficha del cliente</strong><small>{% if c.cliente_firmo_en %}Firmada el {{ c.cliente_firmo_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</small></li>
+  <li class="{% if c.tatuadora_firmo_en %}hecho{% elif c.cliente_firmo_en %}actual{% endif %}"><strong>2 · Tu declaración</strong><small>{% if c.tatuadora_firmo_en %}Firmada el {{ c.tatuadora_firmo_en|date:"d/m/Y H:i" }}{% else %}Pendiente{% endif %}</small></li>
+</ol>
+
+{% if c.completo %}
+<div class="alerta alerta-ok consentimiento-completo" role="status"><strong>Consentimiento completo.</strong> Ya puedes realizar la sesión y marcarla como realizada en tu agenda. <a href="{% url 'nucleo:cotizacion_detalle' propuesta.referencia %}">Volver a la solicitud →</a></div>
+{% elif not abierta %}
+<div class="alerta alerta-info" role="status">Este trabajo ya no está en curso: el consentimiento queda solo para consulta.</div>
+{% endif %}
+
+<div class="consentimiento-rejilla">
+  <div class="consentimiento-principal">
+    {# ---------- 1. Ficha del cliente ---------- #}
+    <section class="tarjeta" aria-labelledby="ficha-titulo">
+      <h2 id="ficha-titulo">1 · Ficha del cliente</h2>
+      {% if c.cliente_firmo_en %}
+      <dl class="cotizacion-datos consentimiento-ficha">
+        <div><dt>Edad al firmar</dt><dd>{{ edad }} años ({{ c.fecha_nacimiento|date:"d/m/Y" }})</dd></div>
+        <div><dt>Alergias</dt><dd>{{ c.alergias|default:"No declara" }}</dd></div>
+        <div><dt>Condiciones médicas</dt><dd>{{ c.condiciones|default:"No declara" }}</dd></div>
+        <div><dt>Medicamentos</dt><dd>{{ c.medicamentos|default:"No declara" }}</dd></div>
+        <div><dt>Embarazo o lactancia</dt><dd>{% if c.embarazo %}<span class="chip chip-estado chip-en_revision">Sí: evalúa postergar</span>{% else %}No{% endif %}</dd></div>
+        <div><dt>Fotos en el portafolio</dt><dd>{% if c.autoriza_fotos %}Autoriza{% else %}No autoriza{% endif %}</dd></div>
+        <div><dt>Firma</dt><dd class="firma-escrita">{{ c.firma_cliente }}</dd></div>
+        <div><dt>Registrada por</dt><dd>{{ c.registrado_por.get_full_name|default:"—" }} · {{ c.cliente_firmo_en|date:"d/m/Y H:i" }}</dd></div>
+      </dl>
+      {% elif abierta %}
+      <p class="nota">Entrega el dispositivo al cliente para que lea el consentimiento, complete sus datos y firme escribiendo su nombre.</p>
+      <form method="post" class="consentimiento-form" novalidate>{% csrf_token %}
+        <input type="hidden" name="parte" value="cliente">
+        {{ ficha.non_field_errors }}
+        {% for campo in ficha %}{% include "_campo.html" %}{% endfor %}
+        <button class="boton" type="submit">Firmar ficha del cliente</button>
+      </form>
+      {% else %}
+      <p class="nota">No se registró la ficha del cliente.</p>
+      {% endif %}
+    </section>
+
+    {# ---------- 2. Declaración de la tatuadora ---------- #}
+    <section class="tarjeta{% if not c.cliente_firmo_en %} consentimiento-bloqueado{% endif %}" aria-labelledby="declaracion-titulo">
+      <h2 id="declaracion-titulo">2 · Tu declaración</h2>
+      {% if c.tatuadora_firmo_en %}
+      <ul class="lista-limpia consentimiento-declarado">{% for campo in declaracion %}{% if campo.name != "firma" %}<li>✓ {{ campo.label }}</li>{% endif %}{% endfor %}</ul>
+      <p>Firma: <span class="firma-escrita">{{ c.firma_tatuadora }}</span> · {{ c.tatuadora_firmo_en|date:"d/m/Y H:i" }}</p>
+      {% elif not c.cliente_firmo_en %}
+      <p class="nota">Disponible cuando el cliente firme su ficha: la declaración incluye haberla revisado.</p>
+      {% elif abierta %}
+      <form method="post" class="consentimiento-form" novalidate>{% csrf_token %}
+        <input type="hidden" name="parte" value="tatuadora">
+        {{ declaracion.non_field_errors }}
+        {% for campo in declaracion %}{% include "_campo.html" %}{% endfor %}
+        <button class="boton" type="submit">Firmar mi declaración</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="tarjeta consentimiento-texto" aria-labelledby="texto-titulo">
+    <h2 id="texto-titulo">Lo que acepta el cliente</h2>
+    <p class="nota">Mismo texto de la página pública <a href="{% url 'web:consentimiento' %}" target="_blank" rel="noopener">Consentimiento ↗</a>.</p>
+    {% for s in secciones %}
+    <h3>{{ s.titulo }}</h3>
+    <ul>{% for punto in s.puntos %}<li>{{ punto }}</li>{% endfor %}</ul>
+    {% if s.nota %}<p class="nota">{{ s.nota }}</p>{% endif %}
+    {% endfor %}
+  </aside>
+</div>
+{% endblock %}

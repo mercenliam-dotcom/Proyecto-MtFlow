@@ -1,0 +1,40 @@
+@startuml 05_estados_solicitud
+!include _estilo.iuml
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #4A3B5C
+}
+title MTFlow — Máquina de estados de la solicitud (postulacion.estado)
+
+[*] --> RECIBIDA : cliente envía la solicitud\n[datos válidos, imagen guardada]
+RECIBIDA --> EN_REVISION : tatuadora la marca en revisión
+RECIBIDA --> ACEPTADA : registrar acuerdo\n(precio, abono 30–40 %, medidas)
+EN_REVISION --> ACEPTADA : registrar acuerdo
+RECIBIDA --> RECHAZADA : rechazar [motivo]
+EN_REVISION --> RECHAZADA : rechazar [motivo]
+
+state ACEPTADA {
+  [*] --> Cotizada
+  Cotizada --> Confirmada : abono verificado\n(pago externo)
+  Confirmada --> Confirmada : editar acuerdo
+}
+note right of ACEPTADA
+  «Cotizada» y «Confirmada» son la presentación
+  comercial del mismo estado (no se guardan):
+  Confirmada = abono verificado y dinero recibido.
+end note
+
+ACEPTADA --> RECHAZADA : rechazar [sin abono\ny sin sesiones]
+ACEPTADA --> RESERVADA : agendar sesión\n[abono verificado, horario libre]
+RESERVADA --> ACEPTADA : sesión realizada, cancelada\no inasistencia, sin otra reservada
+RESERVADA --> RESERVADA : agendar otra sesión
+ACEPTADA --> REALIZADA : terminar trabajo\n[≥1 sesión realizada, sin sesiones futuras,\nconsentimiento completo, saldo = 0]
+RESERVADA --> REALIZADA : terminar trabajo\n[mismas condiciones]
+
+REALIZADA --> [*]
+RECHAZADA --> [*]
+note bottom of REALIZADA
+  Trabajo cerrado: la solicitud queda
+  solo para consulta.
+end note
+@enduml

@@ -1,0 +1,26 @@
+{% extends "web/base.html" %}
+
+{% block title %}Consentimiento informado | MtFlow{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">ANTES DE TU SESIÓN</p>
+    <h1>Consentimiento informado</h1>
+    <div class="heading-line"></div>
+    <p class="subtitle">Lo que necesitas saber antes de tatuarte con nosotros. El día de tu sesión lo firmarás junto a tu tatuadora. Versión {{ version }}.</p>
+  </div>
+</header>
+
+<div class="consentimiento-publico">
+  {% for s in secciones %}
+  <section class="surface consentimiento-seccion" aria-labelledby="seccion-{{ forloop.counter }}">
+    <h2 id="seccion-{{ forloop.counter }}">{{ s.titulo }}</h2>
+    <ul>{% for punto in s.puntos %}<li>{{ punto }}</li>{% endfor %}</ul>
+    {% if s.nota %}<p class="demo-note">{{ s.nota }}</p>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+
+<p class="consentimiento-cta"><a class="primary-button" href="{% url 'web:cotizacion' %}">Cuéntanos tu idea</a> <a class="secondary-button" href="{% url 'web:catalogo' %}">Ver trabajos</a></p>
+{% endblock %}

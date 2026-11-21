@@ -1,0 +1,68 @@
+@startuml 06_secuencia_envio_solicitud
+!include _estilo.iuml
+skinparam sequenceMessageAlign center
+skinparam ParticipantBorderColor #4A3B5C
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam SequenceLifeLineBorderColor #9E9E9E
+autonumber
+title MTFlow — Secuencia: envío de una solicitud (revisión de correo, imagen persistente y clasificación)
+
+actor Cliente
+participant ":FormularioSolicitud\n(navegador)" as F
+participant ":VistaCotizacion" as V
+participant ":RevisorCorreo" as RC
+participant "Servidor DNS" as DNS
+participant ":ImagenPendiente" as IP
+participant ":ServicioClasificacion\n(FastAPI · EfficientNetB0 v3)" as ML
+participant ":Recepcion" as R
+database "BD_MTFlow" as BD
+collections "Almacén privado\nde imágenes" as AL
+
+Cliente -> F : escribe nombre, teléfono (+56) y correo
+F -> F : bloquea al escribir caracteres no válidos\n(letras en números, números en nombres)
+F -> RC : GET /cuentas/correo/revisar?email=…
+alt dominio conocido (gmail.com, hotmail.com, …)
+  RC --> F : válido (sin consultar DNS)
+else otro dominio
+  RC -> DNS : consultar registros MX (o A)
+  DNS --> RC : respuesta
+  RC --> F : válido | «no existe» + sugerencia («gmial.com» → «gmail.com»)
+end
+
+Cliente -> F : elige imagen de referencia
+F -> V : POST /cotizacion/analizar (imagen)
+V -> V : validar y recodificar JPG/PNG (≤ 10 MiB)
+V -> IP : guardar(imagen)
+IP -> AL : escribir pendientes/<token>
+IP --> V : token (válido solo para esta sesión, 24 h)
+V -> ML : POST /clasificar (imagen)
+alt servicio disponible
+  ML --> V : 7 confianzas, estilo, OOD
+  V --> F : resultado + token
+else servicio no disponible
+  V --> F : aviso (200) + token: la imagen igual queda guardada
+end
+
+Cliente -> F : envía la solicitud
+F -> V : POST /cotizacion/ (datos + token, sin volver a subir la imagen)
+V -> V : validar formulario y revisar dominio del correo
+alt datos con errores
+  V -> IP : cargar(token)
+  V --> F : 400: mensajes en español; datos y\nvista previa de la imagen conservados
+  note right : se repite cuantas veces sea necesario;\nla imagen solo se pierde si se quita o se cambia
+else datos válidos
+  V -> R : recibir(datos, imagen)
+  R -> ML : clasificar de nuevo (no confía en el navegador)
+  ML --> R : resultado (o no disponible: la solicitud se guarda igual)
+  group transacción
+    R -> BD : INSERT cliente, postulacion (precio_sugerido y\nprecio_sugerido_maximo), contacto_solicitud,\nimagen, prediccion, confianza_estilo
+    R -> AL : guardar en referencias/<tatuadora>/
+  end
+  R --> V : código, estimación, resultado
+  V -> IP : descartar(token)
+  V --> F : 302 → /cotizacion/ (Post/Redirect/Get)
+  F -> V : GET /cotizacion/
+  V --> F : «¡Propuesta enviada!» una sola vez;\nformulario vacío
+  note right : recargar o volver «Atrás» no reenvía\nni muestra los datos anteriores
+end
+@enduml

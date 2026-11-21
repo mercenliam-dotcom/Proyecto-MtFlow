@@ -1,0 +1,45 @@
+@startuml 11_topologia_comunicaciones
+!include _estilo.iuml
+skinparam NodeBorderColor #4A3B5C
+skinparam NodeBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #4A3B5C
+title MTFlow — Topología de comunicaciones (producción objetivo)
+
+rectangle "Usuarios" #F3E5F5 {
+  node "Cliente\nnavegador web / móvil" as CLI
+  node "Tatuadora y Administradora\nnavegador web / móvil" as TAT
+}
+cloud "Internet" as NET
+
+rectangle "Infraestructura cloud — Render" #E0F2F1 {
+  node "Servidor de aplicación\nDjango 5.2 + gunicorn\nmonolito modular" as APP
+  folder "Disco persistente\nimágenes privadas\n(media_privado/)" as DISCO
+  rectangle "Red privada de Render" #FFF3E0 {
+    node "Servicio de inferencia\nFastAPI + uvicorn\n:8001" as ML
+    artifact "EfficientNetB0 v3\nTensorFlow / Keras\n+ detección OOD" as MOD
+  }
+}
+database "Supabase\nPostgreSQL 16" as PG
+node "Servidor SMTP\n(correo del estudio)" as SMTP
+node "Servidor DNS" as DNS
+
+CLI --> NET : HTTPS · 443
+TAT --> NET : HTTPS · 443
+NET --> APP : HTTPS · 443\n(TLS terminado por Render; HSTS)
+APP --> DISCO : sistema de archivos\n(lectura / escritura)
+APP --> ML : HTTP · red privada\nmultipart + X-API-Key
+ML --> APP : JSON: 7 confianzas,\nestilo, OOD
+ML --> MOD : carga e inferencia
+APP --> PG : PostgreSQL · TLS (sslmode=require) · 5432
+APP --> SMTP : SMTP + STARTTLS · 587\n(recuperar contraseña)
+APP --> DNS : DNS · 53\n(consulta MX del correo)
+
+note right of ML
+  Sin acceso público: solo lo llama
+  Django, con una clave compartida.
+end note
+note bottom of DISCO
+  Sin URL pública: las imágenes se
+  entregan por vistas con permiso.
+end note
+@enduml
